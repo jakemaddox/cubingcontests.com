@@ -1,6 +1,6 @@
 import DataEntryScreen from "~/app/components/adminAndModerator/DataEntryScreen.tsx";
 import LoadingError from "~/app/components/UI/LoadingError.tsx";
-import { getContest } from "~/server/serverFunctions/contestServerFunctions.ts";
+import { getContestSF } from "~/server/serverFunctions/contestServerFunctions.ts";
 import { authorizeUser, getUserHasAccessToContest } from "~/server/serverUtilityFunctions.ts";
 
 type Props = {
@@ -13,16 +13,14 @@ async function PostResultsPage({ params, searchParams }: Props) {
   const { id } = await params;
   const { eventId } = await searchParams;
 
-  const res = await getContest({ competitionId: id, eventId });
+  const res = await getContestSF({ competitionId: id, eventId });
 
   if (!res.data) return <LoadingError loadingEntity="contest results" />;
 
   const { contest, events, rounds, results, persons, recordConfigs } = res.data;
   const eventIdOrFirst = eventId ?? events[0].eventId;
 
-  if (!contest) return <LoadingError reason="Contest not found" />;
-  if (contest.state === "removed") return <LoadingError reason="This contest has been removed" />;
-  if (!getUserHasAccessToContest(user, contest.organizerIds))
+  if (!getUserHasAccessToContest(user, contest))
     return <LoadingError reason="You do not have access rights for this contest" />;
 
   return (

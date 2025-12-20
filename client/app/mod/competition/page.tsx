@@ -59,8 +59,7 @@ async function CreateEditContestPage({ searchParams }: Props) {
     let creatorPerson: PersonResponse | undefined;
 
     if (contest) {
-      if (contest.state === "removed") return <LoadingError reason="This contest has been removed" />;
-      if (!getUserHasAccessToContest(session.user, contest.organizerIds))
+      if (!getUserHasAccessToContest(session.user, contest))
         return <LoadingError reason="You do not have access rights for this contest" />;
 
       const totalResultsByRoundPromise =

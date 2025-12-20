@@ -279,6 +279,7 @@ function ResultsSubmissionForm({
         <FormCheckbox title="Don't clear competitors" selected={keepCompetitors} setSelected={setKeepCompetitors} />
         {attempts.map((attempt: Attempt, i: number) => (
           <AttemptInput
+            // biome-ignore lint/suspicious/noArrayIndexKey: there's no other way to key an attempt
             key={i}
             attNumber={i + 1}
             attempt={attempt}

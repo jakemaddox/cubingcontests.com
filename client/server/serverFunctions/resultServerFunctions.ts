@@ -76,25 +76,23 @@ export const createContestResultSF = actionClient
         message: `Creating new contest result for contest ${competitionId}, event ${eventId}, round ${roundId} and persons ${personIds.join(", ")}: ${JSON.stringify(newResultDto.attempts)}`,
       });
 
-      const contestPromise = db.query.contests.findFirst({
-        where: { competitionId, state: { in: ["approved", "ongoing"] } },
-      });
+      const contestPromise = db.query.contests.findFirst({ where: { competitionId } });
       const eventPromise = db.query.events.findFirst({ where: { eventId } });
       const roundsPromise = db.query.rounds.findMany({ where: { competitionId, eventId } });
-      const resultsPromise = db.query.results.findMany({ where: { roundId }, orderBy: { ranking: "asc" } });
+      const roundResultsPromise = db.query.results.findMany({ where: { roundId }, orderBy: { ranking: "asc" } });
       const personsPromise = db.query.persons.findMany({ where: { id: { in: personIds } } });
 
       const [contest, event, rounds, roundResults, participants] = await Promise.all([
         contestPromise,
         eventPromise,
         roundsPromise,
-        resultsPromise,
+        roundResultsPromise,
         personsPromise,
       ]);
       const round = rounds.find((r) => r.id === roundId);
 
-      if (!contest) throw new CcActionError(`Contest with ID ${competitionId} not found or it can't accept results`);
-      if (!getUserHasAccessToContest(user, contest.organizerIds))
+      if (!contest) throw new CcActionError(`Contest with ID ${competitionId} not found`);
+      if (!getUserHasAccessToContest(user, contest))
         throw new CcActionError("You do not have access rights for this contest");
       if (!event) throw new CcActionError(`Event with ID ${newResultDto.eventId} not found`);
       if (!round) throw new CcActionError(`Round with ID ${newResultDto.roundId} not found`);

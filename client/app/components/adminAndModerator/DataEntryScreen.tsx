@@ -2,7 +2,6 @@
 
 import { faMinus, faPlus } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { toZonedTime } from "date-fns-tz";
 import { usePathname } from "next/navigation";
 import { useAction } from "next-safe-action/hooks";
 import { useContext, useEffect, useMemo, useState } from "react";
@@ -19,7 +18,7 @@ import ToastMessages from "~/app/components/UI/ToastMessages.tsx";
 import { MainContext } from "~/helpers/contexts.ts";
 import { roundFormats } from "~/helpers/roundFormats.ts";
 import { roundTypes } from "~/helpers/roundTypes.ts";
-import { getDateOnly, getMakesCutoff, getMaxAllowedRounds, getRoundDate } from "~/helpers/sharedFunctions.ts";
+import { getMakesCutoff, getMaxAllowedRounds, getRoundDate } from "~/helpers/sharedFunctions.ts";
 import type { MultiChoiceOption } from "~/helpers/types/MultiChoiceOption.ts";
 import type { EventWrPair, InputPerson, RoundFormat, RoundType } from "~/helpers/types.ts";
 import { getActionError, getBlankCompetitors, shortenEventName } from "~/helpers/utilityFunctions.ts";
@@ -30,6 +29,7 @@ import type { PersonResponse } from "~/server/db/schema/persons.ts";
 import type { RecordConfigResponse } from "~/server/db/schema/record-configs.ts";
 import type { Attempt, ResultResponse } from "~/server/db/schema/results.ts";
 import type { RoundResponse } from "~/server/db/schema/rounds.ts";
+import { openRoundSF } from "~/server/serverFunctions/contestServerFunctions.ts";
 import { getPersonByIdSF } from "~/server/serverFunctions/personServerFunctions.ts";
 import { createContestResultSF, getWrPairUpToDateSF } from "~/server/serverFunctions/resultServerFunctions.ts";
 
@@ -58,6 +58,7 @@ function DataEntryScreen({
   const { executeAsync: getWrPairUpToDate, isPending: isPendingWrPairs } = useAction(getWrPairUpToDateSF);
   const { executeAsync: getPersonById, isPending: isGettingPerson } = useAction(getPersonByIdSF);
   const { executeAsync: createResult, isPending: isCreating } = useAction(createContestResultSF);
+  const { executeAsync: openRound, isPending: isOpeningRound } = useAction(openRoundSF);
   const [resultUnderEdit, setResultUnderEdit] = useState<ResultResponse | null>(null);
   const [eventWrPair, setEventWrPair] = useState<EventWrPair | undefined>();
   const [round, setRound] = useState<RoundResponse>(rounds[0]);
@@ -78,7 +79,7 @@ function DataEntryScreen({
     [rounds],
   );
 
-  const isPending = isCreating || isGettingPerson || isPendingWrPairs;
+  const isPending = isCreating || isOpeningRound || isGettingPerson || isPendingWrPairs;
   const maxAllowedRounds = getMaxAllowedRounds(rounds, results);
   const isOpenableRound = !round.open && maxAllowedRounds >= round.roundNumber;
   const lastActiveAttempt = getMakesCutoff(attempts, round.cutoffAttemptResult, round.cutoffNumberOfAttempts)
@@ -244,10 +245,11 @@ function DataEntryScreen({
     // if (res.success) setQueuePosition(res.data);
   };
 
-  const openRound = async () => {
-    const res = await myFetch.post(`/competitions/${contest.competitionId}/open-round/${round.roundId}`, {});
+  const openNextRound = async () => {
+    const res = await openRound({ competitionId: contest.competitionId, eventId });
 
-    if (res.success) updateRound(res.data);
+    if (res.serverError || res.validationErrors) changeErrorMessages([getActionError(res)]);
+    else updateRound(res.data!);
   };
 
   const submitMockResult = async () => {
@@ -316,6 +318,7 @@ function DataEntryScreen({
             />
             {attempts.map((attempt: Attempt, i: number) => (
               <AttemptInput
+                // biome-ignore lint/suspicious/noArrayIndexKey: there's no other way to key an attempt
                 key={i}
                 attNumber={i + 1}
                 attempt={attempt}
@@ -411,7 +414,7 @@ function DataEntryScreen({
             <div className="mt-5">
               {isOpenableRound ? (
                 <>
-                  <Button onClick={openRound} className="d-block mx-auto">
+                  <Button onClick={openNextRound} isLoading={isOpeningRound} className="d-block mx-auto">
                     Open Round
                   </Button>
                   <p className="fst-italic mt-4 text-center text-danger">

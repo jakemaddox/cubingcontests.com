@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { Continents, Countries } from "~/helpers/Countries.ts";
 import { type RecordCategory, type RecordType, RecordTypeValues } from "~/helpers/types.ts";
 import { getIsAdmin } from "~/helpers/utilityFunctions.ts";
+import type { ContestResponse } from "~/server/db/schema/contests.ts";
 import { getDateOnly } from "../helpers/sharedFunctions.ts";
 import { auth } from "./auth.ts";
 import { db } from "./db/provider.ts";
@@ -116,6 +117,15 @@ export async function getRecordResult(
   return recordResult;
 }
 
-export function getUserHasAccessToContest(user: typeof auth.$Infer.Session.user, organizerIds: number[]) {
-  return user.personId && (getIsAdmin(user.role) || organizerIds.includes(user.personId));
+export function getUserHasAccessToContest(
+  user: typeof auth.$Infer.Session.user,
+  contest: Pick<ContestResponse, "state" | "organizerIds">,
+) {
+  if (!user.personId) return false;
+  if (contest.state === "removed") return false;
+  if (getIsAdmin(user.role)) return true;
+
+  const modHasAccess =
+    ["created", "approved", "ongoing"].includes(contest.state) && contest.organizerIds.includes(user.personId);
+  return modHasAccess;
 }

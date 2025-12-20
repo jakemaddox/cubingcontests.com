@@ -6,6 +6,7 @@ import { and, arrayContains, desc, eq, inArray } from "drizzle-orm";
 import { find as findTimezone } from "geo-tz";
 import z from "zod";
 import { C } from "~/helpers/constants.ts";
+import { getMaxAllowedRounds } from "~/helpers/sharedFunctions.ts";
 import { getIsAdmin } from "~/helpers/utilityFunctions.ts";
 import { type ContestDto, ContestValidator } from "~/helpers/validators/Contest.ts";
 import { CoordinatesValidator } from "~/helpers/validators/Coordinates.ts";
@@ -19,7 +20,7 @@ import { type ResultResponse, resultsPublicCols, resultsTable } from "~/server/d
 import { type RoundResponse, roundsPublicCols, roundsTable } from "~/server/db/schema/rounds.ts";
 import { sendContestSubmittedNotification } from "~/server/email/mailer.ts";
 import { logMessageSF } from "~/server/serverFunctions/serverFunctions.ts";
-import { getRecordConfigs } from "~/server/serverUtilityFunctions.ts";
+import { getRecordConfigs, getUserHasAccessToContest } from "~/server/serverUtilityFunctions.ts";
 import { db } from "../db/provider.ts";
 import {
   type ContestResponse,
@@ -31,8 +32,8 @@ import { actionClient, CcActionError } from "../safeAction.ts";
 
 const getContestUrl = (competitionId: string) => `${process.env.BASE_URL}/competitions/${competitionId}`;
 
-export const getContest = actionClient
-  .metadata({ permissions: null })
+export const getContestSF = actionClient
+  .metadata({})
   .inputSchema(
     z.strictObject({
       competitionId: z.string().nonempty(),
@@ -223,6 +224,59 @@ export const createContestSF = actionClient
       );
     });
   });
+
+export const openRoundSF = actionClient
+  .metadata({ permissions: { competitions: ["create"], meetups: ["create"] } })
+  .inputSchema(
+    z.strictObject({
+      competitionId: z.string().nonempty(),
+      eventId: z.string().nonempty(),
+    }),
+  )
+  .action<RoundResponse>(
+    async ({
+      parsedInput: { competitionId, eventId },
+      ctx: {
+        session: { user },
+      },
+    }) => {
+      logMessageSF({ message: `Opening next round for event ${eventId} (contest ${competitionId})` });
+
+      const contestPromise = db.query.contests.findFirst({
+        columns: { state: true, organizerIds: true },
+        where: { competitionId },
+      });
+      const roundsPromise = db.query.rounds.findMany({
+        where: { competitionId, eventId },
+        orderBy: { roundNumber: "asc" },
+      });
+      const resultsPromise = db.query.results.findMany({ where: { competitionId, eventId } });
+
+      const [contest, rounds, results] = await Promise.all([contestPromise, roundsPromise, resultsPromise]);
+      const prevOpenRound = rounds.find((r) => r.open === true);
+
+      if (!contest) throw new CcActionError(`Contest with ID ${competitionId} not found`);
+      if (!getUserHasAccessToContest(user, contest))
+        throw new CcActionError("You do not have access rights for this contest");
+      if (!prevOpenRound) throw new CcActionError("Previous open round not found");
+      if (prevOpenRound.roundTypeId === "f") throw new CcActionError("The final round for this event is already open");
+      if (getMaxAllowedRounds(rounds, results) < prevOpenRound.roundNumber)
+        throw new CcActionError("Previous rounds do not have enough competitors (see WCA regulation 9m)");
+
+      const [openedRound] = await db.transaction(async (tx) => {
+        await tx.update(roundsTable).set({ open: false }).where(eq(roundsTable.id, prevOpenRound.id));
+
+        const roundToOpenId = rounds.find((r) => r.roundNumber === prevOpenRound.roundNumber + 1)!.id;
+        return await tx
+          .update(roundsTable)
+          .set({ open: true })
+          .where(eq(roundsTable.id, roundToOpenId))
+          .returning(roundsPublicCols);
+      });
+
+      return openedRound;
+    },
+  );
 
 async function validateAndCleanUpContest(
   contest: ContestDto,
