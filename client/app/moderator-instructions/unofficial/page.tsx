@@ -23,8 +23,7 @@ const page = () => {
           that it could be held as a WCA competition instead.
         </p>
         <p className="ms-3">
-          B3.1. After the competition, at least two photos of the setup (i.e. scrambling area, competition area, etc.)
-          should be provided in the contest finished email thread for verification of B3.
+          B3.1. On the day of the competition, make sure to take photos in accordance with rule U2.
         </p>
       </div>
     </>
