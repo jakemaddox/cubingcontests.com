@@ -235,7 +235,7 @@ function FormPersonInputs({
                   matchedPersons.map((person: PersonResponse | null, matchIndex: number) => (
                     <li
                       key={matchIndex}
-                      className={"list-group-item" + (matchIndex === personSelection ? "active" : "")}
+                      className={`list-group-item ${matchIndex === personSelection ? "active" : ""}`}
                       style={{ cursor: "pointer" }}
                       aria-current={matchIndex === personSelection}
                       onMouseEnter={() => setPersonSelection(matchIndex)}

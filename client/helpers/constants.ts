@@ -7,7 +7,9 @@ export const C = {
   minResultsForThreeMoreRounds: 100,
   minResultsForTwoMoreRounds: 16,
   minResultsForOneMoreRound: 8,
-  maxTime: 24 * 60 * 60 * 100, // 24 hours (IF THIS IS EVER UPDATED, ALSO CONSIDER THE LINES WITH 24000000 IN AttemptInput)
+  // IF THIS IS EVER UPDATED, ALSO CONSIDER THE LINES WITH 24000000 IN AttemptInput
+  maxTime: 24 * 60 * 60 * 100, // 24 hours
+  maxResult: 999999999999999, // accounts for max possible Multi-Blind result
   maxFmMoves: 999,
   maxTimeLimit: 60 * 60 * 100, // 1 hour
   defaultTimeLimit: 10 * 60 * 100, // 10 minutes

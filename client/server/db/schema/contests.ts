@@ -59,14 +59,14 @@ export const contestsTable = table(
     check(
       "contests_meetup_check",
       sql`(${table.type} <> 'meetup'
-          and ${table.startTime} is null
-          and ${table.timezone} is null
-          and ${table.competitorLimit} is not null
-          and ${table.schedule} is not null)
-        or (${table.type} = 'meetup'
-          and ${table.startTime} is not null
-          and ${table.timezone} is not null
-          and ${table.schedule} is null)`,
+          AND ${table.startTime} IS NULL
+          AND ${table.timezone} IS NULL
+          AND ${table.competitorLimit} IS NOT NULL
+          AND ${table.schedule} IS NOT NULL)
+        OR (${table.type} = 'meetup'
+          AND ${table.startTime} IS NOT NULL
+          AND ${table.timezone} IS NOT NULL
+          AND ${table.schedule} IS NULL)`,
     ),
   ],
 );

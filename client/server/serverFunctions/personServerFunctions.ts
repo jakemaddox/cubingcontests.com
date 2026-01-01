@@ -49,7 +49,7 @@ export const getPersonsByNameSF = actionClient
     const simplifiedParts = getSimplifiedString(name)
       .split(" ")
       .map((part) => `%${part}%`);
-    const nameQuery = and(...simplifiedParts.map((part) => sql`unaccent(${table.name}) ilike ${part}`));
+    const nameQuery = and(...simplifiedParts.map((part) => sql`UNACCENT(${table.name}) ILIKE ${part}`));
     const locNameQuery = and(...simplifiedParts.map((part) => ilike(table.localizedName, `%${part}%`)));
 
     return await db.select(personsPublicCols).from(table).where(or(nameQuery, locNameQuery)).limit(C.maxPersonMatches);

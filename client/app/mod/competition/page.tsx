@@ -66,10 +66,10 @@ async function CreateEditContestPage({ searchParams }: Props) {
         contest.participants > 0
           ? db
               .execute(
-                sql`select ${resultsTable.roundId}, count(*) as total_results
-                  from ${resultsTable}
-                  where ${resultsTable.competitionId} = ${contest.competitionId}
-                  group by ${resultsTable.roundId}`,
+                sql`SELECT ${resultsTable.roundId}, COUNT(*) AS total_results
+                  FROM ${resultsTable}
+                  WHERE ${resultsTable.competitionId} = ${contest.competitionId}
+                  GROUP BY ${resultsTable.roundId}`,
               )
               .then((res) =>
                 res.map((row) => ({ roundId: row.round_id as number, totalResults: Number(row.total_results ?? 0) })),

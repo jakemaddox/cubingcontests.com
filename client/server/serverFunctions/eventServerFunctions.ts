@@ -26,7 +26,7 @@ export const createEventSF = actionClient
     const [sameNameEvent] = await db
       .select()
       .from(table)
-      .where(eq(sql`lower(${table.name})`, newEventDto.name.toLowerCase()))
+      .where(eq(sql`LOWER(${table.name})`, newEventDto.name.toLowerCase()))
       .limit(1);
     if (sameNameEvent) throw new CcActionError(`Event with name ${newEventDto.name} already exists`);
 

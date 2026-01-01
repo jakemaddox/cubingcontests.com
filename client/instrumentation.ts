@@ -49,11 +49,14 @@ const message =
   "The EMAIL_API_KEY environment variable must be empty while seeding the DB to avoid sending lots of verification emails for the users being seeded. Remove it and comment out the sendVerificationEmail function in auth.ts, and then add them back after the DB has been seeded.";
 
 export async function register() {
-  // Seed test data for development
-  if (process.env.NEXT_RUNTIME === "nodejs" && process.env.MIGRATE_DB === "true") {
+  if (process.env.NEXT_RUNTIME === "nodejs") {
+    const { db }: { db: typeof dbType } = await import("~/server/db/provider.ts");
+    
+    // Migrate DB data, if env var is set
+    if (process.env.MIGRATE_DB === "true") return;
+
     const fs: typeof fsType = await import("node:fs");
     const { randomUUID }: { randomUUID: typeof randomUUIDType } = await import("node:crypto");
-    const { db }: { db: typeof dbType } = await import("~/server/db/provider.ts");
     const { auth }: { auth: typeof authType } = await import("~/server/auth.ts");
     const usersDump = JSON.parse(fs.readFileSync("./dump/users.json") as any) as any[];
     const personsDump = (JSON.parse(fs.readFileSync("./dump/people.json") as any) as any[]).reverse();

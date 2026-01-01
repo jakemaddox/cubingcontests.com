@@ -1,8 +1,9 @@
 "use server";
 
+import { addDays, format } from "date-fns";
 import { and, eq, gt, gte, inArray, isNotNull, isNull, or, sql } from "drizzle-orm";
 import z from "zod";
-import { ContinentRecordType, getSuperRegion } from "~/helpers/Countries.ts";
+import { ContinentRecordType, Countries, getSuperRegion } from "~/helpers/Countries.ts";
 import { C } from "~/helpers/constants.ts";
 import { roundFormats } from "~/helpers/roundFormats.ts";
 import {
@@ -19,6 +20,7 @@ import { type ContinentCode, type EventWrPair, RecordCategoryValues, type Record
 import { getIsAdmin } from "~/helpers/utilityFunctions.ts";
 import { ResultValidator, VideoBasedResultValidator } from "~/helpers/validators/Result.ts";
 import { contestsTable, type SelectContest } from "~/server/db/schema/contests.ts";
+import type { RoundResponse } from "~/server/db/schema/rounds.ts";
 import { logMessageSF } from "~/server/serverFunctions/serverFunctions.ts";
 import { type DbTransactionType, db } from "../db/provider.ts";
 import type { EventResponse } from "../db/schema/events.ts";
@@ -28,6 +30,7 @@ import {
   type InsertResult,
   type ResultResponse,
   resultsPublicCols,
+  type SelectResult,
   resultsTable as table,
 } from "../db/schema/results.ts";
 import { sendVideoBasedResultSubmittedNotification } from "../email/mailer.ts";
@@ -119,7 +122,7 @@ export const createContestResultSF = actionClient
         }
       }
 
-      const format = roundFormats.find((rf) => rf.value === round.format)!;
+      const roundFormat = roundFormats.find((rf) => rf.value === round.format)!;
 
       // Time limit validation
       if (round.timeLimitCentiseconds) {
@@ -131,7 +134,7 @@ export const createContestResultSF = actionClient
           const cumulativeRoundsResults = await db.query.results.findMany({
             where: {
               roundId: { in: round.timeLimitCumulativeRoundIds },
-              RAW: (t) => sql`cardinality(${t.personIds}) = ${newResultDto.personIds.length}`,
+              RAW: (t) => sql`CARDINALITY(${t.personIds}) = ${newResultDto.personIds.length}`,
               personIds: { arrayContains: newResultDto.personIds },
             },
           });
@@ -153,9 +156,9 @@ export const createContestResultSF = actionClient
         // Cutoff validation
         if (round.cutoffAttemptResult && round.cutoffNumberOfAttempts) {
           if (getMakesCutoff(newResultDto.attempts, round.cutoffAttemptResult, round.cutoffNumberOfAttempts)) {
-            if (newResultDto.attempts.length !== format.attempts) {
+            if (newResultDto.attempts.length !== roundFormat.attempts) {
               throw new CcActionError(
-                `The number of attempts should be ${format.attempts}; received: ${newResultDto.attempts.length}`,
+                `The number of attempts should be ${roundFormat.attempts}; received: ${newResultDto.attempts.length}`,
               );
             }
           } else if (newResultDto.attempts.length > round.cutoffNumberOfAttempts!) {
@@ -172,7 +175,7 @@ export const createContestResultSF = actionClient
       }
 
       const recordConfigs = await getRecordConfigs(contest.type === "meetup" ? "meetups" : "competitions");
-      const { best, average } = getBestAndAverage(newResultDto.attempts, event, format.value);
+      const { best, average } = getBestAndAverage(newResultDto.attempts, event, roundFormat.value);
       const newResult: InsertResult = {
         eventId,
         date: getRoundDate(round, contest),
@@ -192,57 +195,94 @@ export const createContestResultSF = actionClient
       await db.transaction(async (tx) => {
         const [createdResult] = await tx.insert(table).values(newResult).returning();
 
+        await setRankingAndProceedsValues(tx, [...roundResults, createdResult], round);
+        if (createdResult.regionalSingleRecord) await cancelFutureRecords(tx, createdResult, "best", recordConfigs);
+        if (createdResult.regionalAverageRecord) await cancelFutureRecords(tx, createdResult, "average", recordConfigs);
+
         // Update contest state and participants
         const updateContestObject: Partial<SelectContest> = {};
         if (contest.state === "approved") updateContestObject.state = "ongoing";
-        const participantIds = new Set<number>();
-        const results = await tx.query.results.findMany({ columns: { personIds: true }, where: { competitionId } });
-        for (const result of results) for (const personId of result.personIds) participantIds.add(personId);
-        if (participantIds.size !== contest.participants) updateContestObject.participants = participantIds.size;
+        const totalParticipants = await getTotalContestParticipants(tx, competitionId);
+        if (totalParticipants !== contest.participants) updateContestObject.participants = totalParticipants;
         // Do update, if some value actually changed
         if (Object.keys(updateContestObject).length > 0)
           await tx.update(contestsTable).set(updateContestObject).where(eq(contestsTable.competitionId, competitionId));
-
-        await updateFutureRecords(tx, createdResult, recordConfigs);
-
-        // Set ranking and proceeds values
-        const sortedResults = [...roundResults, createdResult].sort(
-          format.isAverage ? (a, b) => compareAvgs(a, b, true) : compareSingles,
-        );
-        let prevResult = sortedResults[0];
-        let ranking = 1;
-
-        for (let i = 0; i < sortedResults.length; i++) {
-          // If the previous result was not tied with this one, increase ranking
-          if (
-            i > 0 &&
-            ((format.isAverage && compareAvgs(prevResult, sortedResults[i]) < 0) ||
-              (!format.isAverage && compareSingles(prevResult, sortedResults[i]) < 0))
-          ) {
-            ranking = i + 1;
-          }
-
-          prevResult = sortedResults[i];
-          let proceeds: boolean | null = null;
-
-          // Set proceeds if it's a non-final round and the result proceeds to the next round
-          if (round.proceedValue) {
-            proceeds =
-              getIsProceedableResult(sortedResults[i], format) &&
-              ranking <= Math.floor(sortedResults.length * 0.75) && // extra check for top 75%
-              ranking <=
-                (round.proceedType === "number"
-                  ? round.proceedValue
-                  : Math.floor((sortedResults.length * round.proceedValue) / 100));
-          }
-
-          // Update the result in the DB, if something changed
-          if (ranking !== sortedResults[i].ranking || proceeds !== sortedResults[i].proceeds)
-            await tx.update(table).set({ ranking, proceeds }).where(eq(table.id, sortedResults[i].id));
-        }
       });
 
       return await db.select(resultsPublicCols).from(table).where(eq(table.roundId, roundId)).orderBy(table.ranking);
+    },
+  );
+
+export const deleteContestResultSF = actionClient
+  .metadata({ permissions: { competitions: ["create"], meetups: ["create"] } })
+  .inputSchema(
+    z.strictObject({
+      id: z.int(),
+    }),
+  )
+  .action<ResultResponse[]>(
+    async ({
+      parsedInput: { id },
+      ctx: {
+        session: { user },
+      },
+    }) => {
+      const result = await db.query.results.findFirst({ where: { id, competitionId: { isNotNull: true } } });
+      if (!result) throw new CcActionError(`Result with ID ${id} not found`);
+
+      logMessageSF({ message: `Deleting result: ${JSON.stringify(result)}` });
+
+      const contestPromise = db.query.contests.findFirst({ where: { competitionId: result.competitionId! } });
+      const eventPromise = db.query.events.findFirst({ where: { eventId: result.eventId } });
+      const roundPromise = db.query.rounds.findFirst({ where: { id: result.roundId! } });
+      const roundResultsPromise = db.query.results.findMany({
+        where: { roundId: result.roundId! },
+        orderBy: { ranking: "asc" },
+      });
+
+      const [contest, event, round, roundResults] = await Promise.all([
+        contestPromise,
+        eventPromise,
+        roundPromise,
+        roundResultsPromise,
+      ]);
+
+      if (!contest) throw new CcActionError(`Contest with ID ${result.competitionId} not found`);
+      if (!getUserHasAccessToContest(user, contest))
+        throw new CcActionError("You do not have access rights for this contest");
+      if (!event) throw new CcActionError(`Event with ID ${result.eventId} not found`);
+      if (!round) throw new CcActionError(`Round with ID ${result.roundId} not found`);
+      if (!round.open) throw new CcActionError("The round is not open");
+
+      const recordConfigs = await getRecordConfigs(contest.type === "meetup" ? "meetups" : "competitions");
+
+      await db.transaction(async (tx) => {
+        await tx.delete(table).where(eq(table.id, id));
+
+        await setRankingAndProceedsValues(
+          tx,
+          roundResults.filter((r) => r.id !== id),
+          round,
+        );
+
+        // Set records that may have been prevented by the deleted result
+        if (result.regionalSingleRecord) await setFutureRecords(tx, result, "best", recordConfigs);
+        if (result.regionalAverageRecord) await setFutureRecords(tx, result, "average", recordConfigs);
+
+        const totalParticipants = await getTotalContestParticipants(tx, result.competitionId!);
+        if (totalParticipants !== contest.participants) {
+          await tx
+            .update(contestsTable)
+            .set({ participants: totalParticipants })
+            .where(eq(contestsTable.competitionId, contest.competitionId));
+        }
+      });
+
+      return await db
+        .select(resultsPublicCols)
+        .from(table)
+        .where(eq(table.roundId, result.roundId!))
+        .orderBy(table.ranking);
     },
   );
 
@@ -282,8 +322,8 @@ export const createVideoBasedResultSF = actionClient
 
       const recordConfigs = await getRecordConfigs("video-based-results");
       const participants = await db.select().from(personsTable).where(inArray(personsTable.id, newResultDto.personIds));
-      const format = roundFormats.find((rf) => rf.attempts === newResultDto.attempts.length && rf.value !== "3")!;
-      const { best, average } = getBestAndAverage(newResultDto.attempts, event, format.value);
+      const roundFormat = roundFormats.find((rf) => rf.attempts === newResultDto.attempts.length && rf.value !== "3")!;
+      const { best, average } = getBestAndAverage(newResultDto.attempts, event, roundFormat.value);
       const newResult: InsertResult = {
         ...newResultDto,
         best,
@@ -298,7 +338,11 @@ export const createVideoBasedResultSF = actionClient
       const createdResult = await db.transaction(async (tx) => {
         const [createdResult] = await tx.insert(table).values(newResult).returning(resultsPublicCols);
 
-        if (isAdmin) await updateFutureRecords(tx, createdResult, recordConfigs);
+        if (isAdmin) {
+          if (createdResult.regionalSingleRecord) await cancelFutureRecords(tx, createdResult, "best", recordConfigs);
+          if (createdResult.regionalAverageRecord)
+            await cancelFutureRecords(tx, createdResult, "average", recordConfigs);
+        }
 
         return createdResult;
       });
@@ -381,33 +425,145 @@ async function setResultRecord(
   }
 }
 
-async function updateFutureRecords(
+async function setFutureRecords(
   tx: DbTransactionType,
-  result: ResultResponse,
-  recordConfigs: RecordConfigResponse[], // must be of the same category
-  // {
-  //   mode,
-  //   previousBest,
-  //   previousAvg,
-  // }:
-  //   | {
-  //       mode: "create" | "delete";
-  //       previousBest?: undefined;
-  //       previousAvg?: undefined;
-  //     }
-  //   | {
-  //       mode: "edit";
-  //       previousBest: number;
-  //       previousAvg: number;
-  //     },
+  deletedResult: Pick<
+    SelectResult,
+    | "eventId"
+    | "date"
+    | "regionCode"
+    | "superRegionCode"
+    | "best"
+    | "average"
+    | "regionalSingleRecord"
+    | "regionalAverageRecord"
+  >,
+  bestOrAverage: "best" | "average",
+  recordConfigs: RecordConfigResponse[],
 ) {
-  // const singlesComparison = mode === "edit" ? compareSingles(result, { best: previousBest }) : 0;
-  // const singleGotWorse = singlesComparison > 0 || (mode === "delete" && result.best > 0);
-  // const singleGotBetter = singlesComparison < 0 || (mode === "create" && result.best > 0);
-  // if (singleGotWorse || singleGotBetter) {}
+  const recordField = bestOrAverage === "best" ? "regionalSingleRecord" : "regionalAverageRecord";
+  const snakeRecordField = bestOrAverage === "best" ? "regional_single_record" : "regional_average_record";
+  const type = bestOrAverage === "best" ? "single" : "average";
+  const { category } = recordConfigs[0];
+  const recordsUpTo = addDays(deletedResult.date, -1);
 
-  if (result.regionalSingleRecord) await cancelFutureRecords(tx, result, "best", recordConfigs);
-  if (result.regionalAverageRecord) await cancelFutureRecords(tx, result, "average", recordConfigs);
+  // Set WRs
+  if (deletedResult[recordField] === "WR") {
+    const prevWrResult = await getRecordResult(deletedResult.eventId, bestOrAverage, "WR", category, { recordsUpTo });
+    const newWrs = await tx.execute(sql`
+      WITH day_min_times AS (
+        SELECT ${table.id}, ${table.date}, ${table[bestOrAverage]},
+          MIN(${table[bestOrAverage]}) OVER(PARTITION BY ${table.date} ORDER BY ${table.date}
+            ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS day_min_time
+        FROM ${table}
+        WHERE ${table[bestOrAverage]} > ${deletedResult[bestOrAverage]}
+          AND ${table[bestOrAverage]} <= ${prevWrResult ? prevWrResult[bestOrAverage] : C.maxResult}
+          AND ${table.eventId} = ${deletedResult.eventId}
+          AND ${table.date} >= ${deletedResult.date.toISOString()}
+          AND ${table[recordField]} <> 'WR'
+          AND ${table.recordCategory} = ${category}
+        ORDER BY ${table.date}
+      ), results_with_record_times AS (
+        SELECT id, MIN(day_min_time) OVER(ORDER BY date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS curr_record
+        FROM day_min_times
+        ORDER BY date
+      )
+      UPDATE ${table} SET ${sql.raw(snakeRecordField)} = 'WR'
+      FROM results_with_record_times
+      WHERE ${table.id} = results_with_record_times.id
+        AND ${table[bestOrAverage]} = results_with_record_times.curr_record
+      RETURNING *`);
+
+    for (const wr of newWrs) {
+      const date = format(wr.date as Date, "d MMM yyyy");
+      logMessageSF({ message: `New ${type} WR for event ${deletedResult.eventId}: ${wr[bestOrAverage]} (${date})` });
+    }
+  }
+
+  // Set CRs
+  if (
+    deletedResult.superRegionCode &&
+    ["ER", "NAR", "SAR", "AsR", "AfR", "OcR"].includes(deletedResult[recordField]!)
+  ) {
+    const prevCrResult = await getRecordResult(
+      deletedResult.eventId,
+      bestOrAverage,
+      deletedResult[recordField]!,
+      category,
+      { recordsUpTo },
+    );
+    const newCrs = await tx.execute(sql`
+      WITH day_min_times AS (
+        SELECT ${table.id}, ${table.date}, ${table[bestOrAverage]},
+          MIN(${table[bestOrAverage]}) OVER(PARTITION BY ${table.date} ORDER BY ${table.date}
+            ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS day_min_time
+        FROM ${table}
+        WHERE ${table[bestOrAverage]} > ${deletedResult[bestOrAverage]}
+          AND ${table[bestOrAverage]} <= ${prevCrResult ? prevCrResult[bestOrAverage] : C.maxResult}
+          AND ${table.eventId} = ${deletedResult.eventId}
+          AND ${table.date} >= ${deletedResult.date.toISOString()}
+          AND ${table.superRegionCode} = ${deletedResult.superRegionCode}
+          AND (${table[recordField]} IS NULL OR ${table[recordField]} = 'NR')
+          AND ${table.recordCategory} = ${category}
+        ORDER BY ${table.date}
+      ), results_with_record_times AS (
+        SELECT id, MIN(day_min_time) OVER(ORDER BY date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS curr_record
+        FROM day_min_times
+        ORDER BY date
+      )
+      UPDATE ${table} SET ${sql.raw(snakeRecordField)} = ${deletedResult[recordField]}
+      FROM results_with_record_times
+      WHERE ${table.id} = results_with_record_times.id
+        AND ${table[bestOrAverage]} = results_with_record_times.curr_record
+      RETURNING *`);
+
+    for (const cr of newCrs) {
+      const date = format(cr.date as Date, "d MMM yyyy");
+      logMessageSF({
+        message: `New ${type} ${deletedResult[recordField]} for event ${deletedResult.eventId}: ${cr[bestOrAverage]} (${date})`,
+      });
+    }
+  }
+
+  // Set NRs
+  if (deletedResult.regionCode) {
+    const prevNrResult = await getRecordResult(deletedResult.eventId, bestOrAverage, "NR", category, {
+      recordsUpTo,
+      regionCode: deletedResult.regionCode,
+    });
+    const newNrs = await tx.execute(sql`
+      WITH day_min_times AS (
+        SELECT ${table.id}, ${table.date}, ${table[bestOrAverage]},
+          MIN(${table[bestOrAverage]}) OVER(PARTITION BY ${table.date} ORDER BY ${table.date}
+            ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS day_min_time
+        FROM ${table}
+        WHERE ${table[bestOrAverage]} > ${deletedResult[bestOrAverage]}
+          AND ${table[bestOrAverage]} <= ${prevNrResult ? prevNrResult[bestOrAverage] : C.maxResult}
+          AND ${table.eventId} = ${deletedResult.eventId}
+          AND ${table.date} >= ${deletedResult.date.toISOString()}
+          AND ${table.regionCode} = ${deletedResult.regionCode}
+          AND ${table[recordField]} IS NULL
+          AND ${table.recordCategory} = ${category}
+        ORDER BY ${table.date}
+      ), results_with_record_times AS (
+        SELECT id, MIN(day_min_time) OVER(ORDER BY date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS curr_record
+        FROM day_min_times
+        ORDER BY date
+      )
+      UPDATE ${table} SET ${sql.raw(snakeRecordField)} = 'NR'
+      FROM results_with_record_times
+      WHERE ${table.id} = results_with_record_times.id
+        AND ${table[bestOrAverage]} = results_with_record_times.curr_record
+      RETURNING *`);
+
+    for (const nr of newNrs) {
+      const date = format(nr.date as Date, "d MMM yyyy");
+      const country = Countries.find((c) => c.code === nr.region_code)!.name;
+      logMessageSF({
+        message: `New ${type} NR (${country}) for event ${deletedResult.eventId}: ${nr[bestOrAverage]} (${date})`,
+      });
+    }
+  }
 }
 
 async function cancelFutureRecords(
@@ -536,4 +692,53 @@ async function cancelFutureRecords(
       logMessageSF({ message });
     }
   }
+}
+
+async function setRankingAndProceedsValues(tx: DbTransactionType, results: ResultResponse[], round: RoundResponse) {
+  const roundFormat = roundFormats.find((rf) => rf.value === round.format)!;
+  const sortedResults = results.sort(roundFormat.isAverage ? (a, b) => compareAvgs(a, b, true) : compareSingles);
+  let prevResult = sortedResults[0];
+  let ranking = 1;
+
+  for (let i = 0; i < sortedResults.length; i++) {
+    // If the previous result was not tied with this one, increase ranking
+    if (
+      i > 0 &&
+      ((roundFormat.isAverage && compareAvgs(prevResult, sortedResults[i]) < 0) ||
+        (!roundFormat.isAverage && compareSingles(prevResult, sortedResults[i]) < 0))
+    ) {
+      ranking = i + 1;
+    }
+
+    prevResult = sortedResults[i];
+    let proceeds: boolean | null = null;
+
+    // Set proceeds if it's a non-final round and the result proceeds to the next round
+    if (round.proceedValue) {
+      proceeds =
+        getIsProceedableResult(sortedResults[i], roundFormat) &&
+        ranking <= Math.floor(sortedResults.length * 0.75) && // extra check for top 75%
+        ranking <=
+          (round.proceedType === "number"
+            ? round.proceedValue
+            : Math.floor((sortedResults.length * round.proceedValue) / 100));
+    }
+
+    // Update the result in the DB, if something changed
+    if (ranking !== sortedResults[i].ranking || proceeds !== sortedResults[i].proceeds)
+      await tx.update(table).set({ ranking, proceeds }).where(eq(table.id, sortedResults[i].id));
+  }
+}
+
+async function getTotalContestParticipants(tx: DbTransactionType, competitionId: string): Promise<number> {
+  const results = await tx.query.results.findMany({ columns: { personIds: true }, where: { competitionId } });
+
+  const participantIds = new Set<number>();
+  for (const result of results) {
+    for (const personId of result.personIds) {
+      participantIds.add(personId);
+    }
+  }
+
+  return participantIds.size;
 }

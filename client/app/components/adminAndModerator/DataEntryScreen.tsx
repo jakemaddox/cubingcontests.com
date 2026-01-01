@@ -31,7 +31,11 @@ import type { Attempt, ResultResponse } from "~/server/db/schema/results.ts";
 import type { RoundResponse } from "~/server/db/schema/rounds.ts";
 import { openRoundSF } from "~/server/serverFunctions/contestServerFunctions.ts";
 import { getPersonByIdSF } from "~/server/serverFunctions/personServerFunctions.ts";
-import { createContestResultSF, getWrPairUpToDateSF } from "~/server/serverFunctions/resultServerFunctions.ts";
+import {
+  createContestResultSF,
+  deleteContestResultSF,
+  getWrPairUpToDateSF,
+} from "~/server/serverFunctions/resultServerFunctions.ts";
 
 type Props = {
   contest: Pick<SelectContest, "competitionId" | "shortName" | "type" | "startDate" | "queuePosition" | "schedule">;
@@ -58,6 +62,7 @@ function DataEntryScreen({
   const { executeAsync: getWrPairUpToDate, isPending: isPendingWrPairs } = useAction(getWrPairUpToDateSF);
   const { executeAsync: getPersonById, isPending: isGettingPerson } = useAction(getPersonByIdSF);
   const { executeAsync: createResult, isPending: isCreating } = useAction(createContestResultSF);
+  const { executeAsync: deleteResult, isPending: isDeleting } = useAction(deleteContestResultSF);
   const { executeAsync: openRound, isPending: isOpeningRound } = useAction(openRoundSF);
   const [resultUnderEdit, setResultUnderEdit] = useState<ResultResponse | null>(null);
   const [eventWrPair, setEventWrPair] = useState<EventWrPair | undefined>();
@@ -79,7 +84,7 @@ function DataEntryScreen({
     [rounds],
   );
 
-  const isPending = isCreating || isOpeningRound || isGettingPerson || isPendingWrPairs;
+  const isPending = isCreating || isDeleting || isOpeningRound || isGettingPerson || isPendingWrPairs;
   const maxAllowedRounds = getMaxAllowedRounds(rounds, results);
   const isOpenableRound = !round.open && maxAllowedRounds >= round.roundNumber;
   const lastActiveAttempt = getMakesCutoff(attempts, round.cutoffAttemptResult, round.cutoffNumberOfAttempts)
@@ -223,15 +228,22 @@ function DataEntryScreen({
     // window.scrollTo(0, 0);
   };
 
-  const deleteResult = async (resultId: number) => {
-    throw new Error("NOT IMPLEMENTED!");
-    // setLoadingId(`delete_result_${resultId}_button` )
+  const onDeleteResult = async (id: number) => {
+    setLoadingId(`delete_result_${id}_button`);
 
-    // if (confirm("Are you sure you want to delete this result?")) {
-    //   const res = await myFetch.delete(`/results/${resultId}`, { loadingId: `delete_result_${resultId}_button` });
+    if (confirm("Are you sure you want to delete this result?")) {
+      const res = await deleteResult({ id });
 
-    //   if (res.success) changeRound(res.data);
-    // }
+      if (res.serverError || res.validationErrors) {
+        changeErrorMessages([getActionError(res)]);
+      } else {
+        const deletedResult = results.find((r) => r.id === id)!;
+        setResults(res.data!);
+        if (deletedResult.regionalSingleRecord || deletedResult.regionalAverageRecord) updateEventWrPair();
+      }
+    }
+
+    setLoadingId("");
   };
 
   const updateQueuePosition = async (mode: "decrement" | "increment" | "reset") => {
@@ -406,7 +418,7 @@ function DataEntryScreen({
               persons={persons}
               recordConfigs={recordConfigs}
               onEditResult={round.open ? editResult : undefined}
-              onDeleteResult={round.open ? deleteResult : undefined}
+              onDeleteResult={round.open ? onDeleteResult : undefined}
               disableEditAndDelete={resultUnderEdit !== null}
               loadingId={loadingId}
             />

@@ -3,14 +3,14 @@
 # First, make sure there are no errors and that the frontend builds successfully
 if [ -z "$1" ] || [ "$1" != "--no-checks" ]; then
   cd client
-  deno task check
+  pnpm run check
 
   if [ $? -gt 0 ]; then
     echo -e "\n\nPlease fix all errors before publishing a new version"
     exit
   fi
 
-  deno task build
+  pnpm run build
 
   if [ $? -gt 0 ]; then
     echo -e "\n\nPlease make sure the frontend builds successfully before publishing a new version"
@@ -18,7 +18,7 @@ if [ -z "$1" ] || [ "$1" != "--no-checks" ]; then
   fi
 
   # Check that the tests run successfully
-  deno test &&
+  pnpm run &&
   cd ..
 fi
 

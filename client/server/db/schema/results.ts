@@ -11,6 +11,15 @@ import type { SelectPerson } from "./persons.ts";
 import { roundsTable } from "./rounds.ts";
 
 export type Attempt = {
+  /**
+   * Number of centiseconds; 0 is a skipped attempt (e.g. when cutoff was not met) -1 is DNF, -2 is DNS,
+   * C.maxTime is unknown time. For FMC it's the number of moves. For MBLD it works completely differently:
+   * https://www.worldcubeassociation.org/export/results
+   *
+   * The difference is that CC omits the leading 0/1 character, allows multi results up to 9999 cubes instead of 99,
+   * time is stored as centiseconds, and it stores DNFs with all of the same information (e.g. DNF (5/12 52:13))
+   * (they're just stored as negative numbers).
+   */
   result: number;
   memo?: number;
 };
@@ -44,18 +53,18 @@ export const resultsTable = table(
   (table) => [
     check(
       "results_check",
-      sql`(${table.competitionId} is not null
-          and ${table.recordCategory} <> 'video-based-results'
-          and ${table.roundId} is not null
-          and ${table.ranking} is not null
-          and ${table.videoLink} is null
-          and ${table.discussionLink} is null)
-        or (${table.competitionId} is null
-          and ${table.recordCategory} = 'video-based-results'
-          and ${table.roundId} is null
-          and ${table.ranking} is null
-          and ${table.proceeds} is null
-          and ${table.videoLink} is not null)`,
+      sql`(${table.competitionId} IS NOT NULL
+          AND ${table.recordCategory} <> 'video-based-results'
+          AND ${table.roundId} IS NOT NULL
+          AND ${table.ranking} IS NOT NULL
+          AND ${table.videoLink} IS NULL
+          AND ${table.discussionLink} IS NULL)
+        OR (${table.competitionId} IS NULL
+          AND ${table.recordCategory} = 'video-based-results'
+          AND ${table.roundId} IS NULL
+          AND ${table.ranking} IS NULL
+          AND ${table.proceeds} IS NULL
+          AND ${table.videoLink} IS NOT NULL)`,
     ),
   ],
 );

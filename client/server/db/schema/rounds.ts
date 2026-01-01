@@ -31,19 +31,19 @@ export const roundsTable = table(
     // Cumulative round IDs can only be set when the round has a time limit
     check(
       "rounds_timelimit_check",
-      sql`${table.timeLimitCumulativeRoundIds} is null or ${table.timeLimitCentiseconds} is not null`,
+      sql`${table.timeLimitCumulativeRoundIds} IS NULL OR ${table.timeLimitCentiseconds} IS NOT NULL`,
     ),
     check(
       "rounds_cutoff_check",
-      sql`(${table.cutoffAttemptResult} is not null and ${table.cutoffNumberOfAttempts} is not null)
-        or (${table.cutoffAttemptResult} is null and ${table.cutoffNumberOfAttempts} is null)`,
+      sql`(${table.cutoffAttemptResult} IS NOT NULL AND ${table.cutoffNumberOfAttempts} IS NOT NULL)
+        OR (${table.cutoffAttemptResult} IS NULL AND ${table.cutoffNumberOfAttempts} IS NULL)`,
     ),
     check(
       "rounds_proceed_check",
-      sql`(${table.proceedType} is not null and ${table.proceedValue} is not null)
-        or (${table.proceedType} is null and ${table.proceedValue} is null)`,
+      sql`(${table.proceedType} IS NOT NULL AND ${table.proceedValue} IS NOT NULL)
+        OR (${table.proceedType} IS NULL AND ${table.proceedValue} IS NULL)`,
     ),
-    check("rounds_finals_check", sql`${table.roundTypeId} <> 'f' or ${table.proceedType} is null`),
+    check("rounds_finals_check", sql`${table.roundTypeId} <> 'f' OR ${table.proceedType} IS NULL`),
   ],
 );
 
