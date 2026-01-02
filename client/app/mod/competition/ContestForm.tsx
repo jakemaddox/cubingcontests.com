@@ -902,9 +902,9 @@ function ContestForm({
             {type === "comp" && (
               <>
                 <p className="fs-6 mt-4">
-                  This is an unofficial competition, which means that you should provide at least two photos of the
+                  This is an unofficial competition, which means that you must provide at least two photos of the
                   setup (i.e. scrambling area, competition area, etc.) in the contest finished email thread after the
-                  competition, in accordance with moderator instruction B3.1.
+                  competition, in accordance with rule U2.
                 </p>
                 <FormCheckbox
                   id="comp_photos_understood"
