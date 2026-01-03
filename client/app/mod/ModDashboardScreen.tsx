@@ -14,6 +14,7 @@ import ModFilters from "~/app/mod/ModFilters.tsx";
 import type { authClient } from "~/helpers/authClient.ts";
 import { C } from "~/helpers/constants.ts";
 import { MainContext } from "~/helpers/contexts.ts";
+import type { ContestState } from "~/helpers/types.ts";
 import { getActionError, getFormattedDate, getIsAdmin } from "~/helpers/utilityFunctions.ts";
 import type { ContestResponse } from "~/server/db/schema/contests.ts";
 import type { PersonResponse } from "~/server/db/schema/persons.ts";
@@ -42,8 +43,8 @@ function ModDashboardScreen({ contests: initContests, session }: Props) {
     else setContests(res.data!);
   };
 
-  const updateContest = (newContest: ContestResponse) => {
-    setContests(contests.map((c) => (c.competitionId === newContest.competitionId ? newContest : c)));
+  const updateContestState = (competitionId: string, newState: ContestState) => {
+    setContests(contests.map((c) => (c.competitionId === competitionId ? { ...c, state: newState } : c)));
   };
 
   const selectPerson = (person: PersonResponse) => {
@@ -164,7 +165,12 @@ function ModDashboardScreen({ contests: initContests, session }: Props) {
                     {contest.state === "removed" ? (
                       <span className="text-danger">Removed</span>
                     ) : (
-                      <ContestControls contest={contest} updateContest={updateContest} isAdmin={isAdmin} smallButtons />
+                      <ContestControls
+                        contest={contest}
+                        isAdmin={isAdmin}
+                        forPage="mod-dashboard"
+                        onUpdateContestState={updateContestState}
+                      />
                     )}
                   </td>
                 </tr>

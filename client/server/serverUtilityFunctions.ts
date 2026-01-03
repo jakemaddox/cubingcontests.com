@@ -3,12 +3,16 @@ import { and, desc, eq, inArray, lte, ne } from "drizzle-orm";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { Continents, Countries } from "~/helpers/Countries.ts";
+import { C } from "~/helpers/constants.ts";
 import { type RecordCategory, type RecordType, RecordTypeValues } from "~/helpers/types.ts";
 import { getIsAdmin } from "~/helpers/utilityFunctions.ts";
 import type { ContestResponse } from "~/server/db/schema/contests.ts";
-import { getDateOnly } from "../helpers/sharedFunctions.ts";
+import { personsTable, type SelectPerson } from "~/server/db/schema/persons.ts";
+import { type LogCode, logger } from "~/server/logger.ts";
+import { CcActionError } from "~/server/safeAction.ts";
+import { getDateOnly, getNameAndLocalizedName } from "../helpers/sharedFunctions.ts";
 import { auth } from "./auth.ts";
-import { db } from "./db/provider.ts";
+import { type DbTransactionType, db } from "./db/provider.ts";
 import { eventsPublicCols, eventsTable } from "./db/schema/events.ts";
 import { recordConfigsPublicCols, recordConfigsTable } from "./db/schema/record-configs.ts";
 import { resultsTable, type SelectResult } from "./db/schema/results.ts";
@@ -42,6 +46,20 @@ export async function authorizeUser({
   }
 
   return session;
+}
+
+export function logMessage(code: LogCode, message: string) {
+  const messageWithCode = `[${code}] ${message}`;
+
+  // If not in test environment, log to console too (tests use a different implementation of the logger that logs straight to console)
+  if (!process.env.VITEST) console.log(messageWithCode);
+
+  try {
+    // The metadata is then handled in loggerUtils.js
+    logger.child({ ccCode: code }).info(messageWithCode);
+  } catch (err) {
+    console.error("Error while sending log to Supabase Analytics:", err);
+  }
 }
 
 export async function getRecordConfigs(recordFor: RecordCategory) {
@@ -128,4 +146,98 @@ export function getUserHasAccessToContest(
   const modHasAccess =
     ["created", "approved", "ongoing"].includes(contest.state) && contest.organizerIds.includes(user.personId);
   return modHasAccess;
+}
+
+export async function setPersonToApproved(
+  person: SelectPerson,
+  {
+    tx,
+    requireWcaId,
+    ignoredWcaMatches = [],
+  }: {
+    tx?: DbTransactionType; // this can optionally be run inside of a transaction
+    requireWcaId: boolean;
+    ignoredWcaMatches?: string[];
+  },
+): Promise<SelectPerson> {
+  const updatePersonObject: Partial<SelectPerson> = {};
+
+  if (!person.wcaId) {
+    const res = await fetch(`${C.wcaV0ApiBaseUrl}/search/users?persons_table=true&q=${person.name}`);
+    if (res.ok) {
+      const { result: wcaPersons } = await res.json();
+
+      if (!requireWcaId) {
+        for (const wcaPerson of wcaPersons) {
+          const { name } = getNameAndLocalizedName(wcaPerson.name);
+
+          if (
+            !ignoredWcaMatches.includes(wcaPerson.wca_id) &&
+            name === person.name &&
+            wcaPerson.country_iso2 === person.regionCode
+          ) {
+            throw new CcActionError(
+              `There is an exact name and country match with the WCA competitor with WCA ID ${wcaPerson.wca_id}. If that is the same person, edit their profile, adding the WCA ID. If it's a different person, simply approve them again to confirm.`,
+              { data: { wcaMatches: [...ignoredWcaMatches, wcaPerson.wca_id] } },
+            );
+          }
+        }
+      }
+      // We only want to assign the WCA ID if there's just one matched person
+      else if (wcaPersons?.length === 1) {
+        const [wcaPerson] = wcaPersons;
+        const { name, localizedName } = getNameAndLocalizedName(wcaPerson.name);
+
+        if (name === person.name && wcaPerson.country_iso2 === person.regionCode) {
+          updatePersonObject.wcaId = wcaPerson.wca_id;
+          if (localizedName) updatePersonObject.localizedName = localizedName;
+        }
+      }
+    }
+  }
+
+  if (!requireWcaId || person.wcaId || updatePersonObject.wcaId) {
+    logMessage("CC0022", `Approving person ${person.name} (CC ID: ${person.id})`);
+
+    updatePersonObject.approved = true;
+  }
+
+  if (Object.keys(updatePersonObject).length > 0) {
+    const [updatedPerson] = await (tx ?? db)
+      .update(personsTable)
+      .set(updatePersonObject)
+      .where(eq(personsTable.id, person.id))
+      .returning();
+    return updatedPerson;
+  }
+
+  return person;
+}
+
+export async function approvePersons(
+  tx: DbTransactionType,
+  personIds: number[],
+  { requireWcaId }: { requireWcaId: boolean },
+) {
+  const persons = await tx.query.persons.findMany({ where: { id: { in: personIds }, approved: false } });
+
+  logMessage(
+    "CC0023",
+    `Approving persons with person IDs: ${personIds.join(", ")}${requireWcaId ? " (WCA IDs required)" : ""}`,
+  );
+
+  const settledPromises = await Promise.allSettled(
+    persons.filter((p) => !p.approved).map((p) => setPersonToApproved(p, { tx, requireWcaId })),
+  );
+
+  // Log errors, if there were any
+  if (settledPromises.some((p) => p.status === "rejected")) {
+    for (const promise of settledPromises) {
+      if (promise.status === "rejected") logMessage("CC5002", `Error while approving person: ${promise.reason}`);
+    }
+
+    throw new CcActionError(
+      "Error while approving persons. Please report this to the admin team, providing the contest ID in the email.",
+    );
+  }
 }

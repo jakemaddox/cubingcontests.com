@@ -3,7 +3,7 @@
 import { eq } from "drizzle-orm";
 import z from "zod";
 import { RecordConfigValidator } from "~/helpers/validators/RecordConfig.ts";
-import { logMessageSF } from "~/server/serverFunctions/serverFunctions.ts";
+import { logMessage } from "~/server/serverUtilityFunctions.ts";
 import { db } from "../db/provider.ts";
 import {
   type RecordConfigResponse,
@@ -21,9 +21,10 @@ export const createRecordConfigSF = actionClient
   )
   .action<RecordConfigResponse>(async ({ parsedInput: { newRecordConfigDto } }) => {
     const { category, recordTypeId, label } = newRecordConfigDto;
-    logMessageSF({
-      message: `Creating record config with category ${category}, record type ID ${recordTypeId} and label ${label}`,
-    });
+    logMessage(
+      "CC0027",
+      `Creating record config with category ${category}, record type ID ${recordTypeId} and label ${label}`,
+    );
 
     const [createdRecordConfig] = await db.insert(table).values(newRecordConfigDto).returning(recordConfigsPublicCols);
     return createdRecordConfig;
@@ -39,9 +40,10 @@ export const updateRecordConfigSF = actionClient
   )
   .action<RecordConfigResponse>(async ({ parsedInput: { id, newRecordConfigDto } }) => {
     const { category, recordTypeId, label } = newRecordConfigDto;
-    logMessageSF({
-      message: `Updating record config with category ${category}, record type ID ${recordTypeId} and label ${label}`,
-    });
+    logMessage(
+      "CC0028",
+      `Updating record config with category ${category}, record type ID ${recordTypeId} and label ${label}`,
+    );
 
     const [updatedRecordConfig] = await db
       .update(table)

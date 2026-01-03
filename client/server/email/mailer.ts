@@ -9,7 +9,7 @@ import { C } from "~/helpers/constants.ts";
 import { roundFormats } from "~/helpers/roundFormats.ts";
 import { getFormattedTime, getIsUrgent } from "~/helpers/sharedFunctions.ts";
 import type { SelectContest } from "~/server/db/schema/contests.ts";
-import { logMessageSF } from "~/server/serverFunctions/serverFunctions.ts";
+import { logMessage } from "~/server/serverUtilityFunctions.ts";
 import type { SelectEvent } from "../db/schema/events.ts";
 import type { ResultResponse } from "../db/schema/results.ts";
 
@@ -25,8 +25,16 @@ const client = new MailtrapClient({
 
 const baseUrl = process.env.BASE_URL!;
 const from = {
-  name: "Cubing Contests",
+  name: "No Reply",
   email: `no-reply@${process.env.PROD_BASE_URL!.split("://").at(1)}`,
+};
+const contestsEmail = {
+  name: "Contests",
+  email: `contests@${process.env.PROD_BASE_URL!.split("://").at(1)}`,
+};
+const resultsEmail = {
+  name: "Results",
+  email: `results@${process.env.PROD_BASE_URL!.split("://").at(1)}`,
 };
 
 async function send({
@@ -52,7 +60,7 @@ async function send({
 
     await callback(html);
   } catch (err) {
-    logMessageSF({ message: `Error while sending email with template ${templateFileName}: ${err}` });
+    logMessage("CC5001", `Error while sending email with template ${templateFileName}: ${err}`);
   }
 }
 
@@ -151,12 +159,7 @@ export function sendRoleChangedEmail(to: string, role: string, canAccessModDashb
   });
 }
 
-export function sendContestSubmittedNotification(
-  recipients: string[],
-  contest: SelectContest,
-  contestUrl: string,
-  creator: string,
-) {
+export function sendContestSubmittedNotification(recipients: string[], contest: SelectContest, creator: string) {
   const urgent = getIsUrgent(new Date(contest.startDate));
 
   send({
@@ -165,7 +168,7 @@ export function sendContestSubmittedNotification(
       competitionId: contest.competitionId,
       wcaCompetition: contest.type === "wca-comp",
       contestName: contest.name,
-      contestUrl,
+      contestUrl: `${baseUrl}/competitions/${contest.competitionId}`,
       ccUrl: baseUrl,
       creator,
       startDate: contest.startDate.toDateString(),
@@ -186,22 +189,26 @@ export function sendContestSubmittedNotification(
   });
 }
 
-// async sendContestApprovedNotification(to: string, contest: IContest) {
-//   try {
-//     await this.transporter.sendMail({
-//       from: this.contestsEmail,
-//       to,
-//       subject: `Contest approved: ${contest.shortName}`,
-//       html:
-//         `Your contest <a href="${process.env.BASE_URL}/competitions/${contest.competitionId}">${contest.name}</a> has been approved and is now public on the website.`,
-//     });
-//   } catch (err) {
-//     this.logger.logAndSave(
-//       `Error while sending contest approved notification for contest: ${err}`,
-//       LogType.Error,
-//     );
-//   }
-// }
+export function sendContestApprovedNotification(
+  to: string,
+  contest: Pick<SelectContest, "competitionId" | "name" | "shortName">,
+) {
+  send({
+    templateFileName: "contest-approved.hbs",
+    context: {
+      contestName: contest.name,
+      contestUrl: `${baseUrl}/competitions/${contest.competitionId}`,
+    },
+    callback: async (html) => {
+      await client.send({
+        from: contestsEmail,
+        to: [{ email: to }],
+        subject: `Contest approved: ${contest.shortName}`,
+        html,
+      });
+    },
+  });
+}
 
 // async sendContestFinishedNotification(
 //   to: string,
@@ -281,7 +288,7 @@ export function sendVideoBasedResultSubmittedNotification(
     },
     callback: async (html) => {
       await client.send({
-        from,
+        from: resultsEmail,
         reply_to: { email: C.contactEmail },
         to: [{ email: to }],
         bcc: [{ email: C.contactEmail }],

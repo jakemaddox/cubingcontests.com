@@ -8,7 +8,7 @@ export const handlePayload = (events, meta) => {
   const item = defaultPreparePayload(events, meta);
 
   item.appname = "cubingcontests";
-  item.metadata = { project_ref: "default", cc_log: "true" };
+  item.metadata = { project_ref: "default", cc_code: meta.cleanedPayload.ccCode };
 
   return item;
 };

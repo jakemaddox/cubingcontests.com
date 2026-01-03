@@ -3,52 +3,58 @@
 import { faClock, faCopy, faPencil } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import Link from "next/link";
+import { useAction } from "next-safe-action/hooks";
 import { useContext, useState } from "react";
 import Button from "~/app/components/UI/Button.tsx";
 import { MainContext } from "~/helpers/contexts.ts";
-import type { ContestState } from "~/helpers/types.ts";
+import type { ContestState } from "~/helpers/types";
+import { getActionError } from "~/helpers/utilityFunctions";
 import type { ContestResponse } from "~/server/db/schema/contests.ts";
+import { approveContestSF } from "~/server/serverFunctions/contestServerFunctions";
+
+type ModDashboardProps = {
+  forPage: "mod-dashboard";
+  onUpdateContestState: (competitionId: string, newState: ContestState) => void;
+};
+
+type ContestDetailsProps = {
+  forPage: "contest-details";
+  onUpdateContestState?: never;
+};
 
 type Props = {
   contest: ContestResponse;
-  updateContest?: (newContest: ContestResponse) => void;
-  isAdmin?: boolean;
-  smallButtons?: boolean;
-};
+  isAdmin: boolean;
+} & (ModDashboardProps | ContestDetailsProps);
 
-function ContestControls({ contest, updateContest, isAdmin = false, smallButtons }: Props) {
+function ContestControls({ contest, isAdmin = false, forPage, onUpdateContestState }: Props) {
   const { changeErrorMessages } = useContext(MainContext);
 
+  const { executeAsync: approveContest } = useAction(approveContestSF);
   const [loadingId, setLoadingId] = useState("");
 
-  const changeState = async (newState: ContestState) => {
-    const verb =
-      newState === "approved"
-        ? "approve"
-        : newState === "finished"
-          ? "finish"
-          : newState === "published"
-            ? "publish"
-            : "ERROR";
+  const smallButtons = forPage === "mod-dashboard";
 
-    if (confirm(`Are you sure you would like to ${verb} ${contest.name}?`)) {
-      // setLoadingId(`set_state_${newState}_${contest.competitionId}_button`);
-      // const res = await myFetch.patch(`/competitions/set-state/${contest.competitionId}`, { newState });
+  const onApproveContest = async () => {
+    if (confirm(`Are you sure you would like to approve ${contest.name}?`)) {
+      setLoadingId(`approve_contest_${contest.competitionId}_button`);
+      const res = await approveContest({ competitionId: contest.competitionId });
 
-      // if (res.success) {
-      //   if (updateContest) {
-      //     updateContest(res.data);
-      //     setLoadingId("");
-      //   } else {
-      //     window.location.reload();
-      //   }
-      // } else {
-      //   setLoadingId("");
-      // }
-      changeErrorMessages(["ERROR: not implemented"]);
-      throw new Error("NOT IMPLEMENTED!");
+      if (res.serverError || res.validationErrors) {
+        changeErrorMessages([getActionError(res)]);
+        setLoadingId("");
+      } else if (forPage === "mod-dashboard") {
+        onUpdateContestState(contest.competitionId, "approved");
+        setLoadingId("");
+      } else {
+        window.location.reload();
+      }
     }
   };
+
+  const onFinishContest = () => {};
+
+  const onPublishContest = () => {};
 
   return (
     <div className="d-flex gap-2">
@@ -85,9 +91,9 @@ function ContestControls({ contest, updateContest, isAdmin = false, smallButtons
       )}
       {contest.state === "created" && isAdmin && (
         <Button
-          id={`set_state_approved_${contest.competitionId}_button`}
+          id={`approve_contest_${contest.competitionId}_button`}
           type="button"
-          onClick={() => changeState("approved")}
+          onClick={() => onApproveContest()}
           loadingId={loadingId}
           className={`btn btn-warning ${smallButtons ? "btn-xs" : ""}`}
         >
@@ -98,7 +104,7 @@ function ContestControls({ contest, updateContest, isAdmin = false, smallButtons
         <Button
           id={`set_state_finished_${contest.competitionId}_button`}
           type="button"
-          onClick={() => changeState("finished")}
+          onClick={() => onFinishContest()}
           loadingId={loadingId}
           className={`btn btn-warning ${smallButtons ? "btn-xs" : ""}`}
         >
@@ -110,7 +116,7 @@ function ContestControls({ contest, updateContest, isAdmin = false, smallButtons
           <Button
             id={`set_state_published_${contest.competitionId}_button`}
             type="button"
-            onClick={() => changeState("published")}
+            onClick={() => onPublishContest()}
             loadingId={loadingId}
             className={`btn btn-warning ${smallButtons ? "btn-xs" : ""}`}
           >

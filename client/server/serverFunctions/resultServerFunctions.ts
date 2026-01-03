@@ -21,7 +21,6 @@ import { getIsAdmin } from "~/helpers/utilityFunctions.ts";
 import { ResultValidator, VideoBasedResultValidator } from "~/helpers/validators/Result.ts";
 import { contestsTable, type SelectContest } from "~/server/db/schema/contests.ts";
 import type { RoundResponse } from "~/server/db/schema/rounds.ts";
-import { logMessageSF } from "~/server/serverFunctions/serverFunctions.ts";
 import { type DbTransactionType, db } from "../db/provider.ts";
 import type { EventResponse } from "../db/schema/events.ts";
 import { personsTable, type SelectPerson } from "../db/schema/persons.ts";
@@ -35,7 +34,7 @@ import {
 } from "../db/schema/results.ts";
 import { sendVideoBasedResultSubmittedNotification } from "../email/mailer.ts";
 import { actionClient, CcActionError } from "../safeAction.ts";
-import { getRecordConfigs, getRecordResult, getUserHasAccessToContest } from "../serverUtilityFunctions.ts";
+import { getRecordConfigs, getRecordResult, getUserHasAccessToContest, logMessage } from "../serverUtilityFunctions.ts";
 
 export const getWrPairUpToDateSF = actionClient
   .metadata({ permissions: { videoBasedResults: ["create"] } })
@@ -75,9 +74,10 @@ export const createContestResultSF = actionClient
       },
     }) => {
       const { eventId, personIds, competitionId, roundId } = newResultDto;
-      logMessageSF({
-        message: `Creating new contest result for contest ${competitionId}, event ${eventId}, round ${roundId} and persons ${personIds.join(", ")}: ${JSON.stringify(newResultDto.attempts)}`,
-      });
+      logMessage(
+        "CC0013",
+        `Creating contest result for contest ${competitionId}, event ${eventId}, round ${roundId} and persons ${personIds.join(", ")}: ${JSON.stringify(newResultDto.attempts)}`,
+      );
 
       const contestPromise = db.query.contests.findFirst({ where: { competitionId } });
       const eventPromise = db.query.events.findFirst({ where: { eventId } });
@@ -230,7 +230,7 @@ export const deleteContestResultSF = actionClient
       const result = await db.query.results.findFirst({ where: { id, competitionId: { isNotNull: true } } });
       if (!result) throw new CcActionError(`Result with ID ${id} not found`);
 
-      logMessageSF({ message: `Deleting result: ${JSON.stringify(result)}` });
+      logMessage("CC0015", `Deleting contest result: ${JSON.stringify(result)}`);
 
       const contestPromise = db.query.contests.findFirst({ where: { competitionId: result.competitionId! } });
       const eventPromise = db.query.events.findFirst({ where: { eventId: result.eventId } });
@@ -300,7 +300,7 @@ export const createVideoBasedResultSF = actionClient
         session: { user },
       },
     }) => {
-      logMessageSF({ message: `Creating new video-based result: ${JSON.stringify(newResultDto)}` });
+      logMessage("CC0016", `Creating video-based result: ${JSON.stringify(newResultDto)}`);
 
       const isAdmin = getIsAdmin(user.role);
 
@@ -390,7 +390,7 @@ async function setResultRecord(
 
   if (isWr) {
     const wrRecordConfig = recordConfigs.find((rc) => rc.recordTypeId === "WR")!;
-    logMessageSF({ message: `New ${result.eventId} ${type} ${wrRecordConfig.label}: ${result[bestOrAverage]}` });
+    logMessage("CC0024", `New ${result.eventId} ${type} ${wrRecordConfig.label}: ${result[bestOrAverage]}`);
     result[recordField] = "WR";
   } else if (
     result.superRegionCode &&
@@ -406,7 +406,7 @@ async function setResultRecord(
 
     if (isCr) {
       const crRecordConfig = recordConfigs.find((rc) => rc.recordTypeId === crType)!;
-      logMessageSF({ message: `New ${result.eventId} ${type} ${crRecordConfig.label}: ${result[bestOrAverage]}` });
+      logMessage("CC0024", `New ${result.eventId} ${type} ${crRecordConfig.label}: ${result[bestOrAverage]}`);
       result[recordField] = crType;
     } else if (result.regionCode && result.regionCode !== crResult?.regionCode) {
       // Set NR
@@ -418,7 +418,7 @@ async function setResultRecord(
 
       if (isNr) {
         const nrRecordConfig = recordConfigs.find((rc) => rc.recordTypeId === "NR")!;
-        logMessageSF({ message: `New ${result.eventId} ${type} ${nrRecordConfig.label}: ${result[bestOrAverage]}` });
+        logMessage("CC0024", `New ${result.eventId} ${type} ${nrRecordConfig.label}: ${result[bestOrAverage]}`);
         result[recordField] = "NR";
       }
     }
@@ -476,7 +476,7 @@ async function setFutureRecords(
 
     for (const wr of newWrs) {
       const date = format(wr.date as Date, "d MMM yyyy");
-      logMessageSF({ message: `New ${type} WR for event ${deletedResult.eventId}: ${wr[bestOrAverage]} (${date})` });
+      logMessage("CC0025", `New ${type} WR for event ${deletedResult.eventId}: ${wr[bestOrAverage]} (${date})`);
     }
   }
 
@@ -519,9 +519,10 @@ async function setFutureRecords(
 
     for (const cr of newCrs) {
       const date = format(cr.date as Date, "d MMM yyyy");
-      logMessageSF({
-        message: `New ${type} ${deletedResult[recordField]} for event ${deletedResult.eventId}: ${cr[bestOrAverage]} (${date})`,
-      });
+      logMessage(
+        "CC0025",
+        `New ${type} ${deletedResult[recordField]} for event ${deletedResult.eventId}: ${cr[bestOrAverage]} (${date})`,
+      );
     }
   }
 
@@ -559,9 +560,10 @@ async function setFutureRecords(
     for (const nr of newNrs) {
       const date = format(nr.date as Date, "d MMM yyyy");
       const country = Countries.find((c) => c.code === nr.region_code)!.name;
-      logMessageSF({
-        message: `New ${type} NR (${country}) for event ${deletedResult.eventId}: ${nr[bestOrAverage]} (${date})`,
-      });
+      logMessage(
+        "CC0025",
+        `New ${type} NR (${country}) for event ${deletedResult.eventId}: ${nr[bestOrAverage]} (${date})`,
+      );
     }
   }
 }
@@ -606,7 +608,7 @@ async function cancelFutureRecords(
       .returning();
     for (const r of cancelledWrCrNrResults) {
       const message = `CANCELLED ${r.eventId} ${type} ${wrLabel}, ${crLabel} or ${nrLabel}: ${r[bestOrAverage]} (country code ${r.regionCode})`;
-      logMessageSF({ message });
+      logMessage("CC0026", message);
     }
 
     const wrCrChangedToNrResults = await tx
@@ -625,7 +627,7 @@ async function cancelFutureRecords(
       .returning();
     for (const r of wrCrChangedToNrResults) {
       const message = `CHANGED ${r.eventId} ${type} ${wrLabel} or ${crLabel} to ${nrLabel}: ${r[bestOrAverage]} (country code ${r.regionCode})`;
-      logMessageSF({ message });
+      logMessage("CC0026", message);
     }
 
     // Has to be done like this, because we can't dynamically determine the CR type to be set
@@ -643,7 +645,7 @@ async function cancelFutureRecords(
         .returning();
 
       const message = `CHANGED ${r.eventId} ${type} ${wrLabel} to ${resultCrLabel}: ${r[bestOrAverage]} (country code ${r.regionCode})`;
-      logMessageSF({ message });
+      logMessage("CC0026", message);
     }
   } else if (["ER", "NAR", "SAR", "AsR", "AfR", "OcR"].includes(result[recordField]!)) {
     const cancelledCrNrResults = await tx
@@ -662,7 +664,7 @@ async function cancelFutureRecords(
       .returning();
     for (const r of cancelledCrNrResults) {
       const message = `CANCELLED ${r.eventId} ${type} ${crLabel} or ${nrLabel}: ${r[bestOrAverage]} (country code ${r.regionCode})`;
-      logMessageSF({ message });
+      logMessage("CC0026", message);
     }
 
     const crChangedToNrResults = await tx
@@ -679,7 +681,7 @@ async function cancelFutureRecords(
       .returning();
     for (const r of crChangedToNrResults) {
       const message = `CHANGED ${r.eventId} ${type} ${crLabel} to ${nrLabel}: ${r[bestOrAverage]} (country code ${r.regionCode})`;
-      logMessageSF({ message });
+      logMessage("CC0026", message);
     }
   } else if (result[recordField] === "NR") {
     const cancelledNrResults = await tx
@@ -689,7 +691,7 @@ async function cancelFutureRecords(
       .returning();
     for (const r of cancelledNrResults) {
       const message = `CANCELLED ${r.eventId} ${type} ${nrLabel}: ${r[bestOrAverage]} (country code ${r.regionCode})`;
-      logMessageSF({ message });
+      logMessage("CC0026", message);
     }
   }
 }

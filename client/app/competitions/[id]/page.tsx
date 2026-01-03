@@ -110,7 +110,7 @@ async function ContestDetailsPage({ params }: Props) {
           <div className="px-2">
             <div className="mb-3">
               <ToastMessages />
-              <ContestControls contest={contest} isAdmin={getIsAdmin(session?.user.role)} />
+              <ContestControls contest={contest} isAdmin={getIsAdmin(session?.user.role)} forPage="contest-details" />
             </div>
 
             {contest.state === "created" ? (

@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useAction } from "next-safe-action/hooks";
-import { logMessageSF } from "~/server/serverFunctions/serverFunctions.ts";
+import { logAffiliateLinkClickSF } from "~/server/serverFunctions/serverFunctions.ts";
 
 const height = 192 / 2;
 const width = 1920 / 2;
@@ -14,10 +14,10 @@ type Props = {
 };
 
 function AffiliateLink({ type }: Props) {
-  const { executeAsync: logMessage } = useAction(logMessageSF);
+  const { executeAsync: sendLog } = useAction(logAffiliateLinkClickSF);
 
   const logAffiliateLinkClick = (utmCampaign: string) => {
-    logMessage({ message: `Affiliate link clicked (utm_campaign: ${utmCampaign})` });
+    sendLog({ message: `Affiliate link clicked (utm_campaign: ${utmCampaign})` });
   };
 
   switch (type) {

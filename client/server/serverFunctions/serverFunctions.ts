@@ -18,13 +18,12 @@ import {
   collectiveSolutionsTable as csTable,
 } from "~/server/db/schema/collective-solutions.ts";
 import { sendEmail, sendRoleChangedEmail } from "~/server/email/mailer.ts";
-import { logger } from "~/server/logger.ts";
 import { Roles } from "~/server/permissions.ts";
 import { type PersonResponse, personsPublicCols, personsTable } from "../db/schema/persons.ts";
 import { actionClient, CcActionError } from "../safeAction.ts";
-import { checkUserPermissions } from "../serverUtilityFunctions.ts";
+import { checkUserPermissions, logMessage } from "../serverUtilityFunctions.ts";
 
-export const logMessageSF = actionClient
+export const logAffiliateLinkClickSF = actionClient
   .metadata({})
   .inputSchema(
     z.strictObject({
@@ -32,14 +31,7 @@ export const logMessageSF = actionClient
     }),
   )
   .action(async ({ parsedInput: { message } }) => {
-    // If not in test environment, log to console too (tests use a different implementation of the logger that logs straight to console)
-    if (!process.env.VITEST) console.log(message);
-
-    try {
-      logger.info(message);
-    } catch (err) {
-      console.error("Error while sending log to Supabase Analytics:", err);
-    }
+    logMessage("CC0001", message);
   });
 
 export const updateUserSF = actionClient

@@ -18,9 +18,13 @@ import { type PersonResponse, personsPublicCols, personsTable } from "~/server/d
 import type { RecordConfigResponse } from "~/server/db/schema/record-configs.ts";
 import { type ResultResponse, resultsPublicCols, resultsTable } from "~/server/db/schema/results.ts";
 import { type RoundResponse, roundsPublicCols, roundsTable } from "~/server/db/schema/rounds.ts";
-import { sendContestSubmittedNotification } from "~/server/email/mailer.ts";
-import { logMessageSF } from "~/server/serverFunctions/serverFunctions.ts";
-import { getRecordConfigs, getUserHasAccessToContest } from "~/server/serverUtilityFunctions.ts";
+import { sendContestApprovedNotification, sendContestSubmittedNotification } from "~/server/email/mailer.ts";
+import {
+  approvePersons,
+  getRecordConfigs,
+  getUserHasAccessToContest,
+  logMessage,
+} from "~/server/serverUtilityFunctions.ts";
 import { db } from "../db/provider.ts";
 import {
   type ContestResponse,
@@ -29,8 +33,6 @@ import {
   contestsTable as table,
 } from "../db/schema/contests.ts";
 import { actionClient, CcActionError } from "../safeAction.ts";
-
-const getContestUrl = (competitionId: string) => `${process.env.BASE_URL}/competitions/${competitionId}`;
 
 export const getContestSF = actionClient
   .metadata({})
@@ -175,7 +177,7 @@ export const createContestSF = actionClient
     }),
   )
   .action(async ({ parsedInput: { newContestDto, rounds }, ctx: { session } }) => {
-    logMessageSF({ message: `Creating contest ${newContestDto.competitionId}` });
+    logMessage("CC0005", `Creating contest ${newContestDto.competitionId}`);
 
     // No need to check that the state is not removed, because removed contests have _REMOVED at the end of the competitionId anyways
     const sameIdContest = await db.query.contests.findFirst({ where: { competitionId: newContestDto.competitionId } });
@@ -219,10 +221,38 @@ export const createContestSF = actionClient
       sendContestSubmittedNotification(
         organizerUsers.map((u) => u.email),
         createdContest,
-        getContestUrl(newContestDto.competitionId),
         creatorPerson.name,
       );
     });
+  });
+
+export const approveContestSF = actionClient
+  .metadata({ permissions: { competitions: ["approve"], meetups: ["approve"] } })
+  .inputSchema(
+    z.strictObject({
+      competitionId: z.string().nonempty(),
+    }),
+  )
+  .action(async ({ parsedInput: { competitionId } }) => {
+    logMessage("CC0006", `Approving contest ${competitionId}`);
+
+    const contest = await db.query.contests.findFirst({
+      columns: { competitionId: true, name: true, shortName: true, state: true, organizerIds: true, createdBy: true },
+      where: { competitionId },
+    });
+    if (!contest) throw new CcActionError(`Contest with ID ${competitionId} not found`);
+    if (contest.state !== "created") throw new CcActionError("Contest has already been approved")
+
+    const creatorUser = await db.query.users.findFirst({ columns: { email: true }, where: { id: contest.createdBy! } });
+    if (!creatorUser) throw new CcActionError("Contest creator's user profile not found");
+
+    await db.transaction(async tx => {
+      await tx.update(table).set({state: "approved"}).where(eq(table.competitionId, competitionId))
+
+      await approvePersons(tx, contest.organizerIds, { requireWcaId: false });
+    })
+
+    sendContestApprovedNotification(creatorUser.email, contest);
   });
 
 export const openRoundSF = actionClient
@@ -240,7 +270,7 @@ export const openRoundSF = actionClient
         session: { user },
       },
     }) => {
-      logMessageSF({ message: `Opening next round for event ${eventId} (contest ${competitionId})` });
+      logMessage("CC0012", `Opening next round for event ${eventId} (contest ${competitionId})`);
 
       const contestPromise = db.query.contests.findFirst({
         columns: { state: true, organizerIds: true },
