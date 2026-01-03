@@ -7,7 +7,7 @@ import { MailtrapClient } from "mailtrap";
 import { Countries } from "~/helpers/Countries.ts";
 import { C } from "~/helpers/constants.ts";
 import { roundFormats } from "~/helpers/roundFormats.ts";
-import { getFormattedTime, getIsUrgent } from "~/helpers/sharedFunctions.ts";
+import { getFormattedTime, getIsCompType, getIsUrgent } from "~/helpers/sharedFunctions.ts";
 import type { SelectContest } from "~/server/db/schema/contests.ts";
 import { logMessage } from "~/server/serverUtilityFunctions.ts";
 import type { SelectEvent } from "../db/schema/events.ts";
@@ -210,40 +210,35 @@ export function sendContestApprovedNotification(
   });
 }
 
-// async sendContestFinishedNotification(
-//   to: string,
-//   contest: IContest,
-//   contestUrl: string,
-//   creator: string,
-// ) {
-//   const duesAmount = C.duePerCompetitor * contest.participants;
-//   const contents = await getEmailContents("contest-finished.hbs", {
-//     contestName: contest.name,
-//     contestUrl,
-//     ccUrl: process.env.BASE_URL,
-//     creator,
-//     duesAmount: getIsCompType(contest.type) && duesAmount >= 1
-//       ? duesAmount.toFixed(2)
-//       : undefined,
-//     isUnofficialCompetition: contest.type === ContestType.Competition,
-//   });
+export function sendContestFinishedNotification(
+  recipients: string[],
+  contest: Pick<SelectContest, "competitionId" | "name" | "shortName" | "type" | "participants">,
+  creator: string,
+) {
+  const duesAmount = C.duePerCompetitor * contest.participants;
 
-//   try {
-//     await this.transporter.sendMail({
-//       from: this.contestsEmail,
-//       replyTo: C.contactEmail,
-//       to,
-//       bcc: C.contactEmail,
-//       subject: `Contest finished: ${contest.shortName}`,
-//       html: contents,
-//     });
-//   } catch (err) {
-//     this.logger.logAndSave(
-//       `Error while sending contest finished notification for contest ${contest.name}: ${err}`,
-//       LogType.Error,
-//     );
-//   }
-// }
+  send({
+    templateFileName: "contest-finished.hbs",
+    context: {
+      contestName: contest.name,
+      contestUrl: `${baseUrl}/competitions/${contest.competitionId}`,
+      ccUrl: baseUrl,
+      creator,
+      duesAmount: getIsCompType(contest.type) && duesAmount >= 1 ? duesAmount.toFixed(2) : "",
+      isUnofficialCompetition: contest.type === "comp",
+    },
+    callback: async (html) => {
+      await client.send({
+        from: contestsEmail,
+        reply_to: { email: C.contactEmail },
+        to: recipients.map((r) => ({ email: r })),
+        bcc: [{ email: C.contactEmail }],
+        subject: `Contest finished: ${contest.shortName}`,
+        html,
+      });
+    },
+  });
+}
 
 // async sendContestPublishedNotification(to: string, contest: IContest) {
 //   try {

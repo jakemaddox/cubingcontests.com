@@ -12,13 +12,16 @@ import { type ContestDto, ContestValidator } from "~/helpers/validators/Contest.
 import { CoordinatesValidator } from "~/helpers/validators/Coordinates.ts";
 import { type RoundDto, RoundValidator } from "~/helpers/validators/Round.ts";
 import type { auth } from "~/server/auth.ts";
-import { users as usersTable } from "~/server/db/schema/auth-schema.ts";
 import { type EventResponse, eventsPublicCols, eventsTable } from "~/server/db/schema/events.ts";
 import { type PersonResponse, personsPublicCols, personsTable } from "~/server/db/schema/persons.ts";
 import type { RecordConfigResponse } from "~/server/db/schema/record-configs.ts";
 import { type ResultResponse, resultsPublicCols, resultsTable } from "~/server/db/schema/results.ts";
 import { type RoundResponse, roundsPublicCols, roundsTable } from "~/server/db/schema/rounds.ts";
-import { sendContestApprovedNotification, sendContestSubmittedNotification } from "~/server/email/mailer.ts";
+import {
+  sendContestApprovedNotification,
+  sendContestFinishedNotification,
+  sendContestSubmittedNotification,
+} from "~/server/email/mailer.ts";
 import {
   approvePersons,
   getRecordConfigs,
@@ -176,55 +179,66 @@ export const createContestSF = actionClient
       rounds: z.array(RoundValidator).nonempty({ error: "Please select at least one event" }),
     }),
   )
-  .action(async ({ parsedInput: { newContestDto, rounds }, ctx: { session } }) => {
-    logMessage("CC0005", `Creating contest ${newContestDto.competitionId}`);
+  .action(
+    async ({
+      parsedInput: { newContestDto, rounds },
+      ctx: {
+        session: { user },
+      },
+    }) => {
+      logMessage("CC0005", `Creating contest ${newContestDto.competitionId}`);
 
-    // No need to check that the state is not removed, because removed contests have _REMOVED at the end of the competitionId anyways
-    const sameIdContest = await db.query.contests.findFirst({ where: { competitionId: newContestDto.competitionId } });
-    if (sameIdContest) throw new CcActionError(`A contest with the ID ${newContestDto.competitionId} already exists`);
-    const sameNameContest = await db.query.contests.findFirst({
-      where: { name: newContestDto.name, state: { NOT: "removed" } },
-    });
-    if (sameNameContest) throw new CcActionError(`A contest with the name ${newContestDto.name} already exists`);
-    const sameShortContest = await db.query.contests.findFirst({
-      where: { shortName: newContestDto.shortName, state: { NOT: "removed" } },
-    });
-    if (sameShortContest)
-      throw new CcActionError(`A contest with the short name ${newContestDto.shortName} already exists`);
+      // No need to check that the state is not removed, because removed contests have _REMOVED at the end of the competitionId anyways
+      const sameIdContest = await db.query.contests.findFirst({
+        where: { competitionId: newContestDto.competitionId },
+      });
+      if (sameIdContest) throw new CcActionError(`A contest with the ID ${newContestDto.competitionId} already exists`);
+      const sameNameContest = await db.query.contests.findFirst({
+        where: { name: newContestDto.name, state: { NOT: "removed" } },
+      });
+      if (sameNameContest) throw new CcActionError(`A contest with the name ${newContestDto.name} already exists`);
+      const sameShortContest = await db.query.contests.findFirst({
+        where: { shortName: newContestDto.shortName, state: { NOT: "removed" } },
+      });
+      if (sameShortContest)
+        throw new CcActionError(`A contest with the short name ${newContestDto.shortName} already exists`);
 
-    await validateAndCleanUpContest(newContestDto, rounds, session.user);
+      await validateAndCleanUpContest(newContestDto, rounds, user);
 
-    const [creatorPerson] = await db
-      .select({ name: personsTable.name })
-      .from(personsTable)
-      .where(eq(personsTable.id, session.user.personId!));
-    const organizerUsers = await db
-      .select({ email: usersTable.email })
-      .from(usersTable)
-      .where(inArray(usersTable.personId, newContestDto.organizerIds));
+      const creatorPerson = await db.query.persons.findFirst({
+        columns: { name: true },
+        where: { id: user.personId! },
+      });
+      if (!creatorPerson) throw new CcActionError("Contest creator's competitor profile not found");
 
-    await db.transaction(async (tx) => {
-      await tx
-        .insert(roundsTable)
-        .values(
-          rounds.map((r) =>
-            r.roundNumber === 1 ? { ...r, id: undefined, open: true } : { ...r, id: undefined, open: false },
-          ),
+      const organizerUsers = await db.query.users.findMany({
+        columns: { email: true },
+        where: { personId: { in: newContestDto.organizerIds } },
+      });
+
+      await db.transaction(async (tx) => {
+        await tx
+          .insert(roundsTable)
+          .values(
+            rounds.map((r) =>
+              r.roundNumber === 1 ? { ...r, id: undefined, open: true } : { ...r, id: undefined, open: false },
+            ),
+          );
+
+        const [createdContest] = await tx
+          .insert(table)
+          .values({ ...newContestDto, createdBy: user.id })
+          .returning();
+
+        // Notify the organizers and admins
+        sendContestSubmittedNotification(
+          organizerUsers.map((u) => u.email),
+          createdContest,
+          creatorPerson.name,
         );
-
-      const [createdContest] = await tx
-        .insert(table)
-        .values({ ...newContestDto, createdBy: session.user.id })
-        .returning();
-
-      // Notify the organizers and admins
-      sendContestSubmittedNotification(
-        organizerUsers.map((u) => u.email),
-        createdContest,
-        creatorPerson.name,
-      );
-    });
-  });
+      });
+    },
+  );
 
 export const approveContestSF = actionClient
   .metadata({ permissions: { competitions: ["approve"], meetups: ["approve"] } })
@@ -241,19 +255,120 @@ export const approveContestSF = actionClient
       where: { competitionId },
     });
     if (!contest) throw new CcActionError(`Contest with ID ${competitionId} not found`);
-    if (contest.state !== "created") throw new CcActionError("Contest has already been approved")
+    if (contest.state !== "created") throw new CcActionError("Contest has already been approved");
 
     const creatorUser = await db.query.users.findFirst({ columns: { email: true }, where: { id: contest.createdBy! } });
     if (!creatorUser) throw new CcActionError("Contest creator's user profile not found");
 
-    await db.transaction(async tx => {
-      await tx.update(table).set({state: "approved"}).where(eq(table.competitionId, competitionId))
+    await db.transaction(async (tx) => {
+      await tx.update(table).set({ state: "approved" }).where(eq(table.competitionId, competitionId));
 
       await approvePersons(tx, contest.organizerIds, { requireWcaId: false });
-    })
+    });
 
     sendContestApprovedNotification(creatorUser.email, contest);
   });
+
+export const finishContestSF = actionClient
+  .metadata({ permissions: { competitions: ["finish"], meetups: ["finish"] } })
+  .inputSchema(
+    z.strictObject({
+      competitionId: z.string().nonempty(),
+    }),
+  )
+  .action(
+    async ({
+      parsedInput: { competitionId },
+      ctx: {
+        session: { user },
+      },
+    }) => {
+      logMessage("CC0007", `Finishing contest ${competitionId}`);
+
+      const contest = await db.query.contests.findFirst({
+        columns: {
+          competitionId: true,
+          name: true,
+          shortName: true,
+          type: true,
+          state: true,
+          organizerIds: true,
+          participants: true,
+          createdBy: true,
+        },
+        where: { competitionId },
+      });
+      if (!contest) throw new CcActionError(`Contest with ID ${competitionId} not found`);
+
+      if (["finished", "published", "removed"].includes(contest.state) || contest.participants === 0)
+        throw new CcActionError("Contest cannot be finished");
+      if (["meetup", "comp"].includes(contest.type) && contest.participants < C.minCompetitorsForNonWca)
+        throw new CcActionError(
+          `A meetup or unofficial competition may not have fewer than ${C.minCompetitorsForNonWca} competitors`,
+        );
+
+      // Check there are no rounds with no results or subsequent rounds with fewer results than the minimum proceed number
+      const roundsPromise = db.query.rounds.findMany({ where: { competitionId } });
+      const resultsPromise = db.query.results.findMany({ where: { competitionId } });
+      const creatorPersonPromise = db.query.persons.findFirst({
+        columns: { name: true },
+        where: { id: user.personId! },
+      });
+      const organizerUsersPromise = db.query.users.findMany({
+        columns: { email: true },
+        where: { personId: { in: contest.organizerIds } },
+      });
+
+      const [rounds, results, creatorPerson, organizerUsers] = await Promise.all([
+        roundsPromise,
+        resultsPromise,
+        creatorPersonPromise,
+        organizerUsersPromise,
+      ]);
+
+      // Check there are no rounds with too few results
+      for (const { id, eventId, roundNumber } of rounds) {
+        const roundResults = results.filter((r) => r.roundId === id);
+
+        if (roundResults.length === 0 || (roundNumber > 1 && roundResults.length < C.minProceedNumber)) {
+          const event = (await db.query.events.findFirst({ columns: { name: true }, where: { eventId } }))!;
+
+          if (roundResults.length === 0) throw new CcActionError(`${event.name} round ${roundNumber} has no results`);
+          else
+            throw new CcActionError(
+              `${event.name} round ${roundNumber} has fewer than ${C.minProceedNumber} results (see WCA regulation 9q+)`,
+            );
+        }
+      }
+
+      // Check there are no incomplete results
+      const incompleteResult = results.find((r) => r.attempts.some((a) => a.result === 0));
+      if (incompleteResult) {
+        const event = (await db.query.events.findFirst({
+          columns: { name: true },
+          where: { eventId: incompleteResult.eventId },
+        }))!;
+        const round = rounds.find((r) => r.id === incompleteResult.roundId)!;
+        throw new CcActionError(`This contest has an unentered attempt in ${event.name} round ${round.roundNumber}`);
+      }
+
+      // If there are no issues, finish the contest and close all rounds
+      await db.transaction(async (tx) => {
+        await tx
+          .update(table)
+          .set({ state: "finished", queuePosition: null })
+          .where(eq(table.competitionId, competitionId));
+
+        await tx.update(roundsTable).set({ open: false }).where(eq(roundsTable.competitionId, competitionId));
+      });
+
+      sendContestFinishedNotification(
+        organizerUsers.map((u) => u.email),
+        contest,
+        creatorPerson?.name ?? "DELETED",
+      );
+    },
+  );
 
 export const openRoundSF = actionClient
   .metadata({ permissions: { competitions: ["create"], meetups: ["create"] } })
