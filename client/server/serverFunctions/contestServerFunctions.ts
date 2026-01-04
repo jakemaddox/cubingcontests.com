@@ -6,24 +6,26 @@ import { and, arrayContains, desc, eq, inArray } from "drizzle-orm";
 import { find as findTimezone } from "geo-tz";
 import z from "zod";
 import { C } from "~/helpers/constants.ts";
-import { getMaxAllowedRounds } from "~/helpers/sharedFunctions.ts";
+import { getMaxAllowedRounds, getNameAndLocalizedName } from "~/helpers/sharedFunctions.ts";
 import { getIsAdmin } from "~/helpers/utilityFunctions.ts";
 import { type ContestDto, ContestValidator } from "~/helpers/validators/Contest.ts";
 import { CoordinatesValidator } from "~/helpers/validators/Coordinates.ts";
 import { type RoundDto, RoundValidator } from "~/helpers/validators/Round.ts";
 import type { auth } from "~/server/auth.ts";
 import { type EventResponse, eventsPublicCols, eventsTable } from "~/server/db/schema/events.ts";
-import { type PersonResponse, personsPublicCols, personsTable } from "~/server/db/schema/persons.ts";
+import { type PersonResponse, personsPublicCols, personsTable, type SelectPerson } from "~/server/db/schema/persons.ts";
 import type { RecordConfigResponse } from "~/server/db/schema/record-configs.ts";
 import { type ResultResponse, resultsPublicCols, resultsTable } from "~/server/db/schema/results.ts";
 import { type RoundResponse, roundsPublicCols, roundsTable } from "~/server/db/schema/rounds.ts";
 import {
   sendContestApprovedNotification,
   sendContestFinishedNotification,
+  sendContestPublishedNotification,
   sendContestSubmittedNotification,
 } from "~/server/email/mailer.ts";
 import {
-  approvePersons,
+  getContestParticipantIds,
+  getPersonExactMatchWcaId,
   getRecordConfigs,
   getUserHasAccessToContest,
   logMessage,
@@ -263,14 +265,15 @@ export const approveContestSF = actionClient
     await db.transaction(async (tx) => {
       await tx.update(table).set({ state: "approved" }).where(eq(table.competitionId, competitionId));
 
-      await approvePersons(tx, contest.organizerIds, { requireWcaId: false });
+      // Approve organizer persons
+      await tx.update(personsTable).set({ approved: true }).where(inArray(personsTable.id, contest.organizerIds));
     });
 
     sendContestApprovedNotification(creatorUser.email, contest);
   });
 
 export const finishContestSF = actionClient
-  .metadata({ permissions: { competitions: ["finish"], meetups: ["finish"] } })
+  .metadata({ permissions: { competitions: ["create"], meetups: ["create"] } })
   .inputSchema(
     z.strictObject({
       competitionId: z.string().nonempty(),
@@ -300,8 +303,9 @@ export const finishContestSF = actionClient
       });
       if (!contest) throw new CcActionError(`Contest with ID ${competitionId} not found`);
 
-      if (["finished", "published", "removed"].includes(contest.state) || contest.participants === 0)
-        throw new CcActionError("Contest cannot be finished");
+      if (!getUserHasAccessToContest(user, contest))
+        throw new CcActionError("You do not have access rights for this contest");
+      if (contest.state !== "ongoing") throw new CcActionError("Contest cannot be finished");
       if (["meetup", "comp"].includes(contest.type) && contest.participants < C.minCompetitorsForNonWca)
         throw new CcActionError(
           `A meetup or unofficial competition may not have fewer than ${C.minCompetitorsForNonWca} competitors`,
@@ -369,6 +373,118 @@ export const finishContestSF = actionClient
       );
     },
   );
+
+export const publishContestSF = actionClient
+  .metadata({ permissions: { competitions: ["publish"], meetups: ["publish"] } })
+  .inputSchema(
+    z.strictObject({
+      competitionId: z.string().nonempty(),
+    }),
+  )
+  .action(async ({ parsedInput: { competitionId } }) => {
+    logMessage("CC0009", `Publishing contest ${competitionId}`);
+
+    const contest = await db.query.contests.findFirst({
+      columns: {
+        competitionId: true,
+        name: true,
+        shortName: true,
+        type: true,
+        state: true,
+        createdBy: true,
+      },
+      where: { competitionId },
+    });
+    if (!contest) throw new CcActionError(`Contest with ID ${competitionId} not found`);
+    if (contest.state !== "finished") throw new CcActionError("Contest cannot be published");
+
+    const creatorUser = await db.query.users.findFirst({
+      columns: { email: true },
+      where: { id: contest.createdBy! },
+    });
+    const wcaPersons: { name: string; wcaId: string; countryIso2: string }[] = [];
+
+    if (contest.type === "wca-comp") {
+      const res = await fetch(`https://www.worldcubeassociation.org/api/v0/competitions/${competitionId}/results`);
+      const wcaCompResultsData = await res.json();
+      if (!wcaCompResultsData || wcaCompResultsData.length === 0) {
+        throw new CcActionError(
+          "You must wait until the results have been published on the WCA website before publishing the contest",
+        );
+      }
+
+      for (const result of wcaCompResultsData) {
+        if (!wcaPersons.some((p) => p.wcaId === result.wca_id))
+          wcaPersons.push({ name: result.name, wcaId: result.wca_id, countryIso2: result.country_iso2 });
+      }
+    }
+
+    await db.transaction(async (tx) => {
+      await tx.update(table).set({ state: "published" }).where(eq(table.competitionId, competitionId));
+
+      await tx.update(resultsTable).set({ approved: true }).where(eq(resultsTable.competitionId, competitionId));
+
+      const participantIds = await getContestParticipantIds(tx, competitionId);
+      const personsToBeApproved = await tx.query.persons.findMany({
+        where: { id: { in: participantIds }, approved: false },
+      });
+
+      if (personsToBeApproved.length > 0) {
+        logMessage("CC0023", `Approving participants from ${contest.name}`);
+
+        if (contest.type === "wca-comp") {
+          for (const person of personsToBeApproved) {
+            const updatePersonObject: Partial<SelectPerson> = { approved: true };
+
+            if (!person.wcaId) {
+              for (const wcaPerson of wcaPersons) {
+                const { name, localizedName } = getNameAndLocalizedName(wcaPerson.name);
+
+                if (name === person.name && wcaPerson.countryIso2 === person.regionCode) {
+                  if (updatePersonObject.wcaId) {
+                    throw new CcActionError(
+                      `Multiple matches found while assigning WCA ID for ${name}. Resolve this manually and publish the contest again.`,
+                    );
+                  }
+
+                  updatePersonObject.wcaId = wcaPerson.wcaId;
+                  if (localizedName) updatePersonObject.localizedName = localizedName;
+                }
+              }
+
+              if (!updatePersonObject.wcaId)
+                throw new CcActionError(`No matches found while assigning WCA ID for ${person.name}`);
+            }
+
+            await tx.update(personsTable).set(updatePersonObject).where(eq(personsTable.id, person.id));
+          }
+        } else {
+          for (const person of personsToBeApproved) {
+            if (!person.wcaId) {
+              const matchedPersonWcaId = await getPersonExactMatchWcaId(person);
+              if (matchedPersonWcaId) {
+                throw new CcActionError(
+                  `${person.name} has an exact name and country match with the WCA competitor with WCA ID ${matchedPersonWcaId}. Resolve this manually and publish the contest again.`,
+                );
+              }
+            }
+          }
+
+          await tx
+            .update(personsTable)
+            .set({ approved: true })
+            .where(
+              inArray(
+                personsTable.id,
+                personsToBeApproved.map((p) => p.id),
+              ),
+            );
+        }
+      }
+    });
+
+    if (creatorUser) sendContestPublishedNotification(creatorUser.email, contest);
+  });
 
 export const openRoundSF = actionClient
   .metadata({ permissions: { competitions: ["create"], meetups: ["create"] } })

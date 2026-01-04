@@ -7,7 +7,7 @@ import { C } from "~/helpers/constants.ts";
 import { type RecordCategory, type RecordType, RecordTypeValues } from "~/helpers/types.ts";
 import { getIsAdmin } from "~/helpers/utilityFunctions.ts";
 import type { ContestResponse } from "~/server/db/schema/contests.ts";
-import { personsTable, type SelectPerson } from "~/server/db/schema/persons.ts";
+import type { SelectPerson } from "~/server/db/schema/persons.ts";
 import { type LogCode, logger } from "~/server/logger.ts";
 import { CcActionError } from "~/server/safeAction.ts";
 import { getDateOnly, getNameAndLocalizedName } from "../helpers/sharedFunctions.ts";
@@ -148,96 +148,41 @@ export function getUserHasAccessToContest(
   return modHasAccess;
 }
 
-export async function setPersonToApproved(
-  person: SelectPerson,
-  {
-    tx,
-    requireWcaId,
-    ignoredWcaMatches = [],
-  }: {
-    tx?: DbTransactionType; // this can optionally be run inside of a transaction
-    requireWcaId: boolean;
-    ignoredWcaMatches?: string[];
-  },
-): Promise<SelectPerson> {
-  const updatePersonObject: Partial<SelectPerson> = {};
+export async function getContestParticipantIds(tx: DbTransactionType, competitionId: string): Promise<number[]> {
+  const results = await tx.query.results.findMany({ columns: { personIds: true }, where: { competitionId } });
 
-  if (!person.wcaId) {
-    const res = await fetch(`${C.wcaV0ApiBaseUrl}/search/users?persons_table=true&q=${person.name}`);
-    if (res.ok) {
-      const { result: wcaPersons } = await res.json();
-
-      if (!requireWcaId) {
-        for (const wcaPerson of wcaPersons) {
-          const { name } = getNameAndLocalizedName(wcaPerson.name);
-
-          if (
-            !ignoredWcaMatches.includes(wcaPerson.wca_id) &&
-            name === person.name &&
-            wcaPerson.country_iso2 === person.regionCode
-          ) {
-            throw new CcActionError(
-              `There is an exact name and country match with the WCA competitor with WCA ID ${wcaPerson.wca_id}. If that is the same person, edit their profile, adding the WCA ID. If it's a different person, simply approve them again to confirm.`,
-              { data: { wcaMatches: [...ignoredWcaMatches, wcaPerson.wca_id] } },
-            );
-          }
-        }
-      }
-      // We only want to assign the WCA ID if there's just one matched person
-      else if (wcaPersons?.length === 1) {
-        const [wcaPerson] = wcaPersons;
-        const { name, localizedName } = getNameAndLocalizedName(wcaPerson.name);
-
-        if (name === person.name && wcaPerson.country_iso2 === person.regionCode) {
-          updatePersonObject.wcaId = wcaPerson.wca_id;
-          if (localizedName) updatePersonObject.localizedName = localizedName;
-        }
-      }
+  const participantIds = new Set<number>();
+  for (const result of results) {
+    for (const personId of result.personIds) {
+      participantIds.add(personId);
     }
   }
 
-  if (!requireWcaId || person.wcaId || updatePersonObject.wcaId) {
-    logMessage("CC0022", `Approving person ${person.name} (CC ID: ${person.id})`);
-
-    updatePersonObject.approved = true;
-  }
-
-  if (Object.keys(updatePersonObject).length > 0) {
-    const [updatedPerson] = await (tx ?? db)
-      .update(personsTable)
-      .set(updatePersonObject)
-      .where(eq(personsTable.id, person.id))
-      .returning();
-    return updatedPerson;
-  }
-
-  return person;
+  return Array.from(participantIds);
 }
 
-export async function approvePersons(
-  tx: DbTransactionType,
-  personIds: number[],
-  { requireWcaId }: { requireWcaId: boolean },
-) {
-  const persons = await tx.query.persons.findMany({ where: { id: { in: personIds }, approved: false } });
+export async function getPersonExactMatchWcaId(
+  person: SelectPerson,
+  ignoredWcaMatches: string[] = [],
+): Promise<string | null> {
+  const res = await fetch(`${C.wcaV0ApiBaseUrl}/search/users?persons_table=true&q=${person.name}`);
+  if (res.ok) {
+    const { result: wcaPersons } = await res.json();
 
-  logMessage(
-    "CC0023",
-    `Approving persons with person IDs: ${personIds.join(", ")}${requireWcaId ? " (WCA IDs required)" : ""}`,
-  );
+    for (const wcaPerson of wcaPersons) {
+      const { name } = getNameAndLocalizedName(wcaPerson.name);
 
-  const settledPromises = await Promise.allSettled(
-    persons.filter((p) => !p.approved).map((p) => setPersonToApproved(p, { tx, requireWcaId })),
-  );
-
-  // Log errors, if there were any
-  if (settledPromises.some((p) => p.status === "rejected")) {
-    for (const promise of settledPromises) {
-      if (promise.status === "rejected") logMessage("CC5002", `Error while approving person: ${promise.reason}`);
+      if (
+        !ignoredWcaMatches.includes(wcaPerson.wca_id) &&
+        name === person.name &&
+        wcaPerson.country_iso2 === person.regionCode
+      ) {
+        return wcaPerson.wca_id;
+      }
     }
 
-    throw new CcActionError(
-      "Error while approving persons. Please report this to the admin team, providing the contest ID in the email.",
-    );
+    return null;
+  } else {
+    throw new CcActionError("Error while fetching person matches from the WCA");
   }
 }

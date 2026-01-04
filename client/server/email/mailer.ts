@@ -240,22 +240,26 @@ export function sendContestFinishedNotification(
   });
 }
 
-// async sendContestPublishedNotification(to: string, contest: IContest) {
-//   try {
-//     await this.transporter.sendMail({
-//       from: this.contestsEmail,
-//       to,
-//       subject: `Contest published: ${contest.shortName}`,
-//       html:
-//         `The results of <a href="${process.env.BASE_URL}/competitions/${contest.competitionId}">${contest.name}</a> have been published and will now enter the rankings.`,
-//     });
-//   } catch (err) {
-//     this.logger.logAndSave(
-//       `Error while sending contest published notification for contest: ${err}`,
-//       LogType.Error,
-//     );
-//   }
-// }
+export function sendContestPublishedNotification(
+  to: string,
+  contest: Pick<SelectContest, "competitionId" | "name" | "shortName">,
+) {
+  send({
+    templateFileName: "contest-published.hbs",
+    context: {
+      contestName: contest.name,
+      contestUrl: `${baseUrl}/competitions/${contest.competitionId}`,
+    },
+    callback: async (html) => {
+      await client.send({
+        from: contestsEmail,
+        to: [{ email: to }],
+        subject: `Contest published: ${contest.shortName}`,
+        html,
+      });
+    },
+  });
+}
 
 export function sendVideoBasedResultSubmittedNotification(
   to: string,

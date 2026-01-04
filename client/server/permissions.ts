@@ -3,8 +3,8 @@ import { adminAc, defaultStatements } from "better-auth/plugins/admin/access";
 
 const modDashboard = ["view", "view-analytics"];
 const recordConfigs = ["create-and-update"];
-const competitions = ["create", "update", "approve", "finish", "publish", "delete"];
-const meetups = ["create", "update", "approve", "finish", "publish", "delete"];
+const competitions = ["create", "update", "approve", "publish", "delete"];
+const meetups = ["create", "update", "approve", "publish", "delete"];
 const persons = ["create", "update", "approve", "delete"];
 const events = ["create", "update", "delete"];
 const videoBasedResults = ["create", "update", "approve", "delete"];

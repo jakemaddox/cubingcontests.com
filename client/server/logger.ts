@@ -66,5 +66,4 @@ export type LogCode =
   | "CC0028" // update record config
 
   // Error codes
-  | "CC5001" // send email error
-  | "CC5002"; // approve person error
+  | "CC5001"; // send email error

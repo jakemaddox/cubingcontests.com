@@ -34,7 +34,13 @@ import {
 } from "../db/schema/results.ts";
 import { sendVideoBasedResultSubmittedNotification } from "../email/mailer.ts";
 import { actionClient, CcActionError } from "../safeAction.ts";
-import { getRecordConfigs, getRecordResult, getUserHasAccessToContest, logMessage } from "../serverUtilityFunctions.ts";
+import {
+  getContestParticipantIds,
+  getRecordConfigs,
+  getRecordResult,
+  getUserHasAccessToContest,
+  logMessage,
+} from "../serverUtilityFunctions.ts";
 
 export const getWrPairUpToDateSF = actionClient
   .metadata({ permissions: { videoBasedResults: ["create"] } })
@@ -202,8 +208,8 @@ export const createContestResultSF = actionClient
         // Update contest state and participants
         const updateContestObject: Partial<SelectContest> = {};
         if (contest.state === "approved") updateContestObject.state = "ongoing";
-        const totalParticipants = await getTotalContestParticipants(tx, competitionId);
-        if (totalParticipants !== contest.participants) updateContestObject.participants = totalParticipants;
+        const participantIds = await getContestParticipantIds(tx, competitionId);
+        if (participantIds.length !== contest.participants) updateContestObject.participants = participantIds.length;
         // Do update, if some value actually changed
         if (Object.keys(updateContestObject).length > 0)
           await tx.update(contestsTable).set(updateContestObject).where(eq(contestsTable.competitionId, competitionId));
@@ -269,11 +275,11 @@ export const deleteContestResultSF = actionClient
         if (result.regionalSingleRecord) await setFutureRecords(tx, result, "best", recordConfigs);
         if (result.regionalAverageRecord) await setFutureRecords(tx, result, "average", recordConfigs);
 
-        const totalParticipants = await getTotalContestParticipants(tx, result.competitionId!);
-        if (totalParticipants !== contest.participants) {
+        const participantIds = await getContestParticipantIds(tx, result.competitionId!);
+        if (participantIds.length !== contest.participants) {
           await tx
             .update(contestsTable)
-            .set({ participants: totalParticipants })
+            .set({ participants: participantIds.length })
             .where(eq(contestsTable.competitionId, contest.competitionId));
         }
       });
@@ -730,17 +736,4 @@ async function setRankingAndProceedsValues(tx: DbTransactionType, results: Resul
     if (ranking !== sortedResults[i].ranking || proceeds !== sortedResults[i].proceeds)
       await tx.update(table).set({ ranking, proceeds }).where(eq(table.id, sortedResults[i].id));
   }
-}
-
-async function getTotalContestParticipants(tx: DbTransactionType, competitionId: string): Promise<number> {
-  const results = await tx.query.results.findMany({ columns: { personIds: true }, where: { competitionId } });
-
-  const participantIds = new Set<number>();
-  for (const result of results) {
-    for (const personId of result.personIds) {
-      participantIds.add(personId);
-    }
-  }
-
-  return participantIds.size;
 }

@@ -16,7 +16,7 @@ import {
   personsTable as table,
 } from "~/server/db/schema/persons.ts";
 import { actionClient, CcActionError } from "../safeAction.ts";
-import { checkUserPermissions, logMessage, setPersonToApproved } from "../serverUtilityFunctions.ts";
+import { checkUserPermissions, getPersonExactMatchWcaId, logMessage } from "../serverUtilityFunctions.ts";
 
 type GetOrCreatePersonObject = {
   person: PersonResponse;
@@ -227,7 +227,18 @@ export const approvePersonSF = actionClient
       }
     }
 
-    return await setPersonToApproved(person, { requireWcaId: false, ignoredWcaMatches });
+    const matchedPersonWcaId = await getPersonExactMatchWcaId(person, ignoredWcaMatches);
+    if (matchedPersonWcaId) {
+      throw new CcActionError(
+        `${person.name} has an exact name and country match with the WCA competitor with WCA ID ${matchedPersonWcaId}. If that is the same person, edit their profile, adding the WCA ID. If it's a different person, simply approve them again to confirm.`,
+        { data: { wcaMatches: [...ignoredWcaMatches, matchedPersonWcaId] } },
+      );
+    }
+
+    logMessage("CC0022", `Approving person ${person.name} (CC ID: ${person.id})`);
+
+    const [approvedPerson] = await db.update(table).set({ approved: true }).where(eq(table.id, id)).returning();
+    return approvedPerson;
   });
 
 async function validatePerson(

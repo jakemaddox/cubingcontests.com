@@ -10,7 +10,7 @@ import { MainContext } from "~/helpers/contexts.ts";
 import type { ContestState } from "~/helpers/types";
 import { getActionError } from "~/helpers/utilityFunctions";
 import type { ContestResponse } from "~/server/db/schema/contests.ts";
-import { approveContestSF, finishContestSF } from "~/server/serverFunctions/contestServerFunctions";
+import { approveContestSF, finishContestSF, publishContestSF } from "~/server/serverFunctions/contestServerFunctions";
 
 type ModDashboardProps = {
   forPage: "mod-dashboard";
@@ -32,8 +32,9 @@ function ContestControls({ contest, isAdmin = false, forPage, onUpdateContestSta
 
   const { executeAsync: approveContest, isPending: isApproving } = useAction(approveContestSF);
   const { executeAsync: finishContest, isPending: isFinishing } = useAction(finishContestSF);
+  const { executeAsync: publishContest, isPending: isPublishing } = useAction(publishContestSF);
 
-  const isPending = isApproving || isFinishing;
+  const isPending = isApproving || isFinishing || isPublishing;
   const smallButtons = forPage === "mod-dashboard";
 
   const onApproveContest = async () => {
@@ -56,7 +57,15 @@ function ContestControls({ contest, isAdmin = false, forPage, onUpdateContestSta
     }
   };
 
-  const onPublishContest = () => {};
+  const onPublishContest = async () => {
+    if (confirm(`Are you sure you would like to publish ${contest.name}?`)) {
+      const res = await publishContest({ competitionId: contest.competitionId });
+
+      if (res.serverError || res.validationErrors) changeErrorMessages([getActionError(res)]);
+      else if (forPage === "mod-dashboard") onUpdateContestState(contest.competitionId, "published");
+      else window.location.reload();
+    }
+  };
 
   return (
     <div className="d-flex gap-2">
@@ -118,7 +127,7 @@ function ContestControls({ contest, isAdmin = false, forPage, onUpdateContestSta
           <Button
             type="button"
             onClick={() => onPublishContest()}
-            // isLoading={isPublishing}
+            isLoading={isPublishing}
             disabled={isPending}
             className={`btn btn-warning ${smallButtons ? "btn-xs" : ""}`}
           >
