@@ -94,9 +94,9 @@ function AttemptInput({
         if (attempt.result === 0) {
           setAttemptText("");
         } else if (event.format !== "multi") {
-          setAttemptText(getFormattedTime(attempt.result, { event, noFormatting: true }));
+          setAttemptText(getFormattedTime(attempt.result, { event, noDelimiterChars: true }));
         } else {
-          const formattedTime = getFormattedTime(attempt.result, { event, noFormatting: true });
+          const formattedTime = getFormattedTime(attempt.result, { event, noDelimiterChars: true });
           const [newSolved, newAttempted, newAttText] = formattedTime.split(";");
 
           setSolved(Number(newSolved));
@@ -106,7 +106,7 @@ function AttemptInput({
 
         // Memo time
         if (attempt.memo && attempt.memo > 0) {
-          setMemoText(getFormattedTime(attempt.memo, { noFormatting: true }));
+          setMemoText(getFormattedTime(attempt.memo, { noDelimiterChars: true }));
         } else if (attempt.memo === undefined) {
           setMemoText("");
         }

@@ -342,23 +342,23 @@ describe(getFormattedTime.name, () => {
 
   describe("format time singles without formatting (no commas or colons)", () => {
     it("formats 0.09 without formatting correctly", () => {
-      expect(getFormattedTime(9, { noFormatting: true })).toBe("9");
+      expect(getFormattedTime(9, { noDelimiterChars: true })).toBe("9");
     });
 
     it("formats 0.78 without formatting correctly", () => {
-      expect(getFormattedTime(78, { noFormatting: true })).toBe("78");
+      expect(getFormattedTime(78, { noDelimiterChars: true })).toBe("78");
     });
 
     it("formats 20.00 correctly", () => {
-      expect(getFormattedTime(2000, { noFormatting: true })).toBe("2000");
+      expect(getFormattedTime(2000, { noDelimiterChars: true })).toBe("2000");
     });
 
     it("formats 1:08.45 without formatting correctly", () => {
-      expect(getFormattedTime(6845, { noFormatting: true })).toBe("10845");
+      expect(getFormattedTime(6845, { noDelimiterChars: true })).toBe("10845");
     });
 
     it("formats 12:35.00 correctly", () => {
-      expect(getFormattedTime(75500, { noFormatting: true })).toBe("123500");
+      expect(getFormattedTime(75500, { noDelimiterChars: true })).toBe("123500");
     });
   });
 
@@ -376,7 +376,7 @@ describe(getFormattedTime.name, () => {
     });
 
     it("formats 39.66 without formatting correctly", () => {
-      expect(getFormattedTime(3966, { event: mockNumberEvent, noFormatting: true })).toBe("3966");
+      expect(getFormattedTime(3966, { event: mockNumberEvent, noDelimiterChars: true })).toBe("3966");
     });
   });
 
@@ -390,7 +390,7 @@ describe(getFormattedTime.name, () => {
         expect(
           getFormattedTime(example.result, {
             event: mockMultiEvent,
-            noFormatting: true,
+            noDelimiterChars: true,
           }),
         ).toBe(`${example.inputs.solved};${example.inputs.attempted};${example.inputs.time}`);
       });

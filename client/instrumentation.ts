@@ -1,20 +1,22 @@
 import type { randomUUID as randomUUIDType } from "node:crypto";
 import type fsType from "node:fs";
-import { eq, sql } from "drizzle-orm";
+import type { writeFile as writeFileType } from "node:fs/promises";
+import { eq, inArray, sql } from "drizzle-orm";
+import { getFormattedTime } from "~/helpers/sharedFunctions.ts";
 import type { auth as authType } from "~/server/auth.ts";
 import type { db as dbType } from "~/server/db/provider.ts";
 import { accountsTable, usersTable } from "~/server/db/schema/auth-schema.ts";
 import { collectiveSolutionsTable } from "~/server/db/schema/collective-solutions.ts";
 import { ccSchema } from "~/server/db/schema/schema.ts";
-import { getSuperRegion } from "./helpers/Countries.ts";
+import { Continents, Countries, getSuperRegion } from "./helpers/Countries.ts";
 import { C } from "./helpers/constants.ts";
 import type { Schedule, Venue } from "./helpers/types/Schedule.ts";
 import { type ContestState, type ContestType, RecordTypeValues } from "./helpers/types.ts";
 import { contestsTable } from "./server/db/schema/contests.ts";
-import { eventsTable } from "./server/db/schema/events.ts";
+import { eventsTable, type SelectEvent } from "./server/db/schema/events.ts";
 import { personsTable } from "./server/db/schema/persons.ts";
 import { recordConfigsTable } from "./server/db/schema/record-configs.ts";
-import { type InsertResult, resultsTable } from "./server/db/schema/results.ts";
+import { type InsertResult, resultsTable, type SelectResult } from "./server/db/schema/results.ts";
 import { roundsTable } from "./server/db/schema/rounds.ts";
 
 // Used in tests too
@@ -58,12 +60,76 @@ export async function register() {
     if (process.env.MIGRATE_DB !== "true") return;
 
     const fs: typeof fsType = await import("node:fs");
+    const { writeFile }: { writeFile: typeof writeFileType } = await import("node:fs/promises");
     const { randomUUID }: { randomUUID: typeof randomUUIDType } = await import("node:crypto");
     const { auth }: { auth: typeof authType } = await import("~/server/auth.ts");
+
     const usersDump = JSON.parse(fs.readFileSync("./dump/users.json") as any) as any[];
     const personsDump = JSON.parse(fs.readFileSync("./dump/people.json") as any) as any[];
     const contestsDump = JSON.parse(fs.readFileSync("./dump/competitions.json") as any) as any[];
+    const eventsDump = JSON.parse(fs.readFileSync("./dump/events.json") as any);
     const roundsDump = JSON.parse(fs.readFileSync("./dump/rounds.json") as any) as any[];
+
+    const unoffEventIdConverter = {
+      '666': "666",
+      '777': "777",
+      rainb: "rainbow_cube",
+      skewb: "skewb",
+      "333si": "333_siamese",
+      snake: "snake",
+      mirbl: "333_mirror_blocks",
+      "360": "360_puzzle",
+      mstmo: "mmorphix", // new
+      // illus: "",
+      "333ni": "333_inspectionless",
+      "333r3": "333_x3_relay",
+      "333sbf": "333_speed_bld",
+      "3sc": "333mts_old",
+      "222oh": "222oh",
+      magico: "magic_oh",
+      "222bf": "222bf",
+      sq1bf: "sq1_bld",
+      mirbbf: "333_mirror_blocks_bld",
+      "234": "234relay",
+      // magicc: "",
+      // magicb: "",
+      // magccc: "",
+    };
+    const eeEventIdConverter = {
+      "113sia": "333_siamese",
+      "1mguild": "miniguild",
+      "222oh": "222oh",
+      "222pyra": "pyramorphix",
+      "223": "223_cuboid",
+      "2mguild": "miniguild_2_person",
+      "2to4relay": "234relay",
+      "2to7relay": "234567relay",
+      "332": "233_cuboid",
+      // '333bets': "",
+      // '333bfoh': "",
+      "333ft": "333ft",
+      "333omt": "333_oven_mitts",
+      "333rescr": "333mts",
+      "333scr": "333_scrambling",
+      // '333ten': "",
+      // '3mguild': "",
+      "444ft": "444ft",
+      "444pyra": "mpyram",
+      "888": "888",
+      "999": "999",
+      // clockscr: "",
+      curvycopter: "curvycopter",
+      dino: "dino",
+      fifteen: "15puzzle",
+      fto: "fto",
+      ivy: "ivy_cube",
+      kilo: "kilominx",
+      mirror: "333_mirror_blocks",
+      mirrorbld: "333_mirror_blocks_bld",
+      redi: "redi",
+      // rex: "",
+      teambld: "333_team_bld",
+    };
 
     for (const testUser of testUsers) {
       const userExists =
@@ -155,7 +221,12 @@ export async function register() {
 
       try {
         await db.transaction(async (tx) => {
-          let tempPersons = [];
+          let tempPersons: any[] = [];
+          const getSql = () =>
+            sql.raw(
+              `INSERT INTO ${ccSchema.schemaName}.persons (id, name, localized_name, region_code, wca_id, approved, created_by, created_externally, created_at, updated_at) 
+                 OVERRIDING SYSTEM VALUE VALUES ${tempPersons.join(", ")}`,
+            );
 
           for (const p of personsDump) {
             const createdBy = p.createdBy ? getUserId(p.createdBy.$oid) : null;
@@ -165,22 +236,12 @@ export async function register() {
 
             // Drizzle can't handle too many entries being inserted at once
             if (tempPersons.length === 100) {
-              await tx.execute(
-                sql.raw(
-                  `INSERT INTO ${ccSchema.schemaName}.persons (id, name, localized_name, region_code, wca_id, approved, created_by, created_externally, created_at, updated_at) 
-                 OVERRIDING SYSTEM VALUE VALUES ${tempPersons.join(", ")}`,
-                ),
-              );
+              await tx.execute(getSql());
               tempPersons = [];
             }
           }
 
-          await tx.execute(
-            sql.raw(
-              `INSERT INTO ${ccSchema.schemaName}.persons (id, name, localized_name, region_code, wca_id, approved, created_by, created_externally, created_at, updated_at) 
-             OVERRIDING SYSTEM VALUE VALUES ${tempPersons.join(", ")}`,
-            ),
-          );
+          if (tempPersons.length > 0) await tx.execute(getSql());
 
           await tx.execute(
             sql.raw(
@@ -199,7 +260,6 @@ export async function register() {
       console.log("Seeding events...");
 
       try {
-        const eventsDump = JSON.parse(fs.readFileSync("./dump/events.json") as any);
         const eventRulesDump = JSON.parse(fs.readFileSync("./dump/eventrules.json") as any);
 
         await db.insert(eventsTable).values(
@@ -282,7 +342,7 @@ export async function register() {
             }
           }
 
-          await tx.insert(roundsTable).values(tempRounds);
+          if (tempRounds.length > 0) await tx.insert(roundsTable).values(tempRounds);
         });
       } catch (e) {
         console.error("Unable to load rounds dump:", e);
@@ -310,7 +370,9 @@ export async function register() {
       return round.id;
     };
 
+    let doSetResultRecords = false;
     if ((await db.select({ id: resultsTable.id }).from(resultsTable).limit(1)).length === 0) {
+      doSetResultRecords = true;
       console.log("Seeding results...");
 
       const resultsDump = JSON.parse(fs.readFileSync("./dump/results.json") as any);
@@ -339,8 +401,9 @@ export async function register() {
               best: r.best,
               average: r.average,
               recordCategory: contest ? (contest.type === 1 ? "meetups" : "competitions") : "video-based-results",
-              regionalSingleRecord: r.regionalSingleRecord ?? null,
-              regionalAverageRecord: r.regionalAverageRecord ?? null,
+              // Resetting all records at the end
+              // regionalSingleRecord: r.regionalSingleRecord ?? null,
+              // regionalAverageRecord: r.regionalAverageRecord ?? null,
               competitionId: r.competitionId ?? null,
               roundId: r.competitionId ? getRoundId(r._id.$oid) : null,
               ranking: r.ranking ?? null,
@@ -360,7 +423,7 @@ export async function register() {
             }
           }
 
-          await tx.insert(resultsTable).values(tempResults);
+          if (tempResults.length > 0) await tx.insert(resultsTable).values(tempResults);
         });
       } catch (e) {
         console.error("Unable to load results dump:", e);
@@ -454,7 +517,7 @@ export async function register() {
             }
           }
 
-          await tx.insert(contestsTable).values(tempContests);
+          if (tempContests.length > 0) await tx.insert(contestsTable).values(tempContests);
         });
       } catch (e) {
         console.error("Unable to load contests dump:", e);
@@ -513,6 +576,158 @@ export async function register() {
           },
         ]);
       }
+    }
+
+    if (doSetResultRecords) {
+      console.log("Setting result records...");
+
+      const recordMapper = (result: SelectResult, event: Pick<SelectEvent, "format" | "category">) => {
+        const country = Countries.find((c) => c.code === result.regionCode);
+        const continent = Continents.find((c) => c.code === result.superRegionCode);
+        const getRecordLabel = (key: "regionalSingleRecord" | "regionalAverageRecord") =>
+          result.recordCategory === "competitions"
+            ? `X${result[key]}`
+            : result.recordCategory === "meetups"
+              ? `M${result[key]}`
+              : `${result[key]?.slice(0, -1)}B`;
+
+        const temp = {
+          persons: result.personIds!.map((pid) => personsDump.find((p) => p.personId === pid)!.name),
+          date: result.date.toDateString(),
+        };
+
+        if (country) (temp as any).regionCode = country.name;
+        if (continent) (temp as any).superRegionCode = continent.name;
+
+        if (result.regionalSingleRecord) {
+          (temp as any).regionalSingleRecord = getRecordLabel("regionalSingleRecord");
+          (temp as any).best = getFormattedTime(result.best, { event: event as any });
+        } else {
+          (temp as any).regionalAverageRecord = getRecordLabel("regionalAverageRecord");
+          (temp as any).average = getFormattedTime(result.average, { event: event as any });
+        }
+
+        return temp;
+      };
+
+      await db.transaction(async (tx) => {
+        for (const category of ["meetups", "video-based-results", "competitions"]) {
+          for (const event of eventsDump) {
+            const newWrResults = [];
+
+            for (const bestOrAverage of ["best", "average"] as ("best" | "average")[]) {
+              const recordField = bestOrAverage === "best" ? "regionalSingleRecord" : "regionalAverageRecord";
+
+              const newWrIds = await tx
+                .execute(sql`
+                WITH day_min_times AS (
+                  SELECT ${resultsTable.id}, ${resultsTable.date}, ${resultsTable[bestOrAverage]},
+                    MIN(${resultsTable[bestOrAverage]}) OVER(PARTITION BY ${resultsTable.date}
+                      ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS day_min_time
+                  FROM ${resultsTable}
+                  WHERE ${resultsTable[bestOrAverage]} > 0
+                    AND ${resultsTable.eventId} = ${event.eventId}
+                    AND ${resultsTable.recordCategory} = ${category}
+                  ORDER BY ${resultsTable.date}
+                ), results_with_record_times AS (
+                  SELECT id, MIN(day_min_time) OVER(ORDER BY date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS curr_record
+                  FROM day_min_times
+                  ORDER BY date
+                )
+                SELECT ${resultsTable.id}
+                FROM ${resultsTable} RIGHT JOIN results_with_record_times
+                ON ${resultsTable.id} = results_with_record_times.id
+                WHERE (${resultsTable[recordField]} IS NULL OR ${resultsTable[recordField]} <> 'WR')
+                  AND ${resultsTable[bestOrAverage]} = results_with_record_times.curr_record`)
+                .then((val: any) => val.map(({ id }: any) => id));
+
+              newWrResults.push(
+                ...(await tx
+                  .update(resultsTable)
+                  .set({ [recordField]: "WR" })
+                  .where(inArray(resultsTable.id, newWrIds))
+                  .returning()),
+              );
+
+              for (const crType of ["ER", "NAR", "SAR", "AsR", "AfR", "OcR"]) {
+                const superRegionCode = Continents.find((c) => c.recordTypeId === crType)!.code;
+
+                const newCrIds = await tx
+                  .execute(sql`
+                  WITH day_min_times AS (
+                    SELECT ${resultsTable.id}, ${resultsTable.date}, ${resultsTable[bestOrAverage]},
+                      MIN(${resultsTable[bestOrAverage]}) OVER(PARTITION BY ${resultsTable.date}
+                        ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS day_min_time
+                    FROM ${resultsTable}
+                    WHERE ${resultsTable[bestOrAverage]} > 0
+                      AND ${resultsTable.eventId} = ${event.eventId}
+                      AND ${resultsTable.superRegionCode} = ${superRegionCode}
+                      AND ${resultsTable.recordCategory} = ${category}
+                    ORDER BY ${resultsTable.date}
+                  ), results_with_record_times AS (
+                    SELECT id, MIN(day_min_time) OVER(ORDER BY date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS curr_record
+                    FROM day_min_times
+                    ORDER BY date
+                  )
+                  SELECT ${resultsTable.id}
+                  FROM ${resultsTable} RIGHT JOIN results_with_record_times
+                  ON ${resultsTable.id} = results_with_record_times.id
+                  WHERE (${resultsTable[recordField]} IS NULL OR ${resultsTable[recordField]} = 'NR')
+                    AND ${resultsTable[bestOrAverage]} = results_with_record_times.curr_record`)
+                  .then((val: any) => val.map(({ id }: any) => id));
+
+                await tx
+                  .update(resultsTable)
+                  .set({ [recordField]: crType })
+                  .where(inArray(resultsTable.id, newCrIds))
+                  .returning();
+              }
+
+              const newNrIds = [];
+
+              for (const code of Countries.map((c) => c.code)) {
+                const nrIdsForCountry = await tx.execute(sql`
+                  WITH day_min_times AS (
+                    SELECT ${resultsTable.id}, ${resultsTable.date}, ${resultsTable[bestOrAverage]},
+                      MIN(${resultsTable[bestOrAverage]}) OVER(PARTITION BY ${resultsTable.date}
+                        ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS day_min_time
+                    FROM ${resultsTable}
+                    WHERE ${resultsTable[bestOrAverage]} > 0
+                      AND ${resultsTable.eventId} = ${event.eventId}
+                      AND ${resultsTable.regionCode} = ${code}
+                      AND ${resultsTable.recordCategory} = ${category}
+                    ORDER BY ${resultsTable.date}
+                  ), results_with_record_times AS (
+                    SELECT id, MIN(day_min_time) OVER(ORDER BY date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS curr_record
+                    FROM day_min_times
+                    ORDER BY date
+                  )
+                  SELECT ${resultsTable.id}
+                  FROM ${resultsTable} RIGHT JOIN results_with_record_times
+                  ON ${resultsTable.id} = results_with_record_times.id
+                  WHERE ${resultsTable[recordField]} IS NULL
+                    AND ${resultsTable[bestOrAverage]} = results_with_record_times.curr_record`);
+
+                if (nrIdsForCountry.length > 0) newNrIds.push(...nrIdsForCountry.map(({ id }: any) => id));
+              }
+
+              await tx
+                .update(resultsTable)
+                .set({ [recordField]: "NR" })
+                .where(inArray(resultsTable.id, newNrIds))
+                .returning();
+            }
+
+            // Save WRs, if there were any (could be that the event doesn't have any non-DNF results in the category)
+            if (newWrResults.length > 0) {
+              await writeFile(
+                `./dump/new_records/${event.eventId}_${newWrResults[0].regionalSingleRecord}s`,
+                JSON.stringify(newWrResults.map(recordMapper as any), null, 2),
+              );
+            }
+          }
+        }
+      });
     }
 
     console.log("DB seeded successfully");

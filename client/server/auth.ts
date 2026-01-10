@@ -27,6 +27,7 @@ export const auth = betterAuth({
   plugins: [
     nextCookies(),
     username({
+      maxUsernameLength: 40,
       usernameValidator: (username) => /^[0-9a-zA-Z-_.]*$/.test(username),
     }),
     adminPlugin({

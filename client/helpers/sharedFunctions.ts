@@ -75,18 +75,18 @@ export const getFormattedTime = (
   time: number,
   {
     event,
-    noFormatting = false,
+    noDelimiterChars = false,
     showMultiPoints = false,
     showDecimals = true,
     alwaysShowMinutes = false,
   }: {
     event?: EventResponse;
-    noFormatting?: boolean;
+    noDelimiterChars?: boolean;
     showMultiPoints?: boolean;
     showDecimals?: boolean; // if the time is >= 1 hour, they won't be shown regardless of this value
     alwaysShowMinutes?: boolean;
   } = {
-    noFormatting: false,
+    noDelimiterChars: false,
     showMultiPoints: false,
     showDecimals: true,
     alwaysShowMinutes: false,
@@ -102,14 +102,14 @@ export const getFormattedTime = (
     return "Unknown";
   } else if (event?.format === "number") {
     // FM singles are limited to 999 moves, so if it's more than that, it must be the mean. Format it accordingly.
-    if (time > C.maxFmMoves && !noFormatting) return (time / 100).toFixed(2);
+    if (time > C.maxFmMoves && !noDelimiterChars) return (time / 100).toFixed(2);
     else return time.toString();
   } else {
     let centiseconds: number;
     let timeStr = time.toString();
 
     if (event?.format !== "multi") centiseconds = time;
-    else centiseconds = parseInt(timeStr.slice(timeStr.length - 11, -4));
+    else centiseconds = parseInt(timeStr.slice(timeStr.length - 11, -4), 10);
 
     let output = "";
     const hours = Math.floor(centiseconds / 360000);
@@ -118,7 +118,7 @@ export const getFormattedTime = (
 
     if (hours > 0) {
       output = hours.toString();
-      if (!noFormatting) output += ":";
+      if (!noDelimiterChars) output += ":";
     }
 
     const showMinutes = hours > 0 || minutes > 0 || alwaysShowMinutes;
@@ -128,19 +128,19 @@ export const getFormattedTime = (
       else if (minutes < 10 && hours > 0) output += "0" + minutes;
       else output += minutes;
 
-      if (!noFormatting) output += ":";
+      if (!noDelimiterChars) output += ":";
     }
 
     if (seconds < 10 && showMinutes) output += "0";
 
-    // Only times under ten minutes can have decimals, or if noFormatting = true, or if it's an event that always
+    // Only times under ten minutes can have decimals, or if noDelimiterChars = true, or if it's an event that always
     // includes the decimals (but the time is still < 1 hour). If showDecimals = false, the decimals aren't shown.
     if (
-      ((hours === 0 && minutes < 10) || noFormatting || (event && getAlwaysShowDecimals(event) && time < 360000)) &&
+      ((hours === 0 && minutes < 10) || noDelimiterChars || (event && getAlwaysShowDecimals(event) && time < 360000)) &&
       showDecimals
     ) {
       output += seconds.toFixed(2);
-      if (noFormatting) output = Number(output.replace(".", "")).toString();
+      if (noDelimiterChars) output = Number(output.replace(".", "")).toString();
     } else {
       output += Math.floor(seconds).toFixed(0); // remove the decimals
     }
@@ -150,19 +150,19 @@ export const getFormattedTime = (
     } else {
       if (time < 0) timeStr = timeStr.replace("-", "");
 
-      const points = (time < 0 ? -1 : 1) * (9999 - parseInt(timeStr.slice(0, -11)));
-      const missed = parseInt(timeStr.slice(timeStr.length - 4));
+      const points = (time < 0 ? -1 : 1) * (9999 - parseInt(timeStr.slice(0, -11), 10));
+      const missed = parseInt(timeStr.slice(timeStr.length - 4), 10);
       const solved = points + missed;
 
       if (time > 0) {
-        if (noFormatting) return `${solved};${solved + missed};${output}`;
+        if (noDelimiterChars) return `${solved};${solved + missed};${output}`;
         // This includes an En space before the points part
         return (
           `${solved}/${solved + missed} ${centiseconds !== C.maxTime ? output : "Unknown time"}` +
           (showMultiPoints ? ` (${points})` : "")
         );
       } else {
-        if (noFormatting) return `${solved};${solved + missed};${output}`;
+        if (noDelimiterChars) return `${solved};${solved + missed};${output}`;
         return `DNF (${solved}/${solved + missed} ${output})`;
       }
     }
