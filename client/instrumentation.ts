@@ -28,7 +28,7 @@ export const testUsers = [
     password: "Temporary_good_password123",
     personId: 1,
     role: "admin",
-    emailVerified: true
+    emailVerified: true,
   },
   {
     email: "mod@cc.com",
@@ -45,7 +45,7 @@ export const testUsers = [
     name: "user",
     password: "Temporary_good_password123",
     personId: 3,
-    emailVerified: true
+    emailVerified: true,
   },
   {
     email: "new_user@cc.com",
@@ -53,7 +53,7 @@ export const testUsers = [
     name: "new_user",
     password: "Temporary_good_password123",
     personId: 4,
-    emailVerified: false
+    emailVerified: false,
   },
 ];
 
@@ -82,15 +82,15 @@ export async function register() {
     const roundsDump = JSON.parse(fs.readFileSync("./dump/rounds.json") as any) as any[];
 
     const unoffEventIdConverter = {
-      '666': "666",
-      '777': "777",
+      "666": "666",
+      "777": "777",
       rainb: "rainbow_cube",
       skewb: "skewb",
       "333si": "333_siamese",
       snake: "snake",
       mirbl: "333_mirror_blocks",
       "360": "360_puzzle",
-      mstmo: "mmorphix", // new
+      mstmo: "mmorphix",
       // illus: "",
       "333ni": "333_inspectionless",
       "333r3": "333_x3_relay",
@@ -117,18 +117,18 @@ export async function register() {
       "2to7relay": "234567relay",
       "332": "233_cuboid",
       // '333bets': "",
-      // '333bfoh': "",
+      "333bfoh": "333bf_oh",
       "333ft": "333ft",
       "333omt": "333_oven_mitts",
       "333rescr": "333mts",
       "333scr": "333_scrambling",
-      // '333ten': "",
-      // '3mguild': "",
+      "333ten": "333_x10_relay",
+      "3mguild": "miniguild_3_person",
       "444ft": "444ft",
       "444pyra": "mpyram",
       "888": "888",
       "999": "999",
-      // clockscr: "",
+      clockscr: "clock_scrambling",
       curvycopter: "curvycopter",
       dino: "dino",
       fifteen: "15puzzle",
@@ -138,8 +138,7 @@ export async function register() {
       mirror: "333_mirror_blocks",
       mirrorbld: "333_mirror_blocks_bld",
       redi: "redi",
-      // rex: "",
-      teambld: "333_team_bld",
+      teambld: "333_team_bld_old",
     };
 
     for (const testUser of testUsers) {

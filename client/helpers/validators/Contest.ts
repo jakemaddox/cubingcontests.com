@@ -13,9 +13,9 @@ const ActivityValidator = z.lazy((): any =>
       id: z.int().min(1),
       activityCode: z.string().regex(/^[a-z0-9][a-z0-9-_]{2,}$/),
       name: z.string().nonempty().optional(), // only set when activityCode = other-misc (see superRefine() below)
-      startTime: z.date(),
-      endTime: z.date(),
-      // childActivities: z.array(ActivityValidator),
+      startTime: z.coerce.date(),
+      endTime: z.coerce.date(),
+      // childActivities: z.array(ActivityValidator), // TO-DO!!!!!!!!!!!!!!!!!!!!
       childActivities: z.array(z.never()).max(0),
     })
     .superRefine((val, ctx) => {
@@ -127,9 +127,9 @@ export const ContestValidator = z
     address: z.string().nonempty(),
     latitudeMicrodegrees,
     longitudeMicrodegrees,
-    startDate: z.date(),
-    endDate: z.date(),
-    startTime: z.date().optional(),
+    startDate: z.coerce.date(),
+    endDate: z.coerce.date(),
+    startTime: z.coerce.date().optional(),
     timezone: z.string().nonempty().optional(),
     organizerIds: z
       .array(z.int())

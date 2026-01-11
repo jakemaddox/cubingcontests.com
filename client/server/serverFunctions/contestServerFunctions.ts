@@ -6,7 +6,9 @@ import { and, arrayContains, desc, eq, inArray } from "drizzle-orm";
 import { find as findTimezone } from "geo-tz";
 import z from "zod";
 import { C } from "~/helpers/constants.ts";
-import { getMaxAllowedRounds, getNameAndLocalizedName } from "~/helpers/sharedFunctions.ts";
+import { roundFormats } from "~/helpers/roundFormats.ts";
+import { getMaxAllowedRounds, getNameAndLocalizedName, getResultProceeds } from "~/helpers/sharedFunctions.ts";
+import type { Schedule } from "~/helpers/types/Schedule.ts";
 import { getIsAdmin } from "~/helpers/utilityFunctions.ts";
 import { type ContestDto, ContestValidator } from "~/helpers/validators/Contest.ts";
 import { CoordinatesValidator } from "~/helpers/validators/Coordinates.ts";
@@ -15,8 +17,8 @@ import type { auth } from "~/server/auth.ts";
 import { type EventResponse, eventsPublicCols, eventsTable } from "~/server/db/schema/events.ts";
 import { type PersonResponse, personsPublicCols, personsTable, type SelectPerson } from "~/server/db/schema/persons.ts";
 import type { RecordConfigResponse } from "~/server/db/schema/record-configs.ts";
-import { type ResultResponse, resultsPublicCols, resultsTable } from "~/server/db/schema/results.ts";
-import { type RoundResponse, roundsPublicCols, roundsTable } from "~/server/db/schema/rounds.ts";
+import { type ResultResponse, resultsPublicCols, resultsTable, type SelectResult } from "~/server/db/schema/results.ts";
+import { type RoundResponse, roundsPublicCols, roundsTable, type SelectRound } from "~/server/db/schema/rounds.ts";
 import {
   sendContestApprovedNotification,
   sendContestFinishedNotification,
@@ -31,7 +33,7 @@ import {
   getUserHasAccessToContest,
   logMessage,
 } from "~/server/serverUtilityFunctions.ts";
-import { db } from "../db/provider.ts";
+import { type DbTransactionType, db } from "../db/provider.ts";
 import {
   type ContestResponse,
   contestsPublicCols,
@@ -220,13 +222,7 @@ export const createContestSF = actionClient
       });
 
       await db.transaction(async (tx) => {
-        await tx
-          .insert(roundsTable)
-          .values(
-            rounds.map((r) =>
-              r.roundNumber === 1 ? { ...r, id: undefined, open: true } : { ...r, id: undefined, open: false },
-            ),
-          );
+        await createRounds(tx, rounds);
 
         const [createdContest] = await tx
           .insert(table)
@@ -239,6 +235,102 @@ export const createContestSF = actionClient
           createdContest,
           creatorPerson.name,
         );
+      });
+    },
+  );
+
+export const updateContestSF = actionClient
+  .metadata({ permissions: { competitions: ["update"], meetups: ["update"] } })
+  .inputSchema(
+    z.strictObject({
+      originalCompetitionId: z.string().nonempty(),
+      newContestDto: ContestValidator,
+      rounds: z.array(RoundValidator).nonempty({ error: "Please select at least one event" }),
+    }),
+  )
+  .action(
+    async ({
+      parsedInput: { originalCompetitionId, newContestDto, rounds },
+      ctx: {
+        session: { user },
+      },
+    }) => {
+      logMessage("CC0010", `Updating contest ${originalCompetitionId}`);
+
+      const isAdmin = getIsAdmin(user.role);
+
+      const contestPromise = db.query.contests.findFirst({
+        columns: { competitionId: true, type: true, state: true, organizerIds: true, schedule: true },
+        where: { competitionId: originalCompetitionId },
+      });
+      const prevRoundsPromise = db.query.rounds.findMany({ where: { competitionId: originalCompetitionId } });
+      const resultsPromise = db.query.results.findMany({ where: { competitionId: originalCompetitionId } });
+
+      const [contest, prevRounds, results] = await Promise.all([contestPromise, prevRoundsPromise, resultsPromise]);
+
+      if (!contest) throw new CcActionError(`Contest with ID ${originalCompetitionId} not found`);
+      if (!getUserHasAccessToContest(user, contest))
+        throw new CcActionError("You do not have access rights for this contest");
+      if (!["created", "approved", "ongoing"].includes(contest.state))
+        throw new CcActionError("Contest cannot be edited");
+
+      await validateAndCleanUpContest(newContestDto, rounds, user);
+
+      await db.transaction(async (tx) => {
+        const updateContestObject: Partial<SelectContest> = {
+          organizerIds: newContestDto.organizerIds,
+          contact: newContestDto.contact,
+          description: newContestDto.description,
+        };
+
+        if (isAdmin || contest.state === "created") {
+          if (newContestDto.competitionId !== originalCompetitionId) {
+            const sameIdContest = await db.query.contests.findFirst({
+              where: { competitionId: newContestDto.competitionId },
+            });
+            if (sameIdContest)
+              throw new CcActionError(`A contest with the ID ${newContestDto.competitionId} already exists`);
+
+            // Update competition ID everywhere
+            updateContestObject.competitionId = newContestDto.competitionId;
+            await tx
+              .update(resultsTable)
+              .set({ competitionId: newContestDto.competitionId })
+              .where(eq(resultsTable.competitionId, originalCompetitionId));
+            await tx
+              .update(roundsTable)
+              .set({ competitionId: newContestDto.competitionId })
+              .where(eq(roundsTable.competitionId, originalCompetitionId));
+          }
+
+          updateContestObject.name = newContestDto.name;
+          updateContestObject.shortName = newContestDto.shortName;
+          updateContestObject.city = newContestDto.city;
+          updateContestObject.venue = newContestDto.venue;
+          updateContestObject.address = newContestDto.address;
+          updateContestObject.latitudeMicrodegrees = newContestDto.latitudeMicrodegrees;
+          updateContestObject.longitudeMicrodegrees = newContestDto.longitudeMicrodegrees;
+          updateContestObject.competitorLimit = newContestDto.competitorLimit;
+        }
+
+        // Even an admin is not allowed to edit the date after a comp has been approved
+        if (contest.state === "created") {
+          updateContestObject.startDate = newContestDto.startDate;
+          updateContestObject.endDate = newContestDto.endDate;
+        }
+
+        if (contest.type === "meetup") {
+          updateContestObject.startTime = newContestDto.startTime;
+          updateContestObject.timezone = newContestDto.timezone;
+        } else {
+          updateContestObject.schedule = await getUpdatedSchedule(contest.schedule!, newContestDto.schedule!);
+        }
+
+        await updateRounds(tx, prevRounds, rounds, results, {
+          canAddNewEvents: isAdmin || contest.state === "created",
+        });
+
+        await tx.update(table).set(updateContestObject).where(eq(table.competitionId, originalCompetitionId));
       });
     },
   );
@@ -589,7 +681,9 @@ async function validateAndCleanUpContest(
   user: typeof auth.$Infer.Session.user,
 ) {
   const isAdmin = getIsAdmin(user.role);
-  const events = await db.query.events.findMany();
+  const events = await db.query.events.findMany({
+    columns: { eventId: true, name: true, category: true, format: true },
+  });
 
   // Protect against admin-only stuff
   if (!isAdmin) {
@@ -597,21 +691,21 @@ async function validateAndCleanUpContest(
       throw new CcActionError("You cannot create a contest which you are not organizing");
   }
 
-  const roundIds = new Set<string>();
+  const activityCodes = new Set<string>(); // also used below in schedule validation
 
   for (const round of rounds) {
-    const roundId = `${round.eventId}-r${round.roundNumber}`;
-    if (roundIds.has(roundId)) throw new CcActionError(`Duplicate round found: ${roundId}`);
-    roundIds.add(roundId); // also used below in schedule validation
+    const activityCode = `${round.eventId}-r${round.roundNumber}`;
+    if (activityCodes.has(activityCode)) throw new CcActionError(`Duplicate round found: ${activityCode}`);
+    activityCodes.add(activityCode);
 
     if (round.competitionId !== contest.competitionId)
       throw new CcActionError("A round may not have a competition ID different from the contest's competition ID");
 
     const event = events.find((e) => e.eventId === round.eventId);
     if (!event) throw new CcActionError(`Event with ID ${round.eventId} not found`);
-    if (event.category === "removed") throw new CcActionError("Removed events are not allowed");
+    if (event.category === "removed") throw new CcActionError(`${event.name} is a removed event, so it cannot be held`);
     if (event.format === "time" && !round.timeLimitCentiseconds)
-      throw new CcActionError("Every round of an event with the format Time must have a time limit");
+      throw new CcActionError(`${event.name} round ${round.roundNumber} doesn't have a time limit`);
 
     if (
       event.format !== "time" &&
@@ -620,7 +714,30 @@ async function validateAndCleanUpContest(
         round.cutoffAttemptResult ||
         round.cutoffNumberOfAttempts)
     )
-      throw new CcActionError("A round of an event with the format Time cannot have a time limit or cutoff");
+      throw new CcActionError("A round of an event with a non-time format cannot have a time limit or cutoff");
+  }
+
+  // Check round numbers and round types
+  for (const event of events) {
+    const eventRounds = rounds.filter((r) => r.eventId === event.eventId);
+    if (eventRounds.length > 0) {
+      eventRounds.sort((a, b) => a.roundNumber - b.roundNumber);
+
+      for (let i = 0; i < eventRounds.length; i++) {
+        const { roundNumber, roundTypeId } = eventRounds[i];
+        if (roundNumber !== i + 1)
+          throw new CcActionError(`${event.name} has a missing round number. Please contact the development team.`);
+
+        const message = `${event.name} has a mismatch between the round numbers and round types. Please contact the development team.`;
+        if (roundTypeId === "f") {
+          if (roundNumber !== eventRounds.length) throw new CcActionError(message);
+        } else if (roundTypeId === "s") {
+          if (roundNumber !== eventRounds.length - 1) throw new CcActionError(message);
+        } else if (roundTypeId !== roundNumber.toString()) {
+          throw new CcActionError(message);
+        }
+      }
+    }
   }
 
   // Make sure all organizer IDs are valid
@@ -636,8 +753,8 @@ async function validateAndCleanUpContest(
     if (rounds.length > C.maxTotalMeetupRounds)
       throw new CcActionError("You may not hold more than 15 rounds at a meetup");
 
-    const correctTZ = findTimezone(contest.latitudeMicrodegrees / 1000000, contest.longitudeMicrodegrees / 1000000)[0];
-    if (contest.timezone !== correctTZ)
+    const correctTz = findTimezone(contest.latitudeMicrodegrees / 1000000, contest.longitudeMicrodegrees / 1000000)[0];
+    if (contest.timezone !== correctTz)
       throw new CcActionError("Contest time zone doesn't match time zone at the given coordinates");
   }
   // Validation of WCA competitions and unofficial competitions
@@ -670,13 +787,13 @@ async function validateAndCleanUpContest(
       )
         throw new CcActionError("The schedule may not have coordinates different from the contest coordinates");
 
-      const correctTZ = findTimezone(venue.latitudeMicrodegrees / 1000000, venue.longitudeMicrodegrees / 1000000)[0];
-      if (venue.timezone !== correctTZ)
+      const correctTz = findTimezone(venue.latitudeMicrodegrees / 1000000, venue.longitudeMicrodegrees / 1000000)[0];
+      if (venue.timezone !== correctTz)
         throw new CcActionError("Venue time zone doesn't match time zone at the given coordinates");
 
       for (const room of venue.rooms) {
         for (const activity of room.activities) {
-          if (!/^other-/.test(activity.activityCode) && !roundIds.has(activity.activityCode))
+          if (!/^other-/.test(activity.activityCode) && !activityCodes.has(activity.activityCode))
             throw new CcActionError(`Activity ${activity.activityCode} does not have a corresponding round`);
 
           const zonedStartTime = toZonedTime(activity.startTime, venue.timezone).getTime();
@@ -691,4 +808,149 @@ async function validateAndCleanUpContest(
       }
     }
   }
+}
+
+async function createRounds(tx: DbTransactionType, rounds: RoundDto[]) {
+  await tx
+    .insert(roundsTable)
+    .values(
+      rounds.map((r) =>
+        r.roundNumber === 1 ? { ...r, id: undefined, open: true } : { ...r, id: undefined, open: false },
+      ),
+    );
+}
+
+async function updateRounds(
+  tx: DbTransactionType,
+  prevRounds: SelectRound[],
+  newRounds: RoundDto[],
+  results: SelectResult[],
+  { canAddNewEvents }: { canAddNewEvents: boolean },
+) {
+  // Remove deleted rounds
+  const roundsToDelete: number[] = [];
+  for (const prevRound of prevRounds) {
+    const sameRoundInNew = newRounds.find((r) => r.id === prevRound.id);
+    if (!sameRoundInNew) {
+      const roundHasResult = results.some((r) => r.roundId === prevRound.id);
+      if (roundHasResult) {
+        throw new CcActionError(
+          `Round ${prevRound.eventId}-r${prevRound.roundNumber} cannot be deleted, because it has results`,
+        );
+      } else {
+        roundsToDelete.push(prevRound.id);
+      }
+    }
+  }
+  if (roundsToDelete.length > 0) await tx.delete(roundsTable).where(inArray(roundsTable.id, roundsToDelete));
+
+  // Add new rounds and update existing rounds
+  const roundsToCreate: RoundDto[] = [];
+  for (const newRound of newRounds) {
+    const sameRoundInPrev = prevRounds.find((r) => r.id === newRound.id);
+
+    // Add new round
+    if (!sameRoundInPrev) {
+      const isNewEvent = !prevRounds.some((r) => r.eventId === newRound.eventId);
+
+      if (!isNewEvent) {
+        // Set the result proceeds values for the previous final round, if it had any results
+        const precedingRound = prevRounds.find((r) => r.eventId === newRound.eventId && r.roundTypeId === "f")!;
+        const precedingRoundResults = results.filter((r) => r.roundId === precedingRound.id);
+
+        if (precedingRoundResults.length > 0) {
+          // First, set all proceeds values to false, then set the results that proceeded
+          await tx.update(resultsTable).set({ proceeds: false }).where(eq(resultsTable.roundId, precedingRound.id));
+
+          const roundFormat = roundFormats.find((rf) => rf.value === precedingRound.format)!;
+          const resultsToProceed: number[] = [];
+          for (const result of precedingRoundResults)
+            if (getResultProceeds(result, precedingRound, roundFormat, results)) resultsToProceed.push(result.id);
+
+          await tx.update(resultsTable).set({ proceeds: true }).where(inArray(resultsTable.id, resultsToProceed));
+        }
+      } else if (!canAddNewEvents) {
+        throw new CcActionError("Moderators are not allowed to add new events. Please contact the admin team.");
+      }
+
+      roundsToCreate.push(newRound);
+    }
+    // Update existing round
+    else {
+      const updateRoundObject: Partial<SelectRound> = {
+        roundTypeId: newRound.roundTypeId,
+        proceedValue: newRound.proceedValue,
+        proceedType: newRound.proceedType,
+      };
+      const roundHasResult = results.some((r) => r.roundId === newRound.id);
+
+      if (!roundHasResult) {
+        updateRoundObject.format = newRound.format;
+        updateRoundObject.timeLimitCentiseconds = newRound.timeLimitCentiseconds;
+        updateRoundObject.timeLimitCumulativeRoundIds = newRound.timeLimitCumulativeRoundIds;
+        updateRoundObject.cutoffAttemptResult = newRound.cutoffAttemptResult;
+        updateRoundObject.cutoffNumberOfAttempts = newRound.cutoffNumberOfAttempts;
+      }
+
+      if (newRound.open) {
+        updateRoundObject.open = true;
+
+        // If the round became the final round after a deletion, remove the result proceeds values in that round
+        if (newRound.roundTypeId === "f" && sameRoundInPrev.roundTypeId !== "f")
+          await tx.update(resultsTable).set({ proceeds: null }).where(eq(resultsTable.roundId, sameRoundInPrev.id));
+      }
+
+      await tx.update(roundsTable).set(updateRoundObject).where(eq(roundsTable.id, sameRoundInPrev.id));
+    }
+  }
+  if (roundsToCreate.length > 0) await createRounds(tx, roundsToCreate);
+}
+
+async function getUpdatedSchedule(prevSchedule: Schedule, newSchedule: Schedule): Promise<Schedule> {
+  // TO-DO: ADD PROPER SUPPORT FOR MULTIPLE VENUES, WITH ADDITION AND DELETION OF VENUES!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  for (const venue of newSchedule.venues) {
+    const sameVenueInPrev = prevSchedule.venues.find((v) => v.id === venue.id);
+    if (!sameVenueInPrev) throw new CcActionError(`Schedule venue with ID ${venue.id} not found`);
+
+    sameVenueInPrev.name = venue.name;
+    sameVenueInPrev.latitudeMicrodegrees = venue.latitudeMicrodegrees;
+    sameVenueInPrev.longitudeMicrodegrees = venue.longitudeMicrodegrees;
+    sameVenueInPrev.timezone = venue.timezone;
+    // Remove deleted rooms
+    sameVenueInPrev.rooms = sameVenueInPrev.rooms.filter((r1) => venue.rooms.some((r2) => r2.id === r1.id));
+
+    for (const room of venue.rooms) {
+      const sameRoomInPrev = sameVenueInPrev.rooms.find((r) => r.id === room.id);
+
+      if (sameRoomInPrev) {
+        sameRoomInPrev.name = room.name;
+        sameRoomInPrev.color = room.color;
+        // Remove deleted activities
+        sameRoomInPrev.activities = sameRoomInPrev.activities.filter((a1) =>
+          room.activities.some((a2) => a2.id === a1.id),
+        );
+
+        // TO-DO: ADD SUPPORT FOR CHILD ACTIVITIES!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        // Update activities
+        for (const activity of room.activities) {
+          const sameActivityInPrev = sameRoomInPrev.activities.find((a) => a.id === activity.id);
+
+          if (sameActivityInPrev) {
+            sameActivityInPrev.activityCode = activity.activityCode;
+            sameActivityInPrev.name = sameActivityInPrev.activityCode === "other-misc" ? activity.name : undefined;
+            sameActivityInPrev.startTime = activity.startTime;
+            sameActivityInPrev.endTime = activity.endTime;
+          } else {
+            // If it's a new activity, add it
+            sameRoomInPrev.activities.push(activity);
+          }
+        }
+      } else {
+        // If it's a new room, add it
+        sameVenueInPrev.rooms.push(room);
+      }
+    }
+  }
+
+  return prevSchedule;
 }

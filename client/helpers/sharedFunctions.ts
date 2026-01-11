@@ -4,7 +4,7 @@ import { remove as removeAccents } from "remove-accents";
 import type { SelectContest } from "~/server/db/schema/contests.ts";
 import type { EventResponse } from "~/server/db/schema/events.ts";
 import type { Attempt, ResultResponse } from "~/server/db/schema/results.ts";
-import type { RoundResponse } from "~/server/db/schema/rounds.ts";
+import type { RoundResponse, SelectRound } from "~/server/db/schema/rounds.ts";
 import { C } from "./constants.ts";
 import { type RoundFormatObject, roundFormats } from "./roundFormats.ts";
 import type { ContestType, EventFormat, EventWrPair, RoundFormat } from "./types.ts";
@@ -228,6 +228,20 @@ export function getBestAndAverage(
 
 export const getIsProceedableResult = (result: ResultResponse, roundFormat: RoundFormatObject): boolean =>
   (roundFormat.isAverage && result.average > 0) || result.best > 0;
+
+export function getResultProceeds(
+  result: ResultResponse,
+  round: Pick<SelectRound, "proceedType" | "proceedValue">,
+  roundFormat: RoundFormatObject,
+  results: ResultResponse[],
+): boolean {
+  return (
+    getIsProceedableResult(result, roundFormat) &&
+    result.ranking! <= Math.floor(results.length * 0.75) && // extra check for top 75%
+    result.ranking! <=
+      (round.proceedType === "number" ? round.proceedValue! : Math.floor((results.length * round.proceedValue!) / 100))
+  );
+}
 
 export const getDefaultAverageAttempts = (eventDefaultRoundFormat: RoundFormat) => {
   const roundFormat = roundFormats.find((rf) => rf.value === eventDefaultRoundFormat)!;

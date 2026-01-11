@@ -37,11 +37,11 @@ export const updateEventSF = actionClient
   .metadata({ permissions: { events: ["update"] } })
   .inputSchema(
     z.strictObject({
-      newEventDto: EventValidator,
       originalEventId: z.string(),
+      newEventDto: EventValidator,
     }),
   )
-  .action<SelectEvent>(async ({ parsedInput: { newEventDto, originalEventId } }) => {
+  .action<SelectEvent>(async ({ parsedInput: { originalEventId, newEventDto } }) => {
     logMessage("CC0003", `Updating event with ID ${newEventDto.eventId}`);
 
     const [event] = await db.select().from(table).where(eq(table.eventId, originalEventId)).limit(1);

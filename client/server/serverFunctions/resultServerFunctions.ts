@@ -12,8 +12,8 @@ import {
   getBestAndAverage,
   getDefaultAverageAttempts,
   getFormattedTime,
-  getIsProceedableResult,
   getMakesCutoff,
+  getResultProceeds,
   getRoundDate,
 } from "~/helpers/sharedFunctions.ts";
 import { type ContinentCode, type EventWrPair, RecordCategoryValues, type RecordType } from "~/helpers/types.ts";
@@ -865,18 +865,10 @@ async function setRankingAndProceedsValues(tx: DbTransactionType, results: Resul
     }
 
     prevResult = sortedResults[i];
-    let proceeds: boolean | null = null;
-
     // Set proceeds if it's a non-final round and the result proceeds to the next round
-    if (round.proceedValue) {
-      proceeds =
-        getIsProceedableResult(sortedResults[i], roundFormat) &&
-        ranking <= Math.floor(sortedResults.length * 0.75) && // extra check for top 75%
-        ranking <=
-          (round.proceedType === "number"
-            ? round.proceedValue
-            : Math.floor((sortedResults.length * round.proceedValue) / 100));
-    }
+    const proceeds = round.proceedValue
+      ? getResultProceeds({ ...sortedResults[i], ranking }, round, roundFormat, sortedResults)
+      : null;
 
     // Update the result in the DB, if something changed
     if (ranking !== sortedResults[i].ranking || proceeds !== sortedResults[i].proceeds)

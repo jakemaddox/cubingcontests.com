@@ -32,24 +32,15 @@ type Props = {
 };
 
 function Schedule({ rooms, events, rounds, timezone, onDeleteActivity, onEditActivity }: Props) {
-  const allActivities: RoomActivity[] = [];
-
-  for (const room of rooms) {
-    allActivities.push(
-      ...room.activities.map((activity) => ({
-        ...activity,
-        room,
-        startTime: typeof activity.startTime === "string" ? new Date(activity.startTime) : activity.startTime,
-        endTime: typeof activity.endTime === "string" ? new Date(activity.endTime) : activity.endTime,
-      })),
-    );
-  }
-
-  allActivities.sort((a, b) => {
-    const startDiff = a.startTime.getTime() - b.startTime.getTime();
-    if (startDiff === 0) return a.endTime.getTime() - b.endTime.getTime();
-    return startDiff;
-  });
+  const allActivities: RoomActivity[] = rooms
+    .flatMap((room) =>
+      room.activities.map((a) => ({ ...a, room, startTime: new Date(a.startTime), endTime: new Date(a.endTime) })),
+    )
+    .sort((a, b) => {
+      const startDiff = a.startTime.getTime() - b.startTime.getTime();
+      if (startDiff === 0) return a.endTime.getTime() - b.endTime.getTime();
+      return startDiff;
+    });
 
   const days: Day[] = [];
 
@@ -92,7 +83,7 @@ function Schedule({ rooms, events, rounds, timezone, onDeleteActivity, onEditAct
       }
     }
 
-    (days.at(-1) as Day).activities.push(dayActivity);
+    days.at(-1)!.activities.push(dayActivity);
   }
 
   return (

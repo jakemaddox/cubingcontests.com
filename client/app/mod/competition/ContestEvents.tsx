@@ -110,7 +110,7 @@ function ContestEvents({
 
     // Update the currently last round
     const lastRound = contestEvent.rounds.at(-1)!;
-    lastRound.roundTypeId = contestEvent.rounds.length > 1 ? "s" : "1";
+    lastRound.roundTypeId = contestEvent.rounds.length >= 2 ? "s" : "1";
     lastRound.proceedType = "percentage";
     lastRound.proceedValue = 50;
 
@@ -130,7 +130,7 @@ function ContestEvents({
     if (wasOpenRound) newLastRound.open = true;
 
     // Update new semi final round
-    if (contestEvent.rounds.length > 2) contestEvent.rounds.at(-2)!.roundTypeId = "s";
+    if (contestEvent.rounds.length >= 3) contestEvent.rounds.at(-2)!.roundTypeId = "s";
 
     setRounds(
       rounds.filter((r) => !(r.eventId === removedRound.eventId && r.roundNumber === removedRound.roundNumber)),

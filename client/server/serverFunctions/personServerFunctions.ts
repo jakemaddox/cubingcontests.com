@@ -109,7 +109,12 @@ export const createPersonSF = actionClient
     }),
   )
   .action<PersonResponse | SelectPerson>(
-    async ({ parsedInput: { newPersonDto, ignoreDuplicate }, ctx: { session: {user} } }) => {
+    async ({
+      parsedInput: { newPersonDto, ignoreDuplicate },
+      ctx: {
+        session: { user },
+      },
+    }) => {
       const { name, wcaId } = newPersonDto;
       logMessage("CC0019", `Creating person with name ${name} and ${wcaId ? `WCA ID ${wcaId}` : "no WCA ID"}`);
 
@@ -146,7 +151,7 @@ export const updatePersonSF = actionClient
       // TO-DO: WE MAY HAVE TO DO SOMETHING ABOUT PAST RECORDS SET BY THE COMPETITOR WHO IS CHANGING THEIR COUNTRY!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       if (person.regionCode !== newPersonDto.regionCode)
         throw new CcActionError(
-          "Changing a person's country is not currently supported. Please contact a developer regarding this.",
+          "Changing a person's country is not currently supported. Please contact the development team.",
         );
 
       await validatePerson(newPersonDto, { excludeId: id, ignoreDuplicate, isAdmin: canApprove });

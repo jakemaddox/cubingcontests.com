@@ -27,7 +27,21 @@ export const RoundValidator = z
       });
     }
 
-    if (val.proceedType === "number" && val.proceedValue && val.proceedValue >= C.minProceedNumber) {
+    if (val.roundTypeId === "f" && (val.proceedType || val.proceedValue)) {
+      ctx.addIssue({
+        code: "custom",
+        message: "A final round cannot have parameters for proceeding to a subsequent round",
+      });
+    }
+
+    if (val.roundTypeId !== "f" && (!val.proceedType || !val.proceedValue)) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Non-final rounds must have the parameters for proceeding to the next round set",
+      });
+    }
+
+    if (val.proceedType === "number" && val.proceedValue && val.proceedValue < C.minProceedNumber) {
       ctx.addIssue({
         code: "custom",
         message: `A round cannot allow fewer than ${C.minProceedNumber} competitors to proceed to the next round`,
@@ -35,7 +49,7 @@ export const RoundValidator = z
       });
     }
 
-    if (val.proceedType === "percentage" && val.proceedValue && val.proceedValue <= C.maxProceedPercentage) {
+    if (val.proceedType === "percentage" && val.proceedValue && val.proceedValue > C.maxProceedPercentage) {
       ctx.addIssue({
         code: "custom",
         message: `A round cannot allow more than ${C.maxProceedPercentage}% of competitors to proceed to the next round`,

@@ -42,6 +42,7 @@ import {
   createContestSF,
   deleteContestSF,
   getTimeZoneFromCoordsSF,
+  updateContestSF,
 } from "~/server/serverFunctions/contestServerFunctions.ts";
 import {
   getOrCreatePersonByWcaIdSF,
@@ -83,6 +84,7 @@ function ContestForm({
   const { executeAsync: getOrCreatePerson, isPending: isGettingOrCreatingPerson } = useAction(getOrCreatePersonSF);
   const { executeAsync: getTimeZoneFromCoords, isPending: isPendingTimeZone } = useAction(getTimeZoneFromCoordsSF);
   const { executeAsync: createContest, isPending: isCreating } = useAction(createContestSF);
+  const { executeAsync: updateContest, isPending: isUpdating } = useAction(updateContestSF);
   const { executeAsync: deleteContest, isPending: isDeleting } = useAction(deleteContestSF);
   const [activeTab, setActiveTab] = useState("details");
   const [detailsImported, setDetailsImported] = useState(mode === "edit" && contest?.type === "wca-comp");
@@ -160,6 +162,7 @@ function ContestForm({
   const isAdmin = getIsAdmin(session.user.role);
   const isPending =
     isCreating ||
+    isUpdating ||
     isDeleting ||
     isPendingTimeZone ||
     isPendingWcaCompDetails ||
@@ -244,16 +247,17 @@ function ContestForm({
           );
     if (!doSubmit) return;
 
-    // const res =
-    //   mode === "edit"
-    //     ? await myFetch.patch(`/competitions/${contest?.competitionId}`, newComp, { loadingId: null })
-    //     : await myFetch.post("/competitions", newComp, { loadingId: null });
-
-    const res = await createContest({ newContestDto: parsed.data!, rounds });
+    const res =
+      mode === "edit"
+        ? await updateContest({
+            originalCompetitionId: contest!.competitionId,
+            newContestDto: parsed.data!,
+            rounds: rounds.map((r) => ({ ...r, competitionId })),
+          })
+        : await createContest({ newContestDto: parsed.data!, rounds });
 
     if (res.serverError || res.validationErrors) changeErrorMessages([getActionError(res)]);
-    else if (mode === "copy") window.location.href = "/mod";
-    else window.history.back();
+    else router.push("/mod");
   };
 
   const fillWithMockData = async (mockContestType: ContestType = "comp") => {
@@ -323,10 +327,8 @@ function ContestForm({
 
   const changeName = (value: string) => {
     // If not editing a competition, update Competition ID accordingly, unless it deviates from the name
-    if (mode !== "edit") {
-      if (competitionId === getContestIdFromName(name)) setCompetitionId(getContestIdFromName(value));
-      if (shortName === name && value.length <= 32) setShortName(value);
-    }
+    if (mode !== "edit" && competitionId === getContestIdFromName(name)) setCompetitionId(getContestIdFromName(value));
+    if (shortName === name && value.length <= 32) setShortName(value);
 
     setName(value);
   };
@@ -446,7 +448,7 @@ function ContestForm({
     //     { loadingId: "unfinish_contest_button", keepLoadingOnSuccess: true },
     //   );
 
-    //   if (res.success) window.history.back();
+    //   if (res.success) window.history.back(); // change to router.back()
     // }
   };
 
@@ -498,7 +500,7 @@ function ContestForm({
       <Form
         buttonText={mode === "edit" ? "Save Contest" : "Create Contest"}
         onSubmit={handleSubmit}
-        isLoading={isCreating}
+        isLoading={isCreating || isUpdating}
         disableControls={isPending || disabled || disabledIfContestPublished || disabledIfNotUnderstood}
       >
         {mode === "edit" && <CreatorDetails creator={creator} person={creatorPerson} />}
