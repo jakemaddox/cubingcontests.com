@@ -48,7 +48,7 @@ async function send({
 }) {
   if (!process.env.EMAIL_API_KEY || process.env.VITEST) {
     if (process.env.NODE_ENV === "production")
-      console.log("Not sending email, because EMAIL_API_KEY environment variable isn't set");
+      console.warn("Warning: Not sending email, because EMAIL_API_KEY environment variable isn't set!");
     return;
   }
 
@@ -138,7 +138,11 @@ export async function sendResetPasswordEmail(to: string, url: string) {
 //   }
 // }
 
-export function sendRoleChangedEmail(to: string, role: string, canAccessModDashboard: boolean) {
+export function sendRoleChangedEmail(
+  to: string,
+  role: string,
+  { canAccessModDashboard }: { canAccessModDashboard: boolean },
+) {
   send({
     templateFileName: "role-changed.hbs",
     context: {

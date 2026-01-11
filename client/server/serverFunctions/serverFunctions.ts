@@ -18,7 +18,7 @@ import {
   collectiveSolutionsTable as csTable,
 } from "~/server/db/schema/collective-solutions.ts";
 import { sendEmail, sendRoleChangedEmail } from "~/server/email/mailer.ts";
-import { Roles } from "~/server/permissions.ts";
+import { type Role, Roles } from "~/server/permissions.ts";
 import { type PersonResponse, personsPublicCols, personsTable } from "../db/schema/persons.ts";
 import { actionClient, CcActionError } from "../safeAction.ts";
 import { checkUserPermissions, logMessage } from "../serverUtilityFunctions.ts";
@@ -39,7 +39,7 @@ export const updateUserSF = actionClient
   .inputSchema(
     z.strictObject({
       id: z.string(),
-      personId: z.int().nullable().default(null),
+      personId: z.int().min(1).nullable().default(null),
       role: z.enum(Roles),
     }),
   )
@@ -60,21 +60,21 @@ export const updateUserSF = actionClient
             .where(and(ne(usersTable.id, id), eq(usersTable.personId, personId)))
             .limit(1);
           if (samePersonUser) throw new CcActionError("The selected person is already tied to another user");
-
-          person = (
-            await db.select(personsPublicCols).from(personsTable).where(eq(personsTable.id, personId)).limit(1)
-          ).at(0);
-          if (!person) throw new CcActionError(`Person with ID ${personId} not found`);
         }
+
+        person = (
+          await db.select(personsPublicCols).from(personsTable).where(eq(personsTable.id, personId)).limit(1)
+        ).at(0);
+        if (!person) throw new CcActionError(`Person with ID ${personId} not found`);
       } else if (role !== "user") {
         throw new CcActionError("Privileged users must have a person tied to their account");
       }
 
       if (user.role !== role) {
-        await auth.api.setRole({ body: { userId: id, role: role as any }, headers: hdrs });
+        await auth.api.setRole({ body: { userId: id, role: role as Role }, headers: hdrs });
         const canAccessModDashboard = await checkUserPermissions(user.id, { modDashboard: ["view"] });
 
-        sendRoleChangedEmail(user.email, role, canAccessModDashboard);
+        sendRoleChangedEmail(user.email, role, { canAccessModDashboard });
 
         if (getIsAdmin(role)) {
           sendEmail(
@@ -87,6 +87,7 @@ export const updateUserSF = actionClient
 
       const [updatedUser] = await db.update(usersTable).set({ personId }).where(eq(usersTable.id, id)).returning();
 
+      // Log out user to avoid stale session data
       await auth.api.revokeUserSessions({ body: { userId: id }, headers: hdrs });
 
       return { user: updatedUser, person };

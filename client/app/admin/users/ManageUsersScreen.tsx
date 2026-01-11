@@ -19,7 +19,7 @@ import type { MultiChoiceOption } from "~/helpers/types/MultiChoiceOption.ts";
 import type { InputPerson } from "~/helpers/types.ts";
 import { getActionError } from "~/helpers/utilityFunctions.ts";
 import type { PersonResponse } from "~/server/db/schema/persons.ts";
-import type { Roles } from "~/server/permissions.ts";
+import type { Role, Roles } from "~/server/permissions.ts";
 import { updateUserSF } from "~/server/serverFunctions/serverFunctions.ts";
 
 type Props = {
@@ -86,7 +86,7 @@ function ManageUsersScreen({ users: initUsers, userPersons: initUserPersons }: P
     setEmail(user.email);
 
     if (!user.role) throw new Error("Error: user role is empty");
-    setRole(user.role as any);
+    setRole(user.role as Role);
 
     const person = user.personId ? userPersons.find((p) => p.id === user.personId) : undefined;
 

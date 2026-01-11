@@ -26,16 +26,18 @@ export const testUsers = [
     username: "admin",
     name: "admin",
     password: "Temporary_good_password123",
-    role: "admin",
     personId: 1,
+    role: "admin",
+    emailVerified: true
   },
   {
     email: "mod@cc.com",
     username: "mod",
     name: "mod",
     password: "Temporary_good_password123",
-    role: "mod",
     personId: 2,
+    role: "mod",
+    emailVerified: true,
   },
   {
     email: "user@cc.com",
@@ -43,6 +45,15 @@ export const testUsers = [
     name: "user",
     password: "Temporary_good_password123",
     personId: 3,
+    emailVerified: true
+  },
+  {
+    email: "new_user@cc.com",
+    username: "new_user",
+    name: "new_user",
+    password: "Temporary_good_password123",
+    personId: 4,
+    emailVerified: false
   },
 ];
 
@@ -138,13 +149,13 @@ export async function register() {
       if (!userExists) {
         if (process.env.EMAIL_API_KEY) throw new Error(message);
 
-        const { role, ...body } = testUser;
+        const { role, emailVerified, ...body } = testUser;
         await auth.api.signUpEmail({ body });
 
-        // Verify email and set person ID
+        // Set emailVerified and personId
         const [user] = await db
           .update(usersTable)
-          .set({ emailVerified: true, personId: testUser.personId })
+          .set({ emailVerified, personId: testUser.personId })
           .where(eq(usersTable.email, testUser.email))
           .returning();
 

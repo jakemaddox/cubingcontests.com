@@ -202,7 +202,7 @@ describe("createContestResultSF", () => {
     });
 
     it("throws error for no access rights to contest", async () => {
-      vi.stubEnv("TEST_USER", "moderator1");
+      vi.stubEnv("TEST_USER", "mod");
 
       const res = await createContestResultSF({
         newResultDto: {
@@ -661,7 +661,7 @@ describe("deleteContestResultSF", () => {
     });
 
     it("throws error for no access rights to contest", async () => {
-      vi.stubEnv("TEST_USER", "moderator1");
+      vi.stubEnv("TEST_USER", "mod");
 
       const res = await deleteContestResultSF({ id: 1 });
 

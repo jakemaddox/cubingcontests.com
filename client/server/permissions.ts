@@ -36,6 +36,7 @@ const permissions = {
 export type CcPermissions = Partial<typeof permissions>;
 
 export const Roles = ["admin", "mod", "user"] as const;
+export type Role = (typeof Roles)[number];
 
 export const admin = ac.newRole(permissions);
 
