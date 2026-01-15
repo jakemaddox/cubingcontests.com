@@ -11,16 +11,15 @@ import Country from "~/app/components/Country.tsx";
 import RankingLinks from "~/app/components/RankingLinks.tsx";
 import Solves from "~/app/components/Solves.tsx";
 import { getFormattedTime } from "~/helpers/sharedFunctions.ts";
+import type { Ranking } from "~/helpers/types/Rankings";
 import { getFormattedDate } from "~/helpers/utilityFunctions.ts";
 import type { EventResponse } from "~/server/db/schema/events.ts";
-import type { PersonResponse } from "~/server/db/schema/persons.ts";
 
 type Props = {
   isTiedRanking?: boolean;
   onlyKeepPerson?: boolean;
   event: EventResponse;
-  ranking: IRanking;
-  person: PersonResponse; // the person being ranked
+  ranking: Ranking;
   showAllTeammates: boolean;
   showTeamColumn?: boolean;
   showDetailsColumn: boolean;
@@ -32,42 +31,32 @@ function RankingRow({
   onlyKeepPerson = false,
   event,
   ranking,
-  person,
   showAllTeammates,
   showTeamColumn = false,
   showDetailsColumn,
   forRecordsTable = false,
 }: Props) {
   const [teamExpanded, setTeamExpanded] = useState(false);
-  const firstColumnValue = ranking.ranking ?? capitalize(ranking.type as ResultRankingType);
-  const personsToDisplay = showAllTeammates ? ranking.persons : [person];
+  // TO-DO: Clean this up; the type property used to be used for the records page
+  const firstColumnValue = ranking.ranking ?? capitalize((ranking as any).type as "single" | "average" | "mean");
+  const personsToDisplay = showAllTeammates
+    ? ranking.persons
+    : [ranking.personId ? ranking.persons.find((p) => p.id === ranking.personId)! : ranking.persons[0]];
 
   /////////////////////////////////////////////////////////////////////////////////////////
   // REMEMBER TO UPDATE THE MOBILE VIEW OF THE RECORDS PAGE IN ACCORDANCE WITH THIS
   /////////////////////////////////////////////////////////////////////////////////////////
 
   return (
-    <tr
-      className={
-        !["wca", "extreme-bld"].includes(event.category) && (!ranking.contest || ranking.contest.type === "meetup")
-          ? "table-active"
-          : ""
-      }
-    >
+    <tr>
       <td>{!onlyKeepPerson && <span className={isTiedRanking ? "text-secondary" : ""}>{firstColumnValue}</span>}</td>
       <td>
         <Competitors persons={personsToDisplay} noFlag={!showAllTeammates} />
       </td>
-      <td>
-        {!onlyKeepPerson &&
-          getFormattedTime(ranking.result, {
-            event,
-            showMultiPoints: !forRecordsTable,
-          })}
-      </td>
+      <td>{!onlyKeepPerson && getFormattedTime(ranking.result, { event, showMultiPoints: !forRecordsTable })}</td>
       {!showAllTeammates && (
         <td>
-          <Country countryIso2={person.regionCode} shorten />
+          <Country countryIso2={personsToDisplay[0].regionCode} shorten />
         </td>
       )}
       <td>{!onlyKeepPerson && getFormattedDate(ranking.date)}</td>
@@ -79,10 +68,15 @@ function RankingRow({
         <td>
           <div className="d-flex fs-6 flex-column gap-2 align-items-start">
             <span className="text-white">
-              <u style={{ cursor: "pointer" }} onClick={() => setTeamExpanded(!teamExpanded)}>
+              <button
+                type="button"
+                onClick={() => setTeamExpanded(!teamExpanded)}
+                className="border-0 bg-transparent p-0 text-decoration-underline"
+                style={{ cursor: "pointer" }}
+              >
                 {teamExpanded ? "Close" : "Open"}
-              </u>
-              <span className="ms-2">
+              </button>
+              <span>
                 {teamExpanded ? <FontAwesomeIcon icon={faCaretDown} /> : <FontAwesomeIcon icon={faCaretRight} />}
               </span>
             </span>
@@ -97,10 +91,7 @@ function RankingRow({
             (ranking.attempts ? (
               <Solves event={event} attempts={ranking.attempts} showMultiPoints={!forRecordsTable} />
             ) : ranking.memo ? (
-              getFormattedTime(ranking.memo, {
-                showDecimals: false,
-                alwaysShowMinutes: true,
-              })
+              getFormattedTime(ranking.memo, { showDecimals: false, alwaysShowMinutes: true })
             ) : (
               ""
             ))}

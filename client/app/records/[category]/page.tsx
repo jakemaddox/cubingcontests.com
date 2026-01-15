@@ -7,7 +7,6 @@ import RankingLinks from "~/app/components/RankingLinks.tsx";
 import RankingsTable from "~/app/components/RankingsTable.tsx";
 import Solves from "~/app/components/Solves.tsx";
 import Tabs from "~/app/components/UI/Tabs.tsx";
-import { C } from "~/helpers/constants.ts";
 import { eventCategories } from "~/helpers/eventCategories.ts";
 import { getFormattedTime } from "~/helpers/sharedFunctions.ts";
 import type { NavigationItem } from "~/helpers/types/NavigationItem.ts";
@@ -31,9 +30,9 @@ type Props = {
   params: Promise<{ category: string }>;
 };
 
-const RecordsPage = async ({ params }: Props) => {
+async function RecordsPage({ params }: Props) {
   const { category } = await params;
-  const recordsByEventResponse = await ssrFetch<IEventRankings[]>("/results/records/WR", { revalidate: C.rankingsRev });
+  // const recordsByEventResponse = await ssrFetch<IEventRankings[]>("/results/records/WR", { revalidate: C.rankingsRev });
 
   if (!recordsByEventResponse.success) return <p className="fs-4 mt-5 text-center">Records not found</p>;
 
@@ -115,6 +114,6 @@ const RecordsPage = async ({ params }: Props) => {
       )}
     </div>
   );
-};
+}
 
 export default RecordsPage;

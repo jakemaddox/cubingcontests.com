@@ -1,15 +1,17 @@
 import "server-only";
 import { and, eq, gt, lte, ne, sql } from "drizzle-orm";
+import { camelCase } from "lodash";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { Continents } from "~/helpers/Countries.ts";
 import { C } from "~/helpers/constants.ts";
+import type { Ranking } from "~/helpers/types/Rankings.ts";
 import { type RecordCategory, type RecordType, RecordTypeValues } from "~/helpers/types.ts";
 import { getIsAdmin } from "~/helpers/utilityFunctions.ts";
 import { type DbTransactionType, db } from "~/server/db/provider.ts";
-import type { ContestResponse } from "~/server/db/schema/contests.ts";
-import { eventsPublicCols, eventsTable, type SelectEvent } from "~/server/db/schema/events.ts";
-import type { SelectPerson } from "~/server/db/schema/persons.ts";
+import { type ContestResponse, contestsTable } from "~/server/db/schema/contests.ts";
+import { type EventResponse, eventsPublicCols, eventsTable, type SelectEvent } from "~/server/db/schema/events.ts";
+import { personsTable, type SelectPerson } from "~/server/db/schema/persons.ts";
 import { recordConfigsPublicCols, recordConfigsTable } from "~/server/db/schema/record-configs.ts";
 import { resultsTable, type SelectResult } from "~/server/db/schema/results.ts";
 import { type LogCode, logger } from "~/server/logger.ts";
@@ -17,6 +19,25 @@ import { CcActionError } from "~/server/safeAction.ts";
 import { getDateOnly, getDefaultAverageAttempts, getNameAndLocalizedName } from "../helpers/sharedFunctions.ts";
 import { auth } from "./auth.ts";
 import type { CcPermissions } from "./permissions.ts";
+
+export function logMessage(code: LogCode, message: string, { metadata }: { metadata?: object } = {}) {
+  const messageWithCode = `[${code}] ${message}`;
+
+  // Log to terminal/Docker container
+  console.log(messageWithCode);
+
+  if (!process.env.VITEST) {
+    try {
+      // The metadata is then handled in loggerUtils.js
+      const childObject: any = { ccCode: code };
+      if (metadata) childObject.ccMetadata = metadata;
+
+      logger.child(childObject).info(messageWithCode);
+    } catch (err) {
+      console.error("Error while sending log to Supabase Analytics:", err);
+    }
+  }
+}
 
 export async function checkUserPermissions(userId: string, permissions: CcPermissions): Promise<boolean> {
   const { success } = await auth.api.userHasPermission({ body: { userId, permissions } });
@@ -48,19 +69,30 @@ export async function authorizeUser({
   return session;
 }
 
-export function logMessage(code: LogCode, message: string) {
-  const messageWithCode = `[${code}] ${message}`;
+export function getUserHasAccessToContest(
+  user: typeof auth.$Infer.Session.user,
+  contest: Pick<ContestResponse, "state" | "organizerIds">,
+) {
+  if (!user.personId) return false;
+  if (contest.state === "removed") return false;
+  if (getIsAdmin(user.role)) return true;
 
-  console.log(messageWithCode);
+  const modHasAccess =
+    ["created", "approved", "ongoing"].includes(contest.state) && contest.organizerIds.includes(user.personId);
+  return modHasAccess;
+}
 
-  if (!process.env.VITEST) {
-    try {
-      // The metadata is then handled in loggerUtils.js
-      logger.child({ ccCode: code }).info(messageWithCode);
-    } catch (err) {
-      console.error("Error while sending log to Supabase Analytics:", err);
+export async function getContestParticipantIds(tx: DbTransactionType, competitionId: string): Promise<number[]> {
+  const results = await tx.query.results.findMany({ columns: { personIds: true }, where: { competitionId } });
+
+  const participantIds = new Set<number>();
+  for (const result of results) {
+    for (const personId of result.personIds) {
+      participantIds.add(personId);
     }
   }
+
+  return Array.from(participantIds);
 }
 
 export async function getRecordConfigs(recordFor: RecordCategory) {
@@ -131,30 +163,211 @@ export async function getRecordResult(
   return recordResult;
 }
 
-export function getUserHasAccessToContest(
-  user: typeof auth.$Infer.Session.user,
-  contest: Pick<ContestResponse, "state" | "organizerIds">,
-) {
-  if (!user.personId) return false;
-  if (contest.state === "removed") return false;
-  if (getIsAdmin(user.role)) return true;
+export async function getRankings(
+  event: EventResponse,
+  bestOrAverage: "best" | "average",
+  recordCategory: RecordCategory | "all",
+  {
+    show = "persons",
+    region,
+    topN = 100,
+  }: {
+    show?: "persons" | "results";
+    region?: string;
+    topN?: number;
+  },
+): Promise<Ranking[]> {
+  topN = Math.min(topN, 25000);
 
-  const modHasAccess =
-    ["created", "approved", "ongoing"].includes(contest.state) && contest.organizerIds.includes(user.personId);
-  return modHasAccess;
-}
+  const defaultNumberOfAttempts = getDefaultAverageAttempts(event.defaultRoundFormat);
+  const regionCondition = region
+    ? Continents.some((c) => c.code === region)
+      ? `AND super_region_code = '${region}'`
+      : `AND region_code = '${region}'`
+    : "";
+  let rankings: Ranking[];
 
-export async function getContestParticipantIds(tx: DbTransactionType, competitionId: string): Promise<number[]> {
-  const results = await tx.query.results.findMany({ columns: { personIds: true }, where: { competitionId } });
-
-  const participantIds = new Set<number>();
-  for (const result of results) {
-    for (const personId of result.personIds) {
-      participantIds.add(personId);
-    }
+  // Top persons
+  if (show === "persons") {
+    rankings = await db
+      .execute(sql`
+        WITH personal_records AS (
+          SELECT DISTINCT ON (person_id)
+            CONCAT(${resultsTable.id}, '_', person_id) AS ranking_id,
+            ${resultsTable.date},
+            person_id,
+            ${resultsTable.personIds} AS persons,
+            CAST(${resultsTable[bestOrAverage]} AS INTEGER) AS result,
+            ${sql.raw(bestOrAverage === "best" ? "" : `attempts,`)}
+            CASE WHEN ${resultsTable.competitionId} IS NOT NULL THEN
+              JSON_BUILD_OBJECT(
+                'competitionId', ${contestsTable.competitionId},
+                'shortName', ${contestsTable.shortName},
+                'type', ${contestsTable.type},
+                'regionCode', ${contestsTable.regionCode}
+              )
+            ELSE NULL END AS contest,
+            ${resultsTable.videoLink},
+            ${resultsTable.discussionLink}
+          FROM ${resultsTable}
+            LEFT JOIN ${contestsTable}
+              ON ${resultsTable.competitionId} = ${contestsTable.competitionId},
+            UNNEST(${resultsTable.personIds}) AS person_id
+          WHERE ${resultsTable.approved} IS TRUE
+            AND ${resultsTable.eventId} = ${event.eventId}
+            ${sql.raw(recordCategory === "all" ? "" : `AND record_category = '${recordCategory}'`)}
+            AND ${resultsTable[bestOrAverage]} > 0
+            ${sql.raw(bestOrAverage === "best" ? "" : `AND CARDINALITY(attempts) = ${defaultNumberOfAttempts}`)}
+            ${sql.raw(regionCondition)}
+          ORDER BY person_id, ${resultsTable[bestOrAverage]}, ${resultsTable.date}
+        ), rankings AS (
+          SELECT personal_records.*,
+            CAST(
+              RANK() OVER (ORDER BY personal_records.result ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)
+            AS INTEGER) AS ranking,
+            (
+              SELECT
+                JSON_AGG(
+                  JSON_BUILD_OBJECT(
+                    'id', ${personsTable.id},
+                    'name', ${personsTable.name},
+                    'localizedName', ${personsTable.localizedName},
+                    'regionCode', ${personsTable.regionCode},
+                    'wcaId', ${personsTable.wcaId}
+                  )
+                )
+              FROM ${personsTable}
+              WHERE ${personsTable.id} = ANY(personal_records.persons)
+            ) AS persons
+          FROM personal_records
+          ORDER BY ranking, personal_records.date
+        )
+        SELECT * FROM rankings
+        WHERE rankings.ranking <= ${topN}
+      `)
+      .then((val: any[]) =>
+        val.map((item: any) => {
+          const objectWithCamelCase: any = {};
+          for (const [key, value] of Object.entries(item)) objectWithCamelCase[camelCase(key)] = value;
+          return objectWithCamelCase;
+        }),
+      );
+  }
+  // Top singles
+  else if (bestOrAverage === "best") {
+    rankings = await db
+      .execute(sql`
+        WITH rankings AS (
+          SELECT
+            CONCAT(${resultsTable.id}, '_', attempts_data.attempt_number) AS ranking_id,
+            CAST(
+              RANK() OVER (ORDER BY CAST(attempts_data.attempt->>'result' AS INTEGER) ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)
+            AS INTEGER) AS ranking,
+            ${resultsTable.date},
+            (
+              SELECT
+                JSON_AGG(
+                  JSON_BUILD_OBJECT(
+                    'id', ${personsTable.id},
+                    'name', ${personsTable.name},
+                    'localizedName', ${personsTable.localizedName},
+                    'regionCode', ${personsTable.regionCode},
+                    'wcaId', ${personsTable.wcaId}
+                  )
+                )
+              FROM ${personsTable}
+              WHERE ${personsTable.id} = ANY(${resultsTable.personIds})
+            ) AS persons,
+            CAST(attempts_data.attempt->>'result' AS INTEGER) AS result,
+            JSON_BUILD_OBJECT(
+              'competitionId', ${contestsTable.competitionId},
+              'shortName', ${contestsTable.shortName},
+              'type', ${contestsTable.type},
+              'regionCode', ${contestsTable.regionCode}
+            ) AS contest,
+            ${resultsTable.videoLink},
+            ${resultsTable.discussionLink}
+          FROM ${resultsTable}
+            LEFT JOIN ${contestsTable}
+              ON ${resultsTable.competitionId} = ${contestsTable.competitionId},
+            UNNEST(${resultsTable.attempts}) WITH ORDINALITY AS attempts_data(attempt, attempt_number)
+          WHERE ${resultsTable.approved} IS TRUE
+            AND ${resultsTable.eventId} = ${event.eventId}
+            ${sql.raw(recordCategory === "all" ? "" : `AND record_category = '${recordCategory}'`)}
+            AND CAST(attempts_data.attempt->>'result' AS INTEGER) > 0
+            ${sql.raw(regionCondition)}
+          ORDER BY ranking, ${resultsTable.date}
+        )
+        SELECT * FROM rankings
+        WHERE rankings.ranking <= ${topN}
+      `)
+      .then((val: any[]) =>
+        val.map((item: any) => {
+          const objectWithCamelCase: any = {};
+          for (const [key, value] of Object.entries(item)) objectWithCamelCase[camelCase(key)] = value;
+          return objectWithCamelCase;
+        }),
+      );
+  }
+  // Top averages
+  else {
+    rankings = await db
+      .execute(sql`
+        WITH rankings AS (
+          SELECT
+            CAST(${resultsTable.id} AS TEXT) AS ranking_id,
+            CAST(
+              RANK() OVER (ORDER BY ${resultsTable.average} ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)
+            AS INTEGER) AS ranking,
+            ${resultsTable.date},
+            (
+              SELECT
+                JSON_AGG(
+                  JSON_BUILD_OBJECT(
+                    'id', ${personsTable.id},
+                    'name', ${personsTable.name},
+                    'localizedName', ${personsTable.localizedName},
+                    'regionCode', ${personsTable.regionCode},
+                    'wcaId', ${personsTable.wcaId}
+                  )
+                )
+              FROM ${personsTable}
+              WHERE ${personsTable.id} = ANY(${resultsTable.personIds})
+            ) AS persons,
+            CAST(${resultsTable.average} AS INTEGER) AS result,
+            ${resultsTable.attempts},
+            JSON_BUILD_OBJECT(
+              'competitionId', ${contestsTable.competitionId},
+              'shortName', ${contestsTable.shortName},
+              'type', ${contestsTable.type},
+              'regionCode', ${contestsTable.regionCode}
+            ) AS contest,
+            ${resultsTable.videoLink},
+            ${resultsTable.discussionLink}
+          FROM ${resultsTable}
+            LEFT JOIN ${contestsTable}
+              ON ${resultsTable.competitionId} = ${contestsTable.competitionId}
+          WHERE ${resultsTable.approved} IS TRUE
+            AND ${resultsTable.eventId} = ${event.eventId}
+            ${sql.raw(recordCategory === "all" ? "" : `AND record_category = '${recordCategory}'`)}
+            AND ${resultsTable.average} > 0
+            AND CARDINALITY(${resultsTable.attempts}) = ${defaultNumberOfAttempts}
+            ${sql.raw(regionCondition)}
+          ORDER BY ${resultsTable.average}, ${resultsTable.date}
+        )
+        SELECT * FROM rankings
+        WHERE rankings.ranking <= ${topN}
+      `)
+      .then((val: any[]) =>
+        val.map((item: any) => {
+          const objectWithCamelCase: any = {};
+          for (const [key, value] of Object.entries(item)) objectWithCamelCase[camelCase(key)] = value;
+          return objectWithCamelCase;
+        }),
+      );
   }
 
-  return Array.from(participantIds);
+  return rankings!;
 }
 
 export async function getPersonExactMatchWcaId(

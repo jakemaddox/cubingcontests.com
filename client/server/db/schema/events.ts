@@ -1,5 +1,5 @@
 import "server-only";
-import { boolean, integer, text, uniqueIndex } from "drizzle-orm/pg-core";
+import { boolean, integer, text } from "drizzle-orm/pg-core";
 import { getColumns } from "drizzle-orm/utils";
 import { EventCategoryValues, EventFormatValues, RoundFormatValues } from "~/helpers/types.ts";
 import { ccSchema } from "~/server/db/schema/schema.ts";
@@ -9,27 +9,23 @@ export const eventFormatEnum = ccSchema.enum("event_format", EventFormatValues);
 export const roundFormatEnum = ccSchema.enum("round_format", RoundFormatValues);
 export const eventCategoryEnum = ccSchema.enum("event_category", EventCategoryValues);
 
-export const eventsTable = ccSchema.table(
-  "events",
-  {
-    id: integer().primaryKey().generatedAlwaysAsIdentity(),
-    eventId: text().notNull().unique(),
-    name: text().notNull(),
-    category: text().notNull(),
-    rank: integer().notNull(),
-    format: eventFormatEnum().notNull(),
-    defaultRoundFormat: roundFormatEnum().notNull(),
-    participants: integer().notNull(),
-    submissionsAllowed: boolean().notNull(),
-    removedWca: boolean().notNull(),
-    hasMemo: boolean().notNull(),
-    hidden: boolean().notNull(),
-    description: text(),
-    rule: text(),
-    ...tableTimestamps,
-  },
-  (table) => [uniqueIndex("event_id_idx").on(table.eventId)],
-);
+export const eventsTable = ccSchema.table("events", {
+  id: integer().primaryKey().generatedAlwaysAsIdentity(),
+  eventId: text().notNull().unique(),
+  name: text().notNull(),
+  category: text().notNull(),
+  rank: integer().notNull(),
+  format: eventFormatEnum().notNull(),
+  defaultRoundFormat: roundFormatEnum().notNull(),
+  participants: integer().notNull(),
+  submissionsAllowed: boolean().notNull(),
+  removedWca: boolean().notNull(),
+  hasMemo: boolean().notNull(),
+  hidden: boolean().notNull(),
+  description: text(),
+  rule: text(),
+  ...tableTimestamps,
+});
 
 export type InsertEvent = typeof eventsTable.$inferInsert;
 export type SelectEvent = typeof eventsTable.$inferSelect;

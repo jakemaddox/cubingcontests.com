@@ -12,6 +12,7 @@ import {
 } from "~/server/db/schema/auth-schema.ts";
 import { sendResetPasswordEmail, sendVerificationEmail } from "~/server/email/mailer.ts";
 import { ac, admin, mod, user } from "~/server/permissions.ts";
+import { logMessage } from "~/server/serverUtilityFunctions";
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
@@ -39,10 +40,18 @@ export const auth = betterAuth({
     enabled: true,
     autoSignIn: false,
     requireEmailVerification: true,
-    sendResetPassword: ({ user, url }) => sendResetPasswordEmail(user.email, url),
+    sendResetPassword: async ({ user, url }) => {
+      logMessage("CC0031", `Sending reset password email for user with ID ${user.id}`);
+
+      await sendResetPasswordEmail(user.email, url);
+    },
   },
   emailVerification: {
-    sendVerificationEmail: ({ user, url }) => sendVerificationEmail(user.email, url),
+    sendVerificationEmail: async ({ user, url }) => {
+      logMessage("CC0030", `Sending verification email for new user with ID ${user.id}`);
+
+      await sendVerificationEmail(user.email, url);
+    },
   },
   user: {
     additionalFields: {

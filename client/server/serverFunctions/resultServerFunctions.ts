@@ -701,7 +701,10 @@ async function setFutureRecords(
         ON ${table.id} = results_with_record_times.id
         WHERE ${table[recordField]} IS NULL
           AND ${table[bestOrAverage]} = results_with_record_times.curr_record`)
-      .then((val: any) => (process.env.VITEST ? val.rows : val).map(({ id }: any) => id));
+      .then((val: any) =>
+        // PGLite returns results with { rows: [] }, but Postgres just returns [], hence the different mapping
+        (process.env.VITEST ? val.rows : val).map(({ id }: any) => id),
+      );
 
     const newNrResults = await tx
       .update(table)

@@ -31,7 +31,18 @@ export const logAffiliateLinkClickSF = actionClient
     }),
   )
   .action(async ({ parsedInput: { message } }) => {
-    logMessage("CC0001", message);
+    logMessage("CC0004", message);
+  });
+
+export const logUserDeletedSF = actionClient
+  .metadata({ permissions: null })
+  .inputSchema(
+    z.strictObject({
+      id: z.string().nonempty(),
+    }),
+  )
+  .action(async ({ parsedInput: { id } }) => {
+    logMessage("CC0033", `Deleting user with ID ${id}`);
   });
 
 export const updateUserSF = actionClient
@@ -45,6 +56,8 @@ export const updateUserSF = actionClient
   )
   .action<{ user: typeof auth.$Infer.Session.user; person?: PersonResponse }>(
     async ({ parsedInput: { id, personId, role } }) => {
+      logMessage("CC0032", `Updating user with ID ${id} (new person ID: ${personId}; new role: ${role})`);
+
       const hdrs = await headers();
 
       const [user] = await db.select().from(usersTable).where(eq(usersTable.id, id)).limit(1);
@@ -97,6 +110,8 @@ export const updateUserSF = actionClient
 export const startNewCollectiveCubingSolutionSF = actionClient
   .metadata({ permissions: null })
   .action<CollectiveSolutionResponse>(async ({ ctx: { session } }) => {
+    logMessage("CC0029", "Starting new Collective Cubing solution");
+
     const ongoingSolution = await db.query.collectiveSolutions.findFirst({ where: { state: "ongoing" } });
     if (ongoingSolution) throw new CcActionError("The cube has already been scrambled", { data: ongoingSolution });
 

@@ -1,8 +1,9 @@
+import type { Ranking } from "~/helpers/types/Rankings.ts";
 import type { EventResponse } from "~/server/db/schema/events.ts";
 import RankingRow from "./RankingRow.tsx";
 
 type Props = {
-  rankings: IRanking[];
+  rankings: Ranking[];
   event: EventResponse;
   // These two parameters are mutually-exclusive
   recordsTable?: boolean;
@@ -10,9 +11,8 @@ type Props = {
 };
 
 function RankingsTable({ rankings, event, recordsTable = false, topResultsRankings = false }: Props) {
-  if (topResultsRankings && recordsTable) {
+  if (topResultsRankings && recordsTable)
     throw new Error("forAverage and topResultsRankings cannot both be true in RankingsTable");
-  }
 
   const hasComp = rankings.some((e) => e.contest);
   const hasLink = rankings.some((e) => e.videoLink || e.discussionLink);
@@ -22,7 +22,8 @@ function RankingsTable({ rankings, event, recordsTable = false, topResultsRankin
   const showDetailsColumn = hasSolves || rankings.some((e) => e.memo);
   let lastRanking = 0;
 
-  if (rankings.length === 0) return <p className="fs-5 mx-2 mt-4">Results not found</p>;
+  if (rankings.length === 0)
+    return <p className="fs-5 mx-2 mt-4">No rankings found matching the requested parameters</p>;
 
   /////////////////////////////////////////////////////////////////////////////////////////
   // REMEMBER TO UPDATE THE MOBILE VIEW OF THE RECORDS PAGE WHEN CHANGING THIS
@@ -53,31 +54,26 @@ function RankingsTable({ rankings, event, recordsTable = false, topResultsRankin
             lastRanking = ranking.ranking as number;
 
             if (recordsTable) {
-              return ranking.persons.map((person, i) => (
-                <RankingRow
-                  key={`${ranking.type}_${ranking.resultId}_${person.id}`}
-                  onlyKeepPerson={i !== 0}
-                  event={event}
-                  ranking={ranking}
-                  person={person}
-                  showAllTeammates={showAllTeammates}
-                  showDetailsColumn={showDetailsColumn}
-                  forRecordsTable
-                />
-              ));
+              // return ranking.persons.map((person, i) => (
+              //   <RankingRow
+              //     key={`${ranking.type}_${ranking.resultId}_${person.id}`}
+              //     onlyKeepPerson={i !== 0}
+              //     event={event}
+              //     ranking={ranking}
+              //     person={person}
+              //     showAllTeammates={showAllTeammates}
+              //     showDetailsColumn={showDetailsColumn}
+              //     forRecordsTable
+              //   />
+              // ));
             }
-
-            let key = `${ranking.resultId}_${ranking.persons[0].id}`;
-            if (ranking.attemptNumber !== undefined) key += `_${ranking.attemptNumber}`;
 
             return (
               <RankingRow
-                key={key}
+                key={ranking.rankingId}
                 isTiedRanking={isTiedRanking}
                 event={event}
                 ranking={ranking}
-                // The backend sets the first person in the array as the person being ranked
-                person={ranking.persons[0]}
                 showAllTeammates={showAllTeammates}
                 showTeamColumn={showTeamColumn}
                 showDetailsColumn={showDetailsColumn}

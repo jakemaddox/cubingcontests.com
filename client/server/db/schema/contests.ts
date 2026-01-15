@@ -1,6 +1,6 @@
 import "server-only";
 import { getColumns, sql } from "drizzle-orm";
-import { check, integer, jsonb, text, timestamp, uniqueIndex, varchar } from "drizzle-orm/pg-core";
+import { check, integer, jsonb, text, timestamp, varchar } from "drizzle-orm/pg-core";
 import type { Schedule } from "~/helpers/types/Schedule.ts";
 import { ContestStateValues, ContestTypeValues } from "~/helpers/types.ts";
 import { ccSchema } from "~/server/db/schema/schema.ts";
@@ -46,7 +46,6 @@ export const contestsTable = ccSchema.table(
     ...tableTimestamps,
   },
   (table) => [
-    uniqueIndex("contests_competition_id_idx").on(table.competitionId),
     check(
       "contests_meetup_check",
       sql`(${table.type} <> 'meetup'

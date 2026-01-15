@@ -2,7 +2,7 @@ import Competitor from "~/app/components/Competitor.tsx";
 import type { PersonResponse } from "~/server/db/schema/persons.ts";
 
 type Props = {
-  persons: PersonResponse[];
+  persons: Pick<PersonResponse, "id" | "name" | "localizedName" | "regionCode" | "wcaId">[];
   noFlag?: boolean;
   vertical?: boolean;
 };

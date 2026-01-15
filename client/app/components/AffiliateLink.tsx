@@ -1,7 +1,6 @@
 "use client";
 
 import Image from "next/image";
-import { useAction } from "next-safe-action/hooks";
 import { logAffiliateLinkClickSF } from "~/server/serverFunctions/serverFunctions.ts";
 
 const height = 192 / 2;
@@ -14,10 +13,8 @@ type Props = {
 };
 
 function AffiliateLink({ type }: Props) {
-  const { executeAsync: sendLog } = useAction(logAffiliateLinkClickSF);
-
   const logAffiliateLinkClick = (utmCampaign: string) => {
-    sendLog({ message: `Affiliate link clicked (utm_campaign: ${utmCampaign})` });
+    logAffiliateLinkClickSF({ message: `Affiliate link clicked (utm_campaign: ${utmCampaign})` });
   };
 
   switch (type) {

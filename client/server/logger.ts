@@ -36,10 +36,12 @@ const transport = pino.transport({
 export const logger = pino(transport);
 
 export type LogCode =
-  | "CC0001" // affiliate link click
+  | "CC0001" // page visit
+  // Events
   | "CC0002" // create event
   | "CC0003" // update event
-  | "CC0004"
+  | "CC0004" // affiliate link click
+  // Contests
   | "CC0005" // create contest
   | "CC0006" // approve contest
   | "CC0007" // finish contest
@@ -48,22 +50,32 @@ export type LogCode =
   | "CC0010" // update contest
   | "CC0011" // delete contest
   | "CC0012" // open round
+  // Results
   | "CC0013" // create contest result
   | "CC0014" // update contest result
   | "CC0015" // delete contest result
   | "CC0016" // create video-based result
   | "CC0017" // update video-based result
   | "CC0018" // delete video-based result
+  // Persons
   | "CC0019" // create person
   | "CC0020" // update person
   | "CC0021" // delete person
   | "CC0022" // approve person
   | "CC0023" // approve persons
+  // Records
   | "CC0024" // set result record
   | "CC0025" // set future result record
   | "CC0026" // cancel future result record
   | "CC0027" // create record config
   | "CC0028" // update record config
+  // Collective Cubing
+  | "CC0029" // start new solution
+  // Users
+  | "CC0030" // send verification email
+  | "CC0031" // send reset password email
+  | "CC0032" // update user
+  | "CC0033" // delete user
 
   // Error codes
   | "CC5001"; // send email error

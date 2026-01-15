@@ -2,7 +2,7 @@ import type { PersonResponse } from "~/server/db/schema/persons.ts";
 import Country from "./Country.tsx";
 
 type Props = {
-  person: PersonResponse | undefined;
+  person: Pick<PersonResponse, "name" | "localizedName" | "regionCode" | "wcaId"> | undefined;
   showLocalizedName?: boolean;
   noFlag?: boolean;
   noLink?: boolean;

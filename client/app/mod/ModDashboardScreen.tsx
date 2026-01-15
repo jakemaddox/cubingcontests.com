@@ -79,7 +79,7 @@ function ModDashboardScreen({ contests: initContests, session }: Props) {
           <Link href="/mod/competitors" className="btn btn-warning btn-sm btn-lg-md">
             Manage competitors
           </Link>
-          {isAdmin && (
+          {isAdmin ? (
             <>
               <Link href="/admin/results" className="btn btn-warning btn-sm btn-lg-md">
                 Manage results
@@ -94,6 +94,13 @@ function ModDashboardScreen({ contests: initContests, session }: Props) {
                 Configure records
               </Link>
             </>
+          ) : (
+            <Link
+              href="https://docs.google.com/forms/d/12AuZdtH4qHwTxd4Kxd2Y_TwZHlBuBu8XuKX3VdKrE60"
+              className="btn btn-light btn-sm btn-lg-md"
+            >
+              Request new event
+            </Link>
           )}
         </div>
         <p>

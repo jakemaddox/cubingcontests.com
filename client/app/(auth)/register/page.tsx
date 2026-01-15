@@ -35,7 +35,7 @@ function RegisterPage() {
           username: parsed.data.username,
           email: parsed.data.email,
           password: parsed.data.password,
-          name: "", // this field is not used for now
+          name: parsed.data.username,
           callbackURL: `${process.env.NEXT_PUBLIC_BASE_URL}/login?email=${parsed.data.email}`, // same as on the link-expired page
         });
 

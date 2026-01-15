@@ -239,102 +239,6 @@ export const createContestSF = actionClient
     },
   );
 
-export const updateContestSF = actionClient
-  .metadata({ permissions: { competitions: ["update"], meetups: ["update"] } })
-  .inputSchema(
-    z.strictObject({
-      originalCompetitionId: z.string().nonempty(),
-      newContestDto: ContestValidator,
-      rounds: z.array(RoundValidator).nonempty({ error: "Please select at least one event" }),
-    }),
-  )
-  .action(
-    async ({
-      parsedInput: { originalCompetitionId, newContestDto, rounds },
-      ctx: {
-        session: { user },
-      },
-    }) => {
-      logMessage("CC0010", `Updating contest ${originalCompetitionId}`);
-
-      const isAdmin = getIsAdmin(user.role);
-
-      const contestPromise = db.query.contests.findFirst({
-        columns: { competitionId: true, type: true, state: true, organizerIds: true, schedule: true },
-        where: { competitionId: originalCompetitionId },
-      });
-      const prevRoundsPromise = db.query.rounds.findMany({ where: { competitionId: originalCompetitionId } });
-      const resultsPromise = db.query.results.findMany({ where: { competitionId: originalCompetitionId } });
-
-      const [contest, prevRounds, results] = await Promise.all([contestPromise, prevRoundsPromise, resultsPromise]);
-
-      if (!contest) throw new CcActionError(`Contest with ID ${originalCompetitionId} not found`);
-      if (!getUserHasAccessToContest(user, contest))
-        throw new CcActionError("You do not have access rights for this contest");
-      if (!["created", "approved", "ongoing"].includes(contest.state))
-        throw new CcActionError("Contest cannot be edited");
-
-      await validateAndCleanUpContest(newContestDto, rounds, user);
-
-      await db.transaction(async (tx) => {
-        const updateContestObject: Partial<SelectContest> = {
-          organizerIds: newContestDto.organizerIds,
-          contact: newContestDto.contact,
-          description: newContestDto.description,
-        };
-
-        if (isAdmin || contest.state === "created") {
-          if (newContestDto.competitionId !== originalCompetitionId) {
-            const sameIdContest = await db.query.contests.findFirst({
-              where: { competitionId: newContestDto.competitionId },
-            });
-            if (sameIdContest)
-              throw new CcActionError(`A contest with the ID ${newContestDto.competitionId} already exists`);
-
-            // Update competition ID everywhere
-            updateContestObject.competitionId = newContestDto.competitionId;
-            await tx
-              .update(resultsTable)
-              .set({ competitionId: newContestDto.competitionId })
-              .where(eq(resultsTable.competitionId, originalCompetitionId));
-            await tx
-              .update(roundsTable)
-              .set({ competitionId: newContestDto.competitionId })
-              .where(eq(roundsTable.competitionId, originalCompetitionId));
-          }
-
-          updateContestObject.name = newContestDto.name;
-          updateContestObject.shortName = newContestDto.shortName;
-          updateContestObject.city = newContestDto.city;
-          updateContestObject.venue = newContestDto.venue;
-          updateContestObject.address = newContestDto.address;
-          updateContestObject.latitudeMicrodegrees = newContestDto.latitudeMicrodegrees;
-          updateContestObject.longitudeMicrodegrees = newContestDto.longitudeMicrodegrees;
-          updateContestObject.competitorLimit = newContestDto.competitorLimit;
-        }
-
-        // Even an admin is not allowed to edit the date after a comp has been approved
-        if (contest.state === "created") {
-          updateContestObject.startDate = newContestDto.startDate;
-          updateContestObject.endDate = newContestDto.endDate;
-        }
-
-        if (contest.type === "meetup") {
-          updateContestObject.startTime = newContestDto.startTime;
-          updateContestObject.timezone = newContestDto.timezone;
-        } else {
-          updateContestObject.schedule = await getUpdatedSchedule(contest.schedule!, newContestDto.schedule!);
-        }
-
-        await updateRounds(tx, prevRounds, rounds, results, {
-          canAddNewEvents: isAdmin || contest.state === "created",
-        });
-
-        await tx.update(table).set(updateContestObject).where(eq(table.competitionId, originalCompetitionId));
-      });
-    },
-  );
-
 export const approveContestSF = actionClient
   .metadata({ permissions: { competitions: ["approve"], meetups: ["approve"] } })
   .inputSchema(
@@ -579,6 +483,145 @@ export const publishContestSF = actionClient
     if (creatorUser) sendContestPublishedNotification(creatorUser.email, contest);
   });
 
+export const updateContestSF = actionClient
+  .metadata({ permissions: { competitions: ["update"], meetups: ["update"] } })
+  .inputSchema(
+    z.strictObject({
+      originalCompetitionId: z.string().nonempty(),
+      newContestDto: ContestValidator,
+      rounds: z.array(RoundValidator).nonempty({ error: "Please select at least one event" }),
+    }),
+  )
+  .action(
+    async ({
+      parsedInput: { originalCompetitionId, newContestDto, rounds },
+      ctx: {
+        session: { user },
+      },
+    }) => {
+      logMessage("CC0010", `Updating contest ${originalCompetitionId}`);
+
+      const isAdmin = getIsAdmin(user.role);
+
+      const contestPromise = db.query.contests.findFirst({
+        columns: { competitionId: true, type: true, state: true, organizerIds: true, schedule: true },
+        where: { competitionId: originalCompetitionId },
+      });
+      const prevRoundsPromise = db.query.rounds.findMany({ where: { competitionId: originalCompetitionId } });
+      const resultsPromise = db.query.results.findMany({ where: { competitionId: originalCompetitionId } });
+
+      const [contest, prevRounds, results] = await Promise.all([contestPromise, prevRoundsPromise, resultsPromise]);
+
+      if (!contest) throw new CcActionError(`Contest with ID ${originalCompetitionId} not found`);
+      if (!getUserHasAccessToContest(user, contest))
+        throw new CcActionError("You do not have access rights for this contest");
+      if (!["created", "approved", "ongoing"].includes(contest.state))
+        throw new CcActionError("Contest cannot be edited");
+
+      await validateAndCleanUpContest(newContestDto, rounds, user);
+
+      await db.transaction(async (tx) => {
+        const updateContestObject: Partial<SelectContest> = {
+          organizerIds: newContestDto.organizerIds,
+          contact: newContestDto.contact,
+          description: newContestDto.description,
+        };
+
+        if (isAdmin || contest.state === "created") {
+          if (newContestDto.competitionId !== originalCompetitionId) {
+            const sameIdContest = await db.query.contests.findFirst({
+              where: { competitionId: newContestDto.competitionId },
+            });
+            if (sameIdContest)
+              throw new CcActionError(`A contest with the ID ${newContestDto.competitionId} already exists`);
+
+            // Update competition ID everywhere
+            updateContestObject.competitionId = newContestDto.competitionId;
+            await tx
+              .update(resultsTable)
+              .set({ competitionId: newContestDto.competitionId })
+              .where(eq(resultsTable.competitionId, originalCompetitionId));
+            await tx
+              .update(roundsTable)
+              .set({ competitionId: newContestDto.competitionId })
+              .where(eq(roundsTable.competitionId, originalCompetitionId));
+          }
+
+          updateContestObject.name = newContestDto.name;
+          updateContestObject.shortName = newContestDto.shortName;
+          updateContestObject.city = newContestDto.city;
+          updateContestObject.venue = newContestDto.venue;
+          updateContestObject.address = newContestDto.address;
+          updateContestObject.latitudeMicrodegrees = newContestDto.latitudeMicrodegrees;
+          updateContestObject.longitudeMicrodegrees = newContestDto.longitudeMicrodegrees;
+          updateContestObject.competitorLimit = newContestDto.competitorLimit;
+        }
+
+        // Even an admin is not allowed to edit the date after a comp has been approved
+        if (contest.state === "created") {
+          updateContestObject.startDate = newContestDto.startDate;
+          updateContestObject.endDate = newContestDto.endDate;
+        }
+
+        if (contest.type === "meetup") {
+          updateContestObject.startTime = newContestDto.startTime;
+          updateContestObject.timezone = newContestDto.timezone;
+        } else {
+          updateContestObject.schedule = await getUpdatedSchedule(contest.schedule!, newContestDto.schedule!);
+        }
+
+        await updateRounds(tx, prevRounds, rounds, results, {
+          canAddNewEvents: isAdmin || contest.state === "created",
+        });
+
+        await tx.update(table).set(updateContestObject).where(eq(table.competitionId, originalCompetitionId));
+      });
+    },
+  );
+
+export const deleteContestSF = actionClient
+  .metadata({ permissions: { competitions: ["delete"], meetups: ["delete"] } })
+  .inputSchema(z.strictObject({ competitionId: z.string() }))
+  .action(async ({ parsedInput: { competitionId } }) => {
+    logMessage("CC0011", `Deleting contest ${competitionId}`);
+
+    const contest = await db.query.contests.findFirst({
+      columns: {
+        competitionId: true,
+        name: true,
+        state: true,
+        type: true,
+        participants: true,
+        queuePosition: true,
+        schedule: true,
+        createdBy: true,
+      },
+      where: { competitionId },
+    });
+    if (!contest) throw new CcActionError(`Contest with ID ${competitionId} not found`);
+    if (contest.participants > 0) throw new CcActionError("You may not remove a contest that has results");
+
+    await db.transaction(async (tx) => {
+      const newCompetitionId = `${competitionId}_REMOVED`;
+
+      await tx
+        .update(table)
+        .set({ state: "removed", competitionId: newCompetitionId, queuePosition: null })
+        .where(eq(table.competitionId, competitionId));
+
+      await tx
+        .update(roundsTable)
+        .set({ competitionId: newCompetitionId, open: false })
+        .where(eq(roundsTable.competitionId, competitionId));
+
+      // This was part of the old Nest JS API
+      // await this.authService.deleteAuthTokens(competitionId);
+    });
+
+    const creatorUser = await db.query.users.findFirst({ columns: { email: true }, where: { id: contest.createdBy! } });
+    if (creatorUser) sendEmail(creatorUser.email, "Contest removed", `Your contest ${contest.name} has been removed.`);
+  });
+
 export const openRoundSF = actionClient
   .metadata({ permissions: { competitions: ["create"], meetups: ["create"] } })
   .inputSchema(
@@ -631,49 +674,6 @@ export const openRoundSF = actionClient
       return openedRound;
     },
   );
-
-export const deleteContestSF = actionClient
-  .metadata({ permissions: { competitions: ["delete"], meetups: ["delete"] } })
-  .inputSchema(z.strictObject({ competitionId: z.string() }))
-  .action(async ({ parsedInput: { competitionId } }) => {
-    logMessage("CC0011", `Deleting contest ${competitionId}`);
-
-    const contest = await db.query.contests.findFirst({
-      columns: {
-        competitionId: true,
-        name: true,
-        state: true,
-        type: true,
-        participants: true,
-        queuePosition: true,
-        schedule: true,
-        createdBy: true,
-      },
-      where: { competitionId },
-    });
-    if (!contest) throw new CcActionError(`Contest with ID ${competitionId} not found`);
-    if (contest.participants > 0) throw new CcActionError("You may not remove a contest that has results");
-
-    await db.transaction(async (tx) => {
-      const newCompetitionId = `${competitionId}_REMOVED`;
-
-      await tx
-        .update(table)
-        .set({ state: "removed", competitionId: newCompetitionId, queuePosition: null })
-        .where(eq(table.competitionId, competitionId));
-
-      await tx
-        .update(roundsTable)
-        .set({ competitionId: newCompetitionId, open: false })
-        .where(eq(roundsTable.competitionId, competitionId));
-
-      // This was part of the old Nest JS API
-      // await this.authService.deleteAuthTokens(competitionId);
-    });
-
-    const creatorUser = await db.query.users.findFirst({ columns: { email: true }, where: { id: contest.createdBy! } });
-    if (creatorUser) sendEmail(creatorUser.email, "Contest removed", `Your contest ${contest.name} has been removed.`);
-  });
 
 async function validateAndCleanUpContest(
   contest: ContestDto,

@@ -73,6 +73,7 @@ export const resultsTable = ccSchema.table(
 
 export type InsertResult = typeof resultsTable.$inferInsert;
 export type SelectResult = typeof resultsTable.$inferSelect;
+
 export type FullResult = SelectResult & {
   event: SelectEvent;
   contest?: SelectContest;

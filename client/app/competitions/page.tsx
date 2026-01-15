@@ -33,7 +33,7 @@ async function ContestsPage({ searchParams }: Props) {
 
   const filterBySuperRegion = !!region && Continents.some((c) => region === c.code);
   const regionCodes = filterBySuperRegion && Countries.filter((c) => c.superRegionCode === region).map((c) => c.code);
-  const contests = await db.query.contests.findMany({
+  const contestsPromise = db.query.contests.findMany({
     columns: {
       competitionId: true,
       shortName: true,
@@ -51,11 +51,13 @@ async function ContestsPage({ searchParams }: Props) {
     },
     orderBy: { startDate: "desc" },
   });
-  const events = await db
+  const eventsPromise = db
     .select(eventsPublicCols)
     .from(eventsTable)
     .where(and(ne(eventsTable.category, "removed"), eq(eventsTable.hidden, false)))
     .orderBy(eventsTable.rank);
+
+  const [contests, events] = await Promise.all([contestsPromise, eventsPromise]);
 
   return (
     <div>

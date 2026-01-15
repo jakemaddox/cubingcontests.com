@@ -1,4 +1,4 @@
-import { isSameDay, isSameMonth, isSameYear } from "date-fns";
+import { format, isSameDay, isSameMonth, isSameYear } from "date-fns";
 import { formatInTimeZone } from "date-fns-tz";
 import type { SafeActionResult } from "next-safe-action";
 import { remove as removeAccents } from "remove-accents";
@@ -16,21 +16,22 @@ export function getIsAdmin(rolesString: string | null | undefined): boolean {
 export function getFormattedDate(startDate: Date | string, endDate?: Date | string | null): string {
   if (!startDate) throw new Error("Start date missing!");
 
-  if (typeof startDate === "string") startDate = new Date(startDate);
-  if (typeof endDate === "string") endDate = new Date(endDate);
-
+  const start = typeof startDate === "string" ? new Date(startDate) : startDate;
+  const end = typeof endDate === "string" ? new Date(endDate) : endDate;
   const fullFormat = "d MMM yyyy";
 
-  if (!endDate || isSameDay(startDate, endDate)) {
-    return formatInTimeZone(startDate, "UTC", fullFormat);
+  if (!end || isSameDay(start, end)) {
+    // TO-DO: FIX THIS SO IT WORKS WITH SSR AND CSR!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    return format(start, fullFormat);
+    // return formatInTimeZone(start, "UTC", fullFormat);
   } else {
     let startFormat: string;
 
-    if (!isSameYear(startDate, endDate)) startFormat = fullFormat;
-    else if (!isSameMonth(startDate, endDate)) startFormat = "d MMM";
+    if (!isSameYear(start, end)) startFormat = fullFormat;
+    else if (!isSameMonth(start, end)) startFormat = "d MMM";
     else startFormat = "d";
 
-    return `${formatInTimeZone(startDate, "UTC", startFormat)} - ${formatInTimeZone(endDate, "UTC", fullFormat)}`;
+    return `${formatInTimeZone(start, "UTC", startFormat)} - ${formatInTimeZone(end, "UTC", fullFormat)}`;
   }
 }
 
@@ -55,11 +56,11 @@ const getCentiseconds = (
     // Round attempts >= 10 minutes long, unless noRounding = true
     if (time.length >= 6 && round) time = time.slice(0, -2) + "00";
 
-    if (time.length >= 7) hours = parseInt(time.slice(0, time.length - 6));
-    minutes = parseInt(time.slice(Math.max(time.length - 6, 0), -4));
-    centiseconds = parseInt(time.slice(-4));
+    if (time.length >= 7) hours = parseInt(time.slice(0, time.length - 6), 10);
+    minutes = parseInt(time.slice(Math.max(time.length - 6, 0), -4), 10);
+    centiseconds = parseInt(time.slice(-4), 10);
   } else {
-    centiseconds = parseInt(time);
+    centiseconds = parseInt(time, 10);
   }
 
   // Disallow >60 minutes, >60 seconds, and times more than 24 hours long
@@ -96,37 +97,33 @@ export function getAttempt(
     memo?: string; // only used for events with hasMemo = true
   } = { roundTime: false, roundMemo: false },
 ): Attempt {
-  if (time.length > 8 || (memo && memo.length > 8)) {
-    throw new Error("Times longer than 8 digits are not supported");
-  }
+  if (time.length > 8 || (memo && memo.length > 8)) throw new Error("Times longer than 8 digits are not supported");
 
   const maxFmResultDigits = C.maxFmMoves.toString().length;
-  if (time.length > maxFmResultDigits && event.format === "number") {
+  if (time.length > maxFmResultDigits && event.format === "number")
     throw new Error(`Fewest Moves solutions longer than ${maxFmResultDigits} digits are not supported`);
-  }
 
-  if (event.format === "number") {
-    return { ...attempt, result: time ? parseInt(time, 10) : 0 };
-  }
+  if (event.format === "number") return { ...attempt, result: time ? parseInt(time, 10) : 0 };
 
-  const newAttempt: Attempt = { result: getCentiseconds(time, { round: roundTime }) };
+  const newAttempt: Attempt = { result: getCentiseconds(time, { round: roundTime }) as any };
   if (memo) {
-    newAttempt.memo = getCentiseconds(memo, { round: roundMemo });
+    newAttempt.memo = getCentiseconds(memo, { round: roundMemo }) as any;
     if (newAttempt.memo && newAttempt.result && newAttempt.memo >= newAttempt.result) {
-      return { ...newAttempt, result: null };
+      return { ...newAttempt, result: null as any };
     }
   }
 
   if (event.format === "multi" && newAttempt.result) {
-    if (typeof solved !== "number" || typeof attempted !== "number" || solved > attempted) return { result: null };
+    if (typeof solved !== "number" || typeof attempted !== "number" || solved > attempted)
+      return { result: null as any };
 
     const maxTime = Math.min(attempted, 6) * 60000 + attempted * 200; // accounts for +2s
 
     // Disallow submitting multi times > max time, and <= 1 hour for old style
     if (event.eventId === "333mbf" && newAttempt.result > maxTime) {
-      return { ...newAttempt, result: null };
+      return { ...newAttempt, result: null as any };
     } else if (event.eventId === "333mbo" && newAttempt.result <= 360000) {
-      return { ...newAttempt, result: null };
+      return { ...newAttempt, result: null as any };
     }
 
     // See the IResult interface for information about how this works

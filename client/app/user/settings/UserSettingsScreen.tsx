@@ -10,6 +10,7 @@ import { authClient } from "~/helpers/authClient.ts";
 import { C } from "~/helpers/constants.ts";
 import { MainContext } from "~/helpers/contexts.ts";
 import type { PersonResponse } from "~/server/db/schema/persons.ts";
+import { logUserDeletedSF } from "~/server/serverFunctions/serverFunctions";
 
 type Props = {
   person: PersonResponse | undefined;
@@ -28,6 +29,7 @@ function UserSettingsScreen({ person }: Props) {
   const deleteUser = () => {
     if (confirm("Are you CERTAIN you would like to delete your account? This action is permanent!")) {
       startTransition(async () => {
+        logUserDeletedSF({ id: session!.user.id });
         const { error } = await authClient.deleteUser();
 
         if (error) {
