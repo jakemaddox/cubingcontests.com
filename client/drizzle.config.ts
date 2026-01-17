@@ -12,7 +12,8 @@ if (!process.env.CC_DB_SCHEMA) throw new Error("CC_DB_SCHEMA environment variabl
 export default defineConfig({
   out: "./server/db/drizzle",
   schema: "./server/db/schema",
-  schemaFilter: [process.env.CC_DB_SCHEMA!],
+  schemaFilter: [process.env.CC_DB_SCHEMA],
+  // migrations: { schema: process.env.CC_DB_SCHEMA },
   dialect: "postgresql",
   dbCredentials: { url: process.env.DATABASE_URL },
   casing: "snake_case",

@@ -40,7 +40,7 @@ importers:
         version: 1.1.6
       better-auth:
         specifier: 1.4.10
-        version: 1.4.10(drizzle-kit@1.0.0-beta.10-4a43a22)(drizzle-orm@1.0.0-beta.10-4a43a22(@electric-sql/pglite@0.3.14)(@types/mssql@9.1.8)(@types/pg@8.16.0)(mssql@11.0.1)(postgres@3.4.7))(next@16.1.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(vitest@4.0.17(@types/node@25.0.3)(tsx@4.21.0))
+        version: 1.4.10(drizzle-kit@1.0.0-beta.11-05230d9)(drizzle-orm@1.0.0-beta.11-05230d9(@electric-sql/pglite@0.3.14)(@types/mssql@9.1.8)(@types/pg@8.16.0)(mssql@11.0.1)(postgres@3.4.7))(next@16.1.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(vitest@4.0.17(@types/node@25.0.3)(tsx@4.21.0))
       bootstrap:
         specifier: 5.3.8
         version: 5.3.8(@popperjs/core@2.11.8)
@@ -57,11 +57,11 @@ importers:
         specifier: 3.2.0
         version: 3.2.0(date-fns@4.1.0)
       drizzle-orm:
-        specifier: 1.0.0-beta.10-4a43a22
-        version: 1.0.0-beta.10-4a43a22(@electric-sql/pglite@0.3.14)(@types/mssql@9.1.8)(@types/pg@8.16.0)(mssql@11.0.1)(postgres@3.4.7)
+        specifier: 1.0.0-beta.11-05230d9
+        version: 1.0.0-beta.11-05230d9(@electric-sql/pglite@0.3.14)(@types/mssql@9.1.8)(@types/pg@8.16.0)(mssql@11.0.1)(postgres@3.4.7)
       geo-tz:
-        specifier: 8.1.4
-        version: 8.1.4
+        specifier: 8.1.5
+        version: 8.1.5
       handlebars:
         specifier: 4.7.8
         version: 4.7.8
@@ -78,11 +78,11 @@ importers:
         specifier: 8.0.11
         version: 8.0.11(next@16.1.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       pino:
-        specifier: 10.1.1
-        version: 10.1.1
+        specifier: 10.2.0
+        version: 10.2.0
       pino-logflare:
         specifier: 0.5.2
-        version: 0.5.2(pino@10.1.1)
+        version: 0.5.2(pino@10.2.0)
       postgres:
         specifier: 3.4.7
         version: 3.4.7
@@ -139,8 +139,8 @@ importers:
         specifier: 19.2.3
         version: 19.2.3(@types/react@19.2.7)
       drizzle-kit:
-        specifier: 1.0.0-beta.10-4a43a22
-        version: 1.0.0-beta.10-4a43a22
+        specifier: 1.0.0-beta.11-05230d9
+        version: 1.0.0-beta.11-05230d9
       vitest:
         specifier: 4.0.17
         version: 4.0.17(@types/node@25.0.3)(tsx@4.21.0)
@@ -1421,12 +1421,12 @@ packages:
   devlop@1.1.0:
     resolution: {integrity: sha512-RWmIqhcFf1lRYBvNmr7qTNuyCt/7/ns2jbpp1+PalgE/rDQcBT0fioSMUpJ93irlUhC5hrg4cYqe6U+0ImW0rA==}
 
-  drizzle-kit@1.0.0-beta.10-4a43a22:
-    resolution: {integrity: sha512-952w6dX5alTfZQh9zJ077mqMWdCUx6QjAX3EI7UhR+1tb8Vi/A9TSTECYiJ40qPa8FFKzhMHIuck9i51esFb9g==}
+  drizzle-kit@1.0.0-beta.11-05230d9:
+    resolution: {integrity: sha512-dIv1Ql5SOJsGE/6mzfUk2k8iQFQtP6Buq7JlRew/Mx1uOOkIgyPT6xAUsSbyXqjqiDQl9k2S7iXtKaOs3Cs4aw==}
     hasBin: true
 
-  drizzle-orm@1.0.0-beta.10-4a43a22:
-    resolution: {integrity: sha512-ipys1kZjtMwBBDMtdbIaIt/j06wZITxxPcxsU8Sh93zKIILnADnK1rACwHRrm0kVaAOpZSW19efVZs1LihFZpQ==}
+  drizzle-orm@1.0.0-beta.11-05230d9:
+    resolution: {integrity: sha512-y6i3AgHqeT5Eu/+7hsF1AWyPZQTxiBx1UOy4snEqljW7Fbpp/fO2zmWYFPvjngwOLq9prrbrn36AwCoTR+J2Bg==}
     peerDependencies:
       '@aws-sdk/client-rds-data': '>=3'
       '@cloudflare/workers-types': '>=4'
@@ -1654,8 +1654,8 @@ packages:
   function-bind@1.1.2:
     resolution: {integrity: sha512-7XHNxH7qX9xG5mIwxkhumTox/MIRNcOgDrxWsMt2pAr23WHp6MrRlN7FBSFpCpr+oVO0F744iUgR82nJMfG2SA==}
 
-  geo-tz@8.1.4:
-    resolution: {integrity: sha512-xayeOC05wgy6JATU/k7GFHTMfSimzL1Fi3KSzt2GqvEnP1ZFXyQ9V4VAiTrTYhZSmRr0dbchZkximSegHZNUfA==}
+  geo-tz@8.1.5:
+    resolution: {integrity: sha512-C0g6Zyo/4/wtaONcprVq6gHq4LnbheC7HXXi0nZMG8lbxqvOj8IZcTolCd0MeOmBekXnyXKKeDlh6g2o4Yy3qw==}
     engines: {node: '>=16'}
 
   geobuf@3.0.2:
@@ -2074,8 +2074,8 @@ packages:
   pino-std-serializers@7.0.0:
     resolution: {integrity: sha512-e906FRY0+tV27iq4juKzSYPbUj2do2X2JX4EzSca1631EB2QJQUqGbDuERal7LCtOpxl6x3+nvo9NPZcmjkiFA==}
 
-  pino@10.1.1:
-    resolution: {integrity: sha512-3qqVfpJtRQUCAOs4rTOEwLH6mwJJ/CSAlbis8fKOiMzTtXh0HN/VLsn3UWVTJ7U8DsWmxeNon2IpGb+wORXH4g==}
+  pino@10.2.0:
+    resolution: {integrity: sha512-NFnZqUliT+OHkRXVSf8vdOr13N1wv31hRryVjqbreVh/SDCNaI6mnRDDq89HVRCbem1SAl7yj04OANeqP0nT6A==}
     hasBin: true
 
   point-in-polygon-hao@1.2.4:
@@ -3433,7 +3433,7 @@ snapshots:
     dependencies:
       through2: 3.0.2
 
-  better-auth@1.4.10(drizzle-kit@1.0.0-beta.10-4a43a22)(drizzle-orm@1.0.0-beta.10-4a43a22(@electric-sql/pglite@0.3.14)(@types/mssql@9.1.8)(@types/pg@8.16.0)(mssql@11.0.1)(postgres@3.4.7))(next@16.1.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(vitest@4.0.17(@types/node@25.0.3)(tsx@4.21.0)):
+  better-auth@1.4.10(drizzle-kit@1.0.0-beta.11-05230d9)(drizzle-orm@1.0.0-beta.11-05230d9(@electric-sql/pglite@0.3.14)(@types/mssql@9.1.8)(@types/pg@8.16.0)(mssql@11.0.1)(postgres@3.4.7))(next@16.1.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(vitest@4.0.17(@types/node@25.0.3)(tsx@4.21.0)):
     dependencies:
       '@better-auth/core': 1.4.10(@better-auth/utils@0.3.0)(@better-fetch/fetch@1.1.21)(better-call@1.1.7(zod@4.3.5))(jose@6.1.3)(kysely@0.28.9)(nanostores@1.1.0)
       '@better-auth/telemetry': 1.4.10(@better-auth/core@1.4.10(@better-auth/utils@0.3.0)(@better-fetch/fetch@1.1.21)(better-call@1.1.7(zod@4.3.5))(jose@6.1.3)(kysely@0.28.9)(nanostores@1.1.0))
@@ -3448,8 +3448,8 @@ snapshots:
       nanostores: 1.1.0
       zod: 4.3.5
     optionalDependencies:
-      drizzle-kit: 1.0.0-beta.10-4a43a22
-      drizzle-orm: 1.0.0-beta.10-4a43a22(@electric-sql/pglite@0.3.14)(@types/mssql@9.1.8)(@types/pg@8.16.0)(mssql@11.0.1)(postgres@3.4.7)
+      drizzle-kit: 1.0.0-beta.11-05230d9
+      drizzle-orm: 1.0.0-beta.11-05230d9(@electric-sql/pglite@0.3.14)(@types/mssql@9.1.8)(@types/pg@8.16.0)(mssql@11.0.1)(postgres@3.4.7)
       next: 16.1.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       react: 19.2.3
       react-dom: 19.2.3(react@19.2.3)
@@ -3585,14 +3585,14 @@ snapshots:
     dependencies:
       dequal: 2.0.3
 
-  drizzle-kit@1.0.0-beta.10-4a43a22:
+  drizzle-kit@1.0.0-beta.11-05230d9:
     dependencies:
       '@drizzle-team/brocli': 0.11.0
       '@js-temporal/polyfill': 0.5.1
       esbuild: 0.25.12
       tsx: 4.21.0
 
-  drizzle-orm@1.0.0-beta.10-4a43a22(@electric-sql/pglite@0.3.14)(@types/mssql@9.1.8)(@types/pg@8.16.0)(mssql@11.0.1)(postgres@3.4.7):
+  drizzle-orm@1.0.0-beta.11-05230d9(@electric-sql/pglite@0.3.14)(@types/mssql@9.1.8)(@types/pg@8.16.0)(mssql@11.0.1)(postgres@3.4.7):
     dependencies:
       '@types/mssql': 9.1.8
       mssql: 11.0.1
@@ -3779,7 +3779,7 @@ snapshots:
 
   function-bind@1.1.2: {}
 
-  geo-tz@8.1.4:
+  geo-tz@8.1.5:
     dependencies:
       '@turf/boolean-point-in-polygon': 7.3.1
       '@turf/helpers': 7.3.1
@@ -4427,13 +4427,13 @@ snapshots:
     dependencies:
       split2: 4.2.0
 
-  pino-logflare@0.5.2(pino@10.1.1):
+  pino-logflare@0.5.2(pino@10.2.0):
     dependencies:
       batch2: 1.0.6
       commander: 5.1.0
       fast-json-parse: 1.0.3
       logflare-transport-core: 0.4.1
-      pino: 10.1.1
+      pino: 10.2.0
       pino-abstract-transport: 1.2.0
       pumpify: 2.0.1
       split2: 3.2.2
@@ -4441,7 +4441,7 @@ snapshots:
 
   pino-std-serializers@7.0.0: {}
 
-  pino@10.1.1:
+  pino@10.2.0:
     dependencies:
       '@pinojs/redact': 0.4.0
       atomic-sleep: 1.0.0

@@ -15,10 +15,7 @@ export const collectiveSolutionsTable = ccSchema.table("collective_solutions", {
   scramble: text().notNull(),
   solution: text().default("").notNull(),
   lastUserWhoInteracted: text().references(() => usersTable.id, { onDelete: "set null" }), // this can be null if the user has been deleted
-  usersWhoMadeMoves: text()
-    .references(() => usersTable.id, { onDelete: "set null" })
-    .array()
-    .notNull(),
+  usersWhoMadeMoves: text().array().notNull(),
   ...tableTimestamps,
 });
 

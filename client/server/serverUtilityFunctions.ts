@@ -188,8 +188,12 @@ export async function getRankings(
   const mapRankingsData = (val: any[]) =>
     val.map((item: any) => {
       const objectWithCamelCase: any = {};
-      for (const [key, value] of Object.entries(item))
-        objectWithCamelCase[camelCase(key)] = key === "date" ? new Date(value as string) : value;
+      for (const [key, value] of Object.entries(item)) {
+        if (key === "date") objectWithCamelCase[camelCase(key)] = new Date(value as string);
+        // RANK() returns a BIGINT and result is BIGINT in the DB, which Drizzle returns as a string, so both need to be converted
+        else if (["ranking", "result"].includes(key)) objectWithCamelCase[camelCase(key)] = Number(value);
+        else objectWithCamelCase[camelCase(key)] = value;
+      }
       return objectWithCamelCase;
     });
 
@@ -203,7 +207,7 @@ export async function getRankings(
             ${resultsTable.date},
             person_id,
             ${resultsTable.personIds} AS persons,
-            CAST(${resultsTable[bestOrAverage]} AS INTEGER) AS result,
+            ${resultsTable[bestOrAverage]} AS result,
             ${resultsTable.attempts},
             CASE WHEN ${resultsTable.competitionId} IS NOT NULL THEN
               JSON_BUILD_OBJECT(
@@ -228,9 +232,7 @@ export async function getRankings(
           ORDER BY person_id, ${resultsTable[bestOrAverage]}, ${resultsTable.date}
         ), rankings AS (
           SELECT personal_records.*,
-            CAST(
-              RANK() OVER (ORDER BY personal_records.result ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)
-            AS INTEGER) AS ranking,
+            RANK() OVER (ORDER BY personal_records.result ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS ranking,
             (
               SELECT
                 JSON_AGG(
@@ -271,9 +273,7 @@ export async function getRankings(
         WITH rankings AS (
           SELECT
             CONCAT(${resultsTable.id}, '_', attempts_data.attempt_number) AS ranking_id,
-            CAST(
-              RANK() OVER (ORDER BY CAST(attempts_data.attempt->>'result' AS INTEGER) ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)
-            AS INTEGER) AS ranking,
+            RANK() OVER (ORDER BY CAST(attempts_data.attempt->>'result' AS BIGINT) ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS ranking,
             ${resultsTable.date},
             (
               SELECT
@@ -289,10 +289,8 @@ export async function getRankings(
               FROM ${personsTable}
               WHERE ${personsTable.id} = ANY(${resultsTable.personIds})
             ) AS persons,
-            CAST(attempts_data.attempt->>'result' AS INTEGER) AS result,
-            CASE WHEN attempts_data.attempt->>'memo' IS NOT NULL THEN
-              CAST(attempts_data.attempt->>'memo' AS INTEGER)
-            ELSE NULL END AS memo,
+            attempts_data.attempt->>'result' AS result,
+            CAST(attempts_data.attempt->>'memo' AS INTEGER) AS memo,
             ${resultsTable.attempts},
             CASE WHEN ${resultsTable.competitionId} IS NOT NULL THEN
               JSON_BUILD_OBJECT(
@@ -311,7 +309,7 @@ export async function getRankings(
           WHERE ${resultsTable.approved} IS TRUE
             AND ${resultsTable.eventId} = ${event.eventId}
             ${sql.raw(recordCategory === "all" ? "" : `AND record_category = '${recordCategory}'`)}
-            AND CAST(attempts_data.attempt->>'result' AS INTEGER) > 0
+            AND CAST(attempts_data.attempt->>'result' AS BIGINT) > 0
             ${sql.raw(regionCondition)}
           ORDER BY ranking, ${resultsTable.date}
         )
@@ -327,9 +325,7 @@ export async function getRankings(
         WITH rankings AS (
           SELECT
             CAST(${resultsTable.id} AS TEXT) AS ranking_id,
-            CAST(
-              RANK() OVER (ORDER BY ${resultsTable.average} ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)
-            AS INTEGER) AS ranking,
+            RANK() OVER (ORDER BY ${resultsTable.average} ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS ranking,
             ${resultsTable.date},
             (
               SELECT
@@ -345,7 +341,7 @@ export async function getRankings(
               FROM ${personsTable}
               WHERE ${personsTable.id} = ANY(${resultsTable.personIds})
             ) AS persons,
-            CAST(${resultsTable.average} AS INTEGER) AS result,
+            ${resultsTable.average} AS result,
             ${resultsTable.attempts},
             CASE WHEN ${resultsTable.competitionId} IS NOT NULL THEN
               JSON_BUILD_OBJECT(

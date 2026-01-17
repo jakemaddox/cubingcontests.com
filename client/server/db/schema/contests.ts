@@ -6,7 +6,6 @@ import { ContestStateValues, ContestTypeValues } from "~/helpers/types.ts";
 import { ccSchema } from "~/server/db/schema/schema.ts";
 import { tableTimestamps } from "../dbUtils.ts";
 import { usersTable } from "./auth-schema.ts";
-import { personsTable } from "./persons.ts";
 
 export const contestStateEnum = ccSchema.enum("contest_state", ContestStateValues);
 export const contestTypeEnum = ccSchema.enum("contest_type", ContestTypeValues);
@@ -32,10 +31,7 @@ export const contestsTable = ccSchema.table(
     endDate: timestamp().notNull(),
     startTime: timestamp(), // only used for meetups
     timezone: text(), // only used for meetups
-    organizerIds: integer()
-      .references(() => personsTable.id)
-      .array()
-      .notNull(),
+    organizerIds: integer().array().notNull(),
     contact: text(),
     description: text().notNull(),
     competitorLimit: integer(),

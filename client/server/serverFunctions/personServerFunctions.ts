@@ -149,10 +149,11 @@ export const updatePersonSF = actionClient
       if (!person) throw new CcActionError("Person with the provided ID not found");
       if (!canApprove && person.approved) throw new CcActionError("You may not edit a person who has been approved");
       // TO-DO: WE MAY HAVE TO DO SOMETHING ABOUT PAST RECORDS SET BY THE COMPETITOR WHO IS CHANGING THEIR COUNTRY!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      if (person.regionCode !== newPersonDto.regionCode)
+      if (person.regionCode !== newPersonDto.regionCode) {
         throw new CcActionError(
           "Changing a person's country is not currently supported. Please contact the development team.",
         );
+      }
 
       await validatePerson(newPersonDto, { excludeId: id, ignoreDuplicate, isAdmin: canApprove });
 

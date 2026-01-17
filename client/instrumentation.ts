@@ -19,6 +19,8 @@ import { recordConfigsTable } from "./server/db/schema/record-configs.ts";
 import { type InsertResult, resultsTable, type SelectResult } from "./server/db/schema/results.ts";
 import { roundsTable } from "./server/db/schema/rounds.ts";
 
+const MAX_USERNAME_LENGTH = 40; // same as in auth.ts
+
 // Used in tests too
 export const testUsers = [
   {
@@ -116,7 +118,7 @@ export async function register() {
       "2to4relay": "234relay",
       "2to7relay": "234567relay",
       "332": "233_cuboid",
-      // '333bets': "",
+      '333bets': "333_bets",
       "333bfoh": "333bf_oh",
       "333ft": "333ft",
       "333omt": "333_oven_mitts",
@@ -176,7 +178,7 @@ export async function register() {
       try {
         await db.transaction(async (tx) => {
           for (const user of usersDump.filter((u: any) => !u.confirmationCodeHash)) {
-            const username = user.username.slice(0, 30);
+            const username = user.username.slice(0, MAX_USERNAME_LENGTH);
             if (username !== user.username)
               console.warn(`Username ${user.username} is too long, truncating to ${username}`);
 
@@ -219,8 +221,8 @@ export async function register() {
       const dumpUserObject = usersDump.find((u: any) => u._id.$oid === $oid);
       if (!dumpUserObject) return null;
 
-      const user = users.find((u) => u.username === dumpUserObject.username.slice(0, 30));
-      if (!user) throw new Error(`User with username ${dumpUserObject.username.slice(0, 30)} not found in DB`);
+      const user = users.find((u) => u.username === dumpUserObject.username.slice(0, MAX_USERNAME_LENGTH));
+      if (!user) throw new Error(`User with username ${dumpUserObject.username.slice(0, MAX_USERNAME_LENGTH)} not found in DB`);
 
       return user.id;
     };
@@ -382,7 +384,6 @@ export async function register() {
 
     let doSetResultRecords = false;
     if ((await db.select({ id: resultsTable.id }).from(resultsTable).limit(1)).length === 0) {
-      doSetResultRecords = true;
       console.log("Seeding results...");
 
       const resultsDump = JSON.parse(fs.readFileSync("./dump/results.json") as any);
@@ -407,9 +408,12 @@ export async function register() {
               personIds: r.personIds,
               regionCode: isSameRegionParticipants ? participants[0].regionCode : null,
               superRegionCode: isSameSuperRegionParticipants ? firstParticipantSuperRegion : null,
-              attempts: r.attempts,
-              best: r.best,
-              average: r.average,
+              attempts: r.attempts.map((a: any) => ({
+                result: Number(a.result),
+                memo: Number(a.memo),
+              })),
+              best: Number(r.best),
+              average: Number(r.average),
               recordCategory: contest ? (contest.type === 1 ? "meetups" : "competitions") : "video-based-results",
               // Resetting all records at the end
               // regionalSingleRecord: r.regionalSingleRecord ?? null,
@@ -435,6 +439,8 @@ export async function register() {
 
           if (tempResults.length > 0) await tx.insert(resultsTable).values(tempResults);
         });
+
+      doSetResultRecords = true;
       } catch (e) {
         console.error("Unable to load results dump:", e);
       }
