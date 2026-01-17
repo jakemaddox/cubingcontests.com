@@ -85,7 +85,9 @@ async function RankingsPage({ params, searchParams }: Props) {
   if (!currEvent) return <p className="fs-4 mt-5 text-center">Event not found</p>;
   const recordCategory =
     category ??
-    (currEvent.category === "extreme-bld" || currEvent.submissionsAllowed ? "video-based-results" : "competitions");
+    (currEvent.category === "extreme-bld" || (currEvent.category !== "unofficial" && currEvent.submissionsAllowed)
+      ? "video-based-results"
+      : "competitions");
 
   const rankings = await getRankings(currEvent, singleOrAvg === "single" ? "best" : "average", recordCategory, {
     show,
@@ -116,6 +118,7 @@ async function RankingsPage({ params, searchParams }: Props) {
         <h4>Event</h4>
         <EventButtons eventId={eventId} events={events} forPage="rankings" />
 
+        {/* Similar code to the records page */}
         <div className="d-flex mb-4 flex-wrap gap-3">
           <RegionSelect />
 

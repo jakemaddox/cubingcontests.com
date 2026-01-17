@@ -1,10 +1,16 @@
 import "server-only";
 import { defineRelations } from "drizzle-orm";
-import { accountsTable as accounts, sessionsTable as sessions, usersTable as users } from "./schema/auth-schema.ts";
+import {
+  accountsTable as accounts,
+  sessionsTable as sessions,
+  usersTable as users,
+  verificationsTable as verifications,
+} from "./schema/auth-schema.ts";
 import { collectiveSolutionsTable as collectiveSolutions } from "./schema/collective-solutions.ts";
 import { contestsTable as contests } from "./schema/contests.ts";
 import { eventsTable as events } from "./schema/events.ts";
 import { personsTable as persons } from "./schema/persons.ts";
+import { recordConfigsTable as recordConfigs } from "./schema/record-configs.ts";
 import { resultsTable as results } from "./schema/results.ts";
 import { roundsTable as rounds } from "./schema/rounds.ts";
 
@@ -13,11 +19,13 @@ export const relations = defineRelations(
     users,
     sessions,
     accounts,
+    verifications,
     events,
     contests,
     rounds,
     results,
     persons,
+    recordConfigs,
     collectiveSolutions,
   },
   (r) => ({

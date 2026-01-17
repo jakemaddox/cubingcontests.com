@@ -131,7 +131,7 @@ function ManageResultsScreen({ results, recordConfigs }: Props) {
                     </td>
                     <td>
                       <Link
-                        href={`/admin/results/${(result as any)._id}`}
+                        href={`/admin/results/${result.id}`}
                         prefetch={false}
                         className="btn btn-primary btn-xs"
                         title="Edit"

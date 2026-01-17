@@ -50,30 +50,27 @@ function RankingsTable({ rankings, event, recordsTable = false, topResultsRankin
         </thead>
         <tbody>
           {rankings.map((ranking) => {
-            const isTiedRanking = ranking.ranking === lastRanking;
-            lastRanking = ranking.ranking as number;
-
             if (recordsTable) {
-              // return ranking.persons.map((person, i) => (
-              //   <RankingRow
-              //     key={`${ranking.type}_${ranking.resultId}_${person.id}`}
-              //     onlyKeepPerson={i !== 0}
-              //     event={event}
-              //     ranking={ranking}
-              //     person={person}
-              //     showAllTeammates={showAllTeammates}
-              //     showDetailsColumn={showDetailsColumn}
-              //     forRecordsTable
-              //   />
-              // ));
+              return ranking.persons.map((person, i) => (
+                <RankingRow
+                  key={`${ranking.rankingId}_${person.id}`}
+                  type={ranking.attempts ? "average-record" : "single-record"}
+                  ranking={ranking}
+                  event={event}
+                  showOnlyPersonWithId={i === 0 ? undefined : i}
+                />
+              ));
             }
+
+            lastRanking = ranking.ranking;
 
             return (
               <RankingRow
                 key={ranking.rankingId}
-                isTiedRanking={isTiedRanking}
-                event={event}
+                type="ranking"
                 ranking={ranking}
+                isTiedRanking={ranking.ranking === lastRanking}
+                event={event}
                 showAllTeammates={showAllTeammates}
                 showTeamColumn={showTeamColumn}
                 showDetailsColumn={showDetailsColumn}

@@ -2,7 +2,6 @@
 
 import { faCaretDown, faCaretRight } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import capitalize from "lodash/capitalize";
 import { useState } from "react";
 import Competitor from "~/app/components/Competitor.tsx";
 import Competitors from "~/app/components/Competitors.tsx";
@@ -15,33 +14,56 @@ import type { Ranking } from "~/helpers/types/Rankings";
 import { getFormattedDate } from "~/helpers/utilityFunctions.ts";
 import type { EventResponse } from "~/server/db/schema/events.ts";
 
-type Props = {
-  isTiedRanking?: boolean;
-  onlyKeepPerson?: boolean;
-  event: EventResponse;
+type RankingProps = {
+  type: "ranking";
   ranking: Ranking;
+  isTiedRanking: boolean;
+  event: EventResponse;
   showAllTeammates: boolean;
-  showTeamColumn?: boolean;
+  showTeamColumn: boolean;
   showDetailsColumn: boolean;
-  forRecordsTable?: boolean;
+  showOnlyPersonWithId?: never;
+};
+
+type RecordProps = {
+  type: "single-record" | "average-record";
+  ranking: Ranking;
+  isTiedRanking?: boolean;
+  event: EventResponse;
+  showAllTeammates?: never;
+  showTeamColumn?: never;
+  showDetailsColumn?: never;
+  showOnlyPersonWithId: undefined | number;
 };
 
 function RankingRow({
+  type,
   isTiedRanking,
-  onlyKeepPerson = false,
   event,
   ranking,
-  showAllTeammates,
+  showAllTeammates = false,
   showTeamColumn = false,
-  showDetailsColumn,
-  forRecordsTable = false,
-}: Props) {
+  showDetailsColumn = false,
+  showOnlyPersonWithId,
+}: RankingProps | RecordProps) {
   const [teamExpanded, setTeamExpanded] = useState(false);
-  // TO-DO: Clean this up; the type property used to be used for the records page
-  const firstColumnValue = ranking.ranking ?? capitalize((ranking as any).type as "single" | "average" | "mean");
+
+  const firstColumnValue =
+    type === "ranking"
+      ? ranking.ranking
+      : type === "single-record"
+        ? "Single"
+        : ranking.attempts!.length === 3
+          ? "Mean"
+          : "Average";
   const personsToDisplay = showAllTeammates
     ? ranking.persons
-    : [ranking.personId ? ranking.persons.find((p) => p.id === ranking.personId)! : ranking.persons[0]];
+    : [
+        ranking.personId
+          ? ranking.persons.find((p) => p.id === ranking.personId)!
+          : ranking.persons[showOnlyPersonWithId ?? 0],
+      ];
+  const showMultiPoints = type === "ranking";
 
   /////////////////////////////////////////////////////////////////////////////////////////
   // REMEMBER TO UPDATE THE MOBILE VIEW OF THE RECORDS PAGE IN ACCORDANCE WITH THIS
@@ -49,19 +71,21 @@ function RankingRow({
 
   return (
     <tr>
-      <td>{!onlyKeepPerson && <span className={isTiedRanking ? "text-secondary" : ""}>{firstColumnValue}</span>}</td>
+      <td>
+        {!showOnlyPersonWithId && <span className={isTiedRanking ? "text-secondary" : ""}>{firstColumnValue}</span>}
+      </td>
       <td>
         <Competitors persons={personsToDisplay} noFlag={!showAllTeammates} />
       </td>
-      <td>{!onlyKeepPerson && getFormattedTime(ranking.result, { event, showMultiPoints: !forRecordsTable })}</td>
+      <td>{!showOnlyPersonWithId && getFormattedTime(ranking.result, { event, showMultiPoints })}</td>
       {!showAllTeammates && (
         <td>
           <Country countryIso2={personsToDisplay[0].regionCode} shorten />
         </td>
       )}
-      <td>{!onlyKeepPerson && getFormattedDate(ranking.date)}</td>
+      <td>{!showOnlyPersonWithId && getFormattedDate(ranking.date)}</td>
       <td>
-        {!onlyKeepPerson &&
+        {!showOnlyPersonWithId &&
           (ranking.contest ? <ContestName contest={ranking.contest} /> : <RankingLinks ranking={ranking} />)}
       </td>
       {showTeamColumn && (
@@ -85,11 +109,11 @@ function RankingRow({
           </div>
         </td>
       )}
-      {showDetailsColumn && (
+      {(showDetailsColumn || type !== "ranking") && (
         <td>
-          {!onlyKeepPerson &&
+          {!showOnlyPersonWithId &&
             (ranking.attempts ? (
-              <Solves event={event} attempts={ranking.attempts} showMultiPoints={!forRecordsTable} />
+              <Solves event={event} attempts={ranking.attempts} showMultiPoints={showMultiPoints} />
             ) : ranking.memo ? (
               getFormattedTime(ranking.memo, { showDecimals: false, alwaysShowMinutes: true })
             ) : (

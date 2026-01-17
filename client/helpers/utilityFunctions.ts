@@ -13,25 +13,23 @@ export function getIsAdmin(rolesString: string | null | undefined): boolean {
   return !!rolesString?.split(",").some((role) => role === "admin");
 }
 
-export function getFormattedDate(startDate: Date | string, endDate?: Date | string | null): string {
+export function getFormattedDate(startDate: Date, endDate?: Date | null): string {
   if (!startDate) throw new Error("Start date missing!");
+  if (!(startDate instanceof Date)) throw new Error("Invalid format for start date");
+  if (endDate && !(endDate instanceof Date)) throw new Error("Invalid format for end date");
 
-  const start = typeof startDate === "string" ? new Date(startDate) : startDate;
-  const end = typeof endDate === "string" ? new Date(endDate) : endDate;
   const fullFormat = "d MMM yyyy";
 
-  if (!end || isSameDay(start, end)) {
-    // TO-DO: FIX THIS SO IT WORKS WITH SSR AND CSR!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    return format(start, fullFormat);
-    // return formatInTimeZone(start, "UTC", fullFormat);
+  if (!endDate || isSameDay(startDate, endDate)) {
+    return formatInTimeZone(startDate, "UTC", fullFormat);
   } else {
     let startFormat: string;
 
-    if (!isSameYear(start, end)) startFormat = fullFormat;
-    else if (!isSameMonth(start, end)) startFormat = "d MMM";
+    if (!isSameYear(startDate, endDate)) startFormat = fullFormat;
+    else if (!isSameMonth(startDate, endDate)) startFormat = "d MMM";
     else startFormat = "d";
 
-    return `${formatInTimeZone(start, "UTC", startFormat)} - ${formatInTimeZone(end, "UTC", fullFormat)}`;
+    return `${formatInTimeZone(startDate, "UTC", startFormat)} - ${formatInTimeZone(endDate, "UTC", fullFormat)}`;
   }
 }
 

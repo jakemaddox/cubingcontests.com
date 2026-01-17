@@ -187,6 +187,14 @@ export async function getRankings(
     : "";
   let rankings: Ranking[];
 
+  const mapRankingsData = (val: any[]) =>
+    val.map((item: any) => {
+      const objectWithCamelCase: any = {};
+      for (const [key, value] of Object.entries(item))
+        objectWithCamelCase[camelCase(key)] = key === "date" ? new Date(value as string) : value;
+      return objectWithCamelCase;
+    });
+
   // Top persons
   if (show === "persons") {
     rankings = await db
@@ -245,13 +253,7 @@ export async function getRankings(
         SELECT * FROM rankings
         WHERE rankings.ranking <= ${topN}
       `)
-      .then((val: any[]) =>
-        val.map((item: any) => {
-          const objectWithCamelCase: any = {};
-          for (const [key, value] of Object.entries(item)) objectWithCamelCase[camelCase(key)] = value;
-          return objectWithCamelCase;
-        }),
-      );
+      .then(mapRankingsData);
   }
   // Top singles
   else if (bestOrAverage === "best") {
@@ -301,13 +303,7 @@ export async function getRankings(
         SELECT * FROM rankings
         WHERE rankings.ranking <= ${topN}
       `)
-      .then((val: any[]) =>
-        val.map((item: any) => {
-          const objectWithCamelCase: any = {};
-          for (const [key, value] of Object.entries(item)) objectWithCamelCase[camelCase(key)] = value;
-          return objectWithCamelCase;
-        }),
-      );
+      .then(mapRankingsData);
   }
   // Top averages
   else {
@@ -358,13 +354,7 @@ export async function getRankings(
         SELECT * FROM rankings
         WHERE rankings.ranking <= ${topN}
       `)
-      .then((val: any[]) =>
-        val.map((item: any) => {
-          const objectWithCamelCase: any = {};
-          for (const [key, value] of Object.entries(item)) objectWithCamelCase[camelCase(key)] = value;
-          return objectWithCamelCase;
-        }),
-      );
+      .then(mapRankingsData);
   }
 
   return rankings!;
