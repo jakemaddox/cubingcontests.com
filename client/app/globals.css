@@ -116,7 +116,8 @@ body[data-bs-theme="light"] {
   width: 100%;
 }
 
-@media (max-width: var(--cc-md-width)) {
+/* 768px is the value of --cc-md-width */
+@media (max-width: 768px) {
   .cc-homepage-link {
     width: 100%;
     max-width: 12rem;

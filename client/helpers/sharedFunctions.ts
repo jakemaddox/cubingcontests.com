@@ -1,6 +1,8 @@
 import { differenceInDays, startOfDay } from "date-fns";
 import { fromZonedTime, toZonedTime } from "date-fns-tz";
 import { remove as removeAccents } from "remove-accents";
+import z from "zod";
+import { WcaPersonValidator } from "~/helpers/validators/wca/WcaPerson.ts";
 import type { SelectContest } from "~/server/db/schema/contests.ts";
 import type { EventResponse } from "~/server/db/schema/events.ts";
 import type { Attempt, ResultResponse } from "~/server/db/schema/results.ts";
@@ -263,16 +265,17 @@ export function getNameAndLocalizedName(wcaName: string): { name: string; locali
 }
 
 export async function fetchWcaPerson(wcaId: string): Promise<PersonDto | undefined> {
-  const res = await fetch(`${C.wcaUnofficialApiBaseUrl}/persons/${wcaId}.json`);
+  const res = await fetch(`${C.wcaApiBaseUrl}/persons/${wcaId}`);
   if (res.ok) {
     const data = await res.json();
+    const wcaPerson = z.object({ person: WcaPersonValidator }).parse(data).person;
 
-    const { name, localizedName } = getNameAndLocalizedName(data.name);
+    const { name, localizedName } = getNameAndLocalizedName(wcaPerson.name);
     const newPerson: PersonDto = {
       name,
       localizedName: localizedName ?? null,
       wcaId,
-      regionCode: data.country,
+      regionCode: wcaPerson.country_iso2,
     };
     return newPerson;
   }

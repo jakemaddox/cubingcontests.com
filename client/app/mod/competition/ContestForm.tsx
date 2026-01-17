@@ -34,6 +34,7 @@ import { getActionError, getContestIdFromName, getIsAdmin } from "~/helpers/util
 import { ContestValidator } from "~/helpers/validators/Contest.ts";
 import { CoordinatesValidator } from "~/helpers/validators/Coordinates.ts";
 import type { RoundDto } from "~/helpers/validators/Round.ts";
+import { WcaCompetitionValidator } from "~/helpers/validators/wca/WcaCompetition.ts";
 import type { SelectContest } from "~/server/db/schema/contests.ts";
 import type { EventResponse } from "~/server/db/schema/events.ts";
 import type { PersonResponse } from "~/server/db/schema/persons.ts";
@@ -345,36 +346,29 @@ function ContestForm({
     }
 
     startWcaCompDetailsTransition(async () => {
-      const notFoundMsg = `Competition with ID ${competitionId} not found. This may be because it's not been enough time since it was announced. If so, please try again in 24 hours.`;
-
-      const wcaCompDataPromise = fetch(`${C.wcaUnofficialApiBaseUrl}/competitions/${competitionId}.json`).then(
-        (res) => {
+      const wcaCompData = await fetch(`${C.wcaApiBaseUrl}/competitions/${competitionId}`)
+        .then(async (res) => {
+          const notFoundMsg = `Competition with ID ${competitionId} not found. Please report this to the admin team.`;
           if (res.status === 404) throw new Error(notFoundMsg);
           if (!res.ok) throw new Error(C.unknownErrorMsg);
-          return res.json();
-        },
-      );
-      // This is for getting the competitor limit, organizer WCA IDs, and delegate WCA IDs
-      const wcaV0CompDataPromise = fetch(`${C.wcaV0ApiBaseUrl}/competitions/${competitionId}`).then((res) => {
-        if (res.status === 404) throw new Error(notFoundMsg);
-        if (!res.ok) throw new Error(C.unknownErrorMsg);
-        return res.json();
-      });
-
-      const [wcaCompData, wcaV0CompData] = await Promise.all([wcaCompDataPromise, wcaV0CompDataPromise]).catch(
-        (err) => {
+          const data = await res.json();
+          return WcaCompetitionValidator.parse(data);
+        })
+        .catch((err) => {
           changeErrorMessages([err.message]);
-          return [];
-        },
-      );
-
-      if (!wcaCompData || !wcaV0CompData) return;
+        });
+      if (!wcaCompData) return;
 
       const organizers: PersonResponse[] = [];
+      const organizersWcaInternalIds = new Set<number>();
       const notFoundPersonNames = new Set();
 
       // Set organizer objects
-      for (const org of [...wcaV0CompData.organizers, ...wcaV0CompData.delegates]) {
+      for (const org of [...wcaCompData.organizers, ...wcaCompData.delegates]) {
+        // It's possible that the same person is both a delegate and organizer
+        if (organizersWcaInternalIds.has(org.id)) continue;
+        organizersWcaInternalIds.add(org.id);
+
         const res = org.wca_id
           ? await getOrCreateWcaPerson({ wcaId: org.wca_id })
           : await getOrCreatePerson({ name: org.name, regionCode: org.country_iso2 });
@@ -390,20 +384,19 @@ function ContestForm({
       }
 
       setName(wcaCompData.name);
-      setShortName(wcaV0CompData.short_name);
+      setShortName(wcaCompData.short_name);
       setCity(wcaCompData.city);
-      setRegionCode(wcaCompData.country);
-      setAddress(wcaCompData.venue.address);
+      setRegionCode(wcaCompData.country_iso2);
       // Gets rid of the link and just takes the venue name
-      setVenue(wcaCompData.venue.name.split("]")[0].replace("[", ""));
-      changeCoordinates(wcaCompData.venue.coordinates.latitude, wcaCompData.venue.coordinates.longitude);
-      setStartDate(new Date(wcaCompData.date.from));
-      setEndDate(new Date(wcaCompData.date.till));
+      setVenue(wcaCompData.venue.split("]")[0].replace("[", ""));
+      setAddress(wcaCompData.venue_address);
+      changeCoordinates(wcaCompData.latitude_degrees, wcaCompData.longitude_degrees);
+      setStartDate(new Date(wcaCompData.start_date));
+      setEndDate(new Date(wcaCompData.end_date));
+      setCompetitorLimit(wcaCompData.competitor_limit);
       setOrganizers([...organizers, null]);
       setOrganizerNames([...organizers.map((o) => o.name), ""]);
       setDescription("");
-      // Sometimes the competitor limit does not exist
-      setCompetitorLimit(wcaV0CompData.competitor_limit || 10);
 
       setDetailsImported(true);
       resetMessages();

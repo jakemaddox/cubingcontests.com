@@ -35,7 +35,7 @@ export const resultsTable = ccSchema.table(
     personIds: integer().array().notNull(),
     regionCode: text(), // only set if participants are from the same region (e.g. country)
     superRegionCode: text(), // only set if participants are from the same super-region (e.g. continent)
-    attempts: jsonb().array().notNull().$type<Attempt[]>(),
+    attempts: jsonb().$type<Attempt>().array().notNull(),
     best: bigint({ mode: "number" }).notNull(),
     average: bigint({ mode: "number" }).notNull(),
     recordCategory: recordCategoryEnum().notNull(),

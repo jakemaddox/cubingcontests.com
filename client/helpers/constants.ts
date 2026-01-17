@@ -21,7 +21,7 @@ export const C = {
   maxTotalMeetupRounds: 15,
   maxPersonMatches: 6,
   duePerCompetitor: 0.1,
-  wcaUnofficialApiBaseUrl: "https://raw.githubusercontent.com/robiningelbrecht/wca-rest-api/master/api",
+  wcaApiBaseUrl: "https://api.worldcubeassociation.org",
   wcaV0ApiBaseUrl: "https://www.worldcubeassociation.org/api/v0",
   wcaIdRegex: /[0-9]{4}[A-Z]{4}[0-9]{2}/,
   wcaIdRegexLoose: /[0-9]{4}[a-zA-Z]{4}[0-9]{2}/, // allows lowercase letters too

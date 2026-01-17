@@ -281,7 +281,7 @@ async function validatePerson(
         `A person with the same name and country already exists. If it's actually a different competitor with the same name, ${
           isAdmin
             ? "simply submit them again."
-            : "please contact the admin team. For now, simply add (2) at the end of their name to do data entry."
+            : "please report this to the admin team. For now, simply add (2) at the end of their name to do data entry."
         }`,
         { data: { isDuplicatePerson: true } },
       );
