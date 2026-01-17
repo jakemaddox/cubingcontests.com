@@ -4,14 +4,14 @@ import AffiliateLink from "~/app/components/AffiliateLink.tsx";
 import Competitors from "~/app/components/Competitors.tsx";
 import EventTitle from "~/app/components/EventTitle.tsx";
 import RankingLinks from "~/app/components/RankingLinks.tsx";
-import RankingsTable from "~/app/components/RankingsTable.tsx";
+import RankingRow from "~/app/components/RankingRow";
 import Solves from "~/app/components/Solves.tsx";
 import Tabs from "~/app/components/UI/Tabs.tsx";
 import RegionSelect from "~/app/rankings/[eventId]/[singleOrAvg]/RegionSelect";
 import { eventCategories } from "~/helpers/eventCategories.ts";
 import { getFormattedTime } from "~/helpers/sharedFunctions.ts";
 import type { NavigationItem } from "~/helpers/types/NavigationItem.ts";
-import type { EventRecords } from "~/helpers/types/Rankings";
+import type { EventRecords, RecordRanking } from "~/helpers/types/Rankings";
 import type { RecordCategory } from "~/helpers/types.ts";
 import { getFormattedDate } from "~/helpers/utilityFunctions.ts";
 import { db } from "~/server/db/provider";
@@ -45,19 +45,32 @@ async function RecordsPage({ params, searchParams }: Props) {
   const urlSearchParams = new URLSearchParams(omitBy({ category, region } as any, (val) => !val));
   const urlSearchParamsWithoutCategory = new URLSearchParams(omitBy({ region } as any, (val) => !val));
 
-  const recordCategory = category ?? (eventCategory === "extreme-bld" ? "video-based-results" : "competitions");
-  const records: EventRecords[] = [];
-
   const events = await db.query.events.findMany({
     where: { AND: [{ hidden: false }, { category: eventCategory }] },
     orderBy: { rank: "asc" },
   });
 
+  const recordCategory = category ?? (eventCategory === "extreme-bld" ? "video-based-results" : "competitions");
+  const records: EventRecords[] = [];
+  let hasComp = false;
+  let hasLink = false;
+
   for (const event of events) {
     const singleRecords = await getRankings(event, "best", recordCategory, { show: "results", region, topN: 1 });
     const averageRecords = await getRankings(event, "average", recordCategory, { show: "results", region, topN: 1 });
 
-    if (singleRecords.length > 0) records.push({ event, records: [...singleRecords, ...averageRecords] });
+    if (singleRecords.length > 0) {
+      records.push({
+        event,
+        records: [
+          ...singleRecords.map((r): RecordRanking => ({ ...r, type: "single" })),
+          ...averageRecords.map((r): RecordRanking => ({ ...r, type: "average" })),
+        ],
+      });
+
+      hasComp = hasComp || records.at(-1)!.records.some((r) => r.contest);
+      hasLink = hasLink || records.at(-1)!.records.some((r) => r.videoLink || r.discussionLink);
+    }
   }
 
   const selectedCat = eventCategories.find((ec) => ec.value === eventCategory)!;
@@ -154,7 +167,7 @@ async function RecordsPage({ params, searchParams }: Props) {
                             <span>
                               <b>{getFormattedTime(r.result, { event })}</b>
                               &#8194;
-                              {r.attempts?.length === 5 ? "Average" : r.attempts?.length === 3 ? "Mean" : "Single"}
+                              {r.type === "single" ? "Single" : r.attempts.length === 3 ? "Mean" : "Average"}
                             </span>
                             {r.contest ? (
                               <Link href={`/competitions/${r.contest.competitionId}`} prefetch={false}>
@@ -174,7 +187,38 @@ async function RecordsPage({ params, searchParams }: Props) {
 
                   {/* DESKTOP VIEW */}
                   <div className="d-none d-lg-block">
-                    <RankingsTable rankings={eventRecords} event={event} recordsTable />
+                    <div className="table-responsive flex-grow-1">
+                      <table className="table-hover table-responsive table text-nowrap">
+                        <thead>
+                          <tr>
+                            <th>Type</th>
+                            <th>Name</th>
+                            <th>Result</th>
+                            <th>Representing</th>
+                            <th>Date</th>
+                            <th>
+                              {hasComp ? "Contest" : ""}
+                              {hasComp && hasLink ? " / " : ""}
+                              {hasLink ? "Links" : ""}
+                            </th>
+                            <th>Solves</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {eventRecords.map((ranking) =>
+                            ranking.persons.map((person, i) => (
+                              <RankingRow
+                                key={`${ranking.rankingId}_${person.id}`}
+                                type={ranking.type === "average" ? "average-record" : "single-record"}
+                                ranking={ranking}
+                                event={event}
+                                showOnlyPersonWithId={i === 0 ? undefined : i}
+                              />
+                            )),
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                 </div>
               );

@@ -15,7 +15,7 @@ import { getFormattedDate } from "~/helpers/utilityFunctions.ts";
 import type { EventResponse } from "~/server/db/schema/events.ts";
 
 type RankingProps = {
-  type: "ranking";
+  type: "single-ranking" | "average-ranking";
   ranking: Ranking;
   isTiedRanking: boolean;
   event: EventResponse;
@@ -48,14 +48,14 @@ function RankingRow({
 }: RankingProps | RecordProps) {
   const [teamExpanded, setTeamExpanded] = useState(false);
 
-  const firstColumnValue =
-    type === "ranking"
-      ? ranking.ranking
-      : type === "single-record"
-        ? "Single"
-        : ranking.attempts!.length === 3
-          ? "Mean"
-          : "Average";
+  const isRecordRow = ["single-record", "average-record"].includes(type);
+  const firstColumnValue = !isRecordRow
+    ? ranking.ranking
+    : type === "single-record"
+      ? "Single"
+      : ranking.attempts.length === 3
+        ? "Mean"
+        : "Average";
   const personsToDisplay = showAllTeammates
     ? ranking.persons
     : [
@@ -63,7 +63,6 @@ function RankingRow({
           ? ranking.persons.find((p) => p.id === ranking.personId)!
           : ranking.persons[showOnlyPersonWithId ?? 0],
       ];
-  const showMultiPoints = type === "ranking";
 
   /////////////////////////////////////////////////////////////////////////////////////////
   // REMEMBER TO UPDATE THE MOBILE VIEW OF THE RECORDS PAGE IN ACCORDANCE WITH THIS
@@ -77,7 +76,7 @@ function RankingRow({
       <td>
         <Competitors persons={personsToDisplay} noFlag={!showAllTeammates} />
       </td>
-      <td>{!showOnlyPersonWithId && getFormattedTime(ranking.result, { event, showMultiPoints })}</td>
+      <td>{!showOnlyPersonWithId && getFormattedTime(ranking.result, { event, showMultiPoints: !isRecordRow })}</td>
       {!showAllTeammates && (
         <td>
           <Country countryIso2={personsToDisplay[0].regionCode} shorten />
@@ -109,11 +108,11 @@ function RankingRow({
           </div>
         </td>
       )}
-      {(showDetailsColumn || type !== "ranking") && (
+      {(showDetailsColumn || isRecordRow) && (
         <td>
           {!showOnlyPersonWithId &&
-            (ranking.attempts ? (
-              <Solves event={event} attempts={ranking.attempts} showMultiPoints={showMultiPoints} />
+            (["average-ranking", "average-record"].includes(type) ? (
+              <Solves event={event} attempts={ranking.attempts} showMultiPoints={!isRecordRow} />
             ) : ranking.memo ? (
               getFormattedTime(ranking.memo, { showDecimals: false, alwaysShowMinutes: true })
             ) : (

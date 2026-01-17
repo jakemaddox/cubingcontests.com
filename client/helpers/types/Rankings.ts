@@ -10,15 +10,17 @@ export type Ranking = {
   personId?: number; // only set for top persons rankings
   persons: Pick<PersonResponse, "id" | "name" | "localizedName" | "regionCode" | "wcaId">[];
   result: number;
-  memo: number | null;
-  attempts?: Attempt[]; // only set for average rankings
+  memo: number | null; // only set for top single rankings for events that have memo
+  attempts: Attempt[];
   contest: Pick<ContestResponse, "competitionId" | "shortName" | "regionCode" | "type"> | null; // only set for contest results
   videoLink: string | null; // only set for video-based results
   discussionLink: string | null; // only set for video-based results
 };
 
+export type RecordRanking = Ranking & { type: "single" | "average" };
+
 export type EventRecords = {
   event: EventResponse;
   // These include all tied record results, first the singles and then the averages
-  records: Ranking[];
+  records: RecordRanking[];
 };

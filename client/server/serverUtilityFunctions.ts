@@ -206,7 +206,7 @@ export async function getRankings(
             person_id,
             ${resultsTable.personIds} AS persons,
             CAST(${resultsTable[bestOrAverage]} AS INTEGER) AS result,
-            ${sql.raw(bestOrAverage === "best" ? "" : `attempts,`)}
+            ${resultsTable.attempts},
             CASE WHEN ${resultsTable.competitionId} IS NOT NULL THEN
               JSON_BUILD_OBJECT(
                 'competitionId', ${contestsTable.competitionId},
@@ -254,6 +254,17 @@ export async function getRankings(
         WHERE rankings.ranking <= ${topN}
       `)
       .then(mapRankingsData);
+
+    // If getting single rankings for an event that has memo, set the memo time from the attempts array for each entry
+    if (bestOrAverage === "best" && event.hasMemo) {
+      rankings = rankings.map((ranking) => {
+        let memo: number | null = null;
+        const numberOfAttemptsEqualToBest = ranking.attempts.filter((a) => a.result === ranking.result).length;
+        if (numberOfAttemptsEqualToBest === 1)
+          memo = ranking.attempts.find((a) => a.result === ranking.result)!.memo ?? null;
+        return { ...ranking, memo };
+      });
+    }
   }
   // Top singles
   else if (bestOrAverage === "best") {
@@ -281,12 +292,18 @@ export async function getRankings(
               WHERE ${personsTable.id} = ANY(${resultsTable.personIds})
             ) AS persons,
             CAST(attempts_data.attempt->>'result' AS INTEGER) AS result,
-            JSON_BUILD_OBJECT(
-              'competitionId', ${contestsTable.competitionId},
-              'shortName', ${contestsTable.shortName},
-              'type', ${contestsTable.type},
-              'regionCode', ${contestsTable.regionCode}
-            ) AS contest,
+            CASE WHEN attempts_data.attempt->>'memo' IS NOT NULL THEN
+              CAST(attempts_data.attempt->>'memo' AS INTEGER)
+            ELSE NULL END AS memo,
+            ${resultsTable.attempts},
+            CASE WHEN ${resultsTable.competitionId} IS NOT NULL THEN
+              JSON_BUILD_OBJECT(
+                'competitionId', ${contestsTable.competitionId},
+                'shortName', ${contestsTable.shortName},
+                'type', ${contestsTable.type},
+                'regionCode', ${contestsTable.regionCode}
+              )
+            ELSE NULL END AS contest,
             ${resultsTable.videoLink},
             ${resultsTable.discussionLink}
           FROM ${resultsTable}
@@ -332,12 +349,14 @@ export async function getRankings(
             ) AS persons,
             CAST(${resultsTable.average} AS INTEGER) AS result,
             ${resultsTable.attempts},
-            JSON_BUILD_OBJECT(
-              'competitionId', ${contestsTable.competitionId},
-              'shortName', ${contestsTable.shortName},
-              'type', ${contestsTable.type},
-              'regionCode', ${contestsTable.regionCode}
-            ) AS contest,
+            CASE WHEN ${resultsTable.competitionId} IS NOT NULL THEN
+              JSON_BUILD_OBJECT(
+                'competitionId', ${contestsTable.competitionId},
+                'shortName', ${contestsTable.shortName},
+                'type', ${contestsTable.type},
+                'regionCode', ${contestsTable.regionCode}
+              )
+            ELSE NULL END AS contest,
             ${resultsTable.videoLink},
             ${resultsTable.discussionLink}
           FROM ${resultsTable}

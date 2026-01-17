@@ -4,7 +4,7 @@ import Link from "next/link";
 import AffiliateLink from "~/app/components/AffiliateLink.tsx";
 import EventButtons from "~/app/components/EventButtons.tsx";
 import EventTitle from "~/app/components/EventTitle.tsx";
-import RankingsTable from "~/app/components/RankingsTable.tsx";
+import RankingRow from "~/app/components/RankingRow";
 import RegionSelect from "~/app/rankings/[eventId]/[singleOrAvg]/RegionSelect.tsx";
 import type { RecordCategory } from "~/helpers/types";
 import { db } from "~/server/db/provider";
@@ -81,15 +81,15 @@ async function RankingsPage({ params, searchParams }: Props) {
     .where(and(ne(table.category, "removed"), eq(table.hidden, false)))
     .orderBy(table.rank);
 
-  const currEvent = events.find((e) => e.eventId === eventId);
-  if (!currEvent) return <p className="fs-4 mt-5 text-center">Event not found</p>;
+  const event = events.find((e) => e.eventId === eventId);
+  if (!event) return <p className="fs-4 mt-5 text-center">Event not found</p>;
   const recordCategory =
     category ??
-    (currEvent.category === "extreme-bld" || (currEvent.category !== "unofficial" && currEvent.submissionsAllowed)
+    (event.category === "extreme-bld" || (event.category !== "unofficial" && event.submissionsAllowed)
       ? "video-based-results"
       : "competitions");
 
-  const rankings = await getRankings(currEvent, singleOrAvg === "single" ? "best" : "average", recordCategory, {
+  const rankings = await getRankings(event, singleOrAvg === "single" ? "best" : "average", recordCategory, {
     show,
     region,
     topN: topN ? parseInt(topN, 10) : undefined,
@@ -99,7 +99,7 @@ async function RankingsPage({ params, searchParams }: Props) {
     ? "3x3"
     : ["222", "222bf", "222fm", "222oh"].includes(eventId)
       ? "2x2"
-      : currEvent.category === "wca"
+      : event.category === "wca"
         ? "wca"
         : ["fto", "fto_bld", "fto_mbld", "mfto", "baby_fto"].includes(eventId)
           ? "fto"
@@ -108,6 +108,13 @@ async function RankingsPage({ params, searchParams }: Props) {
             : eventId === "kilominx"
               ? "kilominx"
               : "other";
+
+  const hasComp = rankings.some((r) => r.contest);
+  const hasLink = rankings.some((r) => r.videoLink || r.discussionLink);
+  const showAllTeammates = event && event.participants > 1 && show === "results";
+  const showTeamColumn = event && event.participants > 1 && !showAllTeammates;
+  const showDetailsColumn = singleOrAvg === "average" || rankings.some((e) => e.memo);
+
   return (
     <div>
       <h2 className="mb-3 text-center">Rankings</h2>
@@ -138,7 +145,7 @@ async function RankingsPage({ params, searchParams }: Props) {
                   prefetch={false}
                   className={`btn btn-primary ${singleOrAvg === "average" ? "active" : ""}`}
                 >
-                  {currEvent.defaultRoundFormat === "a" ? "Average" : "Mean"}
+                  {event.defaultRoundFormat === "a" ? "Average" : "Mean"}
                 </Link>
               </div>
             </div>
@@ -240,15 +247,53 @@ async function RankingsPage({ params, searchParams }: Props) {
           </div>
         </div>
 
-        {(currEvent.category === "extreme-bld" || currEvent.submissionsAllowed) && (
+        {(event.category === "extreme-bld" || event.submissionsAllowed) && (
           <Link href={`/user/submit-results?eventId=${eventId}`} className="btn btn-success btn-sm">
             Submit a result
           </Link>
         )}
       </div>
 
-      <EventTitle event={currEvent} showDescription />
-      <RankingsTable rankings={rankings} event={currEvent} topResultsRankings={show === "results"} />
+      <EventTitle event={event} showDescription />
+
+      <div className="table-responsive flex-grow-1">
+        <table className="table-hover table-responsive table text-nowrap">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>{!showAllTeammates ? "Name" : "Team"}</th>
+              <th>Result</th>
+              {!showAllTeammates && <th>Representing</th>}
+              <th>Date</th>
+              <th>
+                {hasComp ? "Contest" : ""}
+                {hasComp && hasLink ? " / " : ""}
+                {hasLink ? "Links" : ""}
+              </th>
+              {showTeamColumn && <th>Team</th>}
+              {showDetailsColumn && <th>{singleOrAvg === "average" ? "Solves" : "Memorization time"}</th>}
+            </tr>
+          </thead>
+          <tbody>
+            {rankings.length === 0 ? (
+              <p className="fs-5 mx-2 mt-4">No rankings found matching the requested parameters</p>
+            ) : (
+              rankings.map((ranking, i) => (
+                <RankingRow
+                  key={ranking.rankingId}
+                  type={singleOrAvg === "single" ? "single-ranking" : "average-ranking"}
+                  ranking={ranking}
+                  isTiedRanking={ranking.ranking !== i + 1}
+                  event={event}
+                  showAllTeammates={showAllTeammates}
+                  showTeamColumn={showTeamColumn}
+                  showDetailsColumn={showDetailsColumn}
+                />
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
