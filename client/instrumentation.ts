@@ -91,7 +91,7 @@ export async function register() {
       mirbl: "333_mirror_blocks",
       "360": "360_puzzle",
       mstmo: "mmorphix",
-      // illus: "",
+      illus: "777_illusion",
       "333ni": "333_inspectionless",
       "333r3": "333_x3_relay",
       "333sbf": "333_speed_bld",
@@ -540,17 +540,25 @@ export async function register() {
       try {
         const collectiveSolutionsDump = JSON.parse(fs.readFileSync("./dump/collectivesolutions.json") as any);
 
-        await db.insert(collectiveSolutionsTable).values(
-          collectiveSolutionsDump.map((cs: any) => ({
-            eventId: cs.eventId,
-            attemptNumber: cs.attemptNumber,
-            state: cs.state === 10 ? "ongoing" : cs.state === 20 ? "solved" : "archived",
-            scramble: cs.scramble,
-            solution: cs.solution,
-            lastUserWhoInteracted: getUserId(cs.lastUserWhoInteracted.$oid),
-            usersWhoMadeMoves: cs.usersWhoMadeMoves.map((u: any) => getUserId(u.$oid)),
-          })),
-        );
+        await db.transaction(async (tx) => {
+          await tx.insert(collectiveSolutionsTable).values(
+            collectiveSolutionsDump.map((cs: any) => ({
+              eventId: cs.eventId,
+              attemptNumber: cs.attemptNumber,
+              state: cs.state === 10 ? "ongoing" : cs.state === 20 ? "solved" : "archived",
+              scramble: cs.scramble,
+              solution: cs.solution,
+              lastUserWhoInteracted: getUserId(cs.lastUserWhoInteracted.$oid),
+              usersWhoMadeMoves: cs.usersWhoMadeMoves.map((u: any) => getUserId(u.$oid)),
+            })),
+          );
+
+          await tx.execute(
+            sql.raw(
+              `ALTER SEQUENCE ${ccSchema.schemaName}.collective_solutions_attempt_number_seq RESTART WITH ${collectiveSolutionsDump.at(-1)!.attemptNumber + 1};`,
+            ),
+          );
+        });
       } catch (e) {
         console.error("Unable to load collective solutions dump:", e);
       }

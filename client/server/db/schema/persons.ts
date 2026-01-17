@@ -12,7 +12,7 @@ export const personsTable = ccSchema.table("persons", {
   regionCode: text().notNull(),
   wcaId: varchar({ length: 10 }),
   approved: boolean().default(false).notNull(),
-  // Before the big update, createdExternally wasn't a column, and createdBy was just set to undefined if the person was created externally
+  // Before the "Big Update", createdExternally wasn't a column, and createdBy was just set to undefined if the person was created externally
   createdBy: text().references(() => usersTable.id, { onDelete: "set null" }),
   createdExternally: boolean().default(false).notNull(),
   ...tableTimestamps,

@@ -177,8 +177,6 @@ export async function getRankings(
     topN?: number;
   },
 ): Promise<Ranking[]> {
-  topN = Math.min(topN, 25000);
-
   const defaultNumberOfAttempts = getDefaultAverageAttempts(event.defaultRoundFormat);
   const regionCondition = region
     ? Continents.some((c) => c.code === region)
