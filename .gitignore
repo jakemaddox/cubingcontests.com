@@ -42,8 +42,7 @@ client/next-env.d.ts
 # Supabase
 volumes/db/data
 volumes/storage
-test.http
-docker-compose.override.yml
+volumes/nginx/ssl
 
 # Other
 client/dump

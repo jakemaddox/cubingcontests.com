@@ -9,6 +9,7 @@ services:
       - ./volumes/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       # The env vars in this template file get substituted in the command below, and the final config file is saved
       - ./volumes/nginx/default.conf.template:/default.conf.template:ro
+      - ./volumes/nginx/ssl/:/etc/nginx/ssl/:ro
       - ./down-for-maintenance-page.html:/var/www/html/50x.html:ro
     # The envsubst command below has to match this
     environment:
