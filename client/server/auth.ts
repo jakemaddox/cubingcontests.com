@@ -14,6 +14,9 @@ import { sendResetPasswordEmail, sendVerificationEmail } from "~/server/email/ma
 import { ac, admin, mod, user } from "~/server/permissions.ts";
 import { logMessage } from "~/server/serverUtilityFunctions";
 
+if (!process.env.BETTER_AUTH_URL) console.error("BETTER_AUTH_URL environment variable not set!");
+if (!process.env.BETTER_AUTH_SECRET) console.error("BETTER_AUTH_SECRET environment variable not set!");
+
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
     provider: "pg",

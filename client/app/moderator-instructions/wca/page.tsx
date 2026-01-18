@@ -55,15 +55,18 @@ function ModeratorInstructionsWca() {
           Contests page on the website. You may still edit some of the details after creation, if necessary.
         </p>
         <p>
-          A6. Make sure your contests follow the <Link href="/rules">rules</Link> (while the results on Cubing Contests
-          are considered unofficial, we still strive to ensure consistency and fairness). To generate the scorecards,
-          you can click <b className="hl">Edit</b> and click <b className="hl">Scorecards</b> (this button becomes
-          available after the contest gets approved). Since there is no registration through Cubing Contests yet, the
-          names won't be filled in and there are no groups, but there is one page for each round of each event. You can
-          print as many copies of each page as you need for the corresponding rounds, and ask the competitors to fill
-          their names in by hand when submitting their puzzles. Keep in mind that all names must be filled in for team
-          events, but a signature from just one of the competitors on a team is enough. To assign groups, you can use
-          the{" "}
+          A6. Make sure your contests follow the{" "}
+          <Link href="/rules" prefetch={false}>
+            rules
+          </Link>{" "}
+          (while the results on Cubing Contests are considered unofficial, we still strive to ensure consistency and
+          fairness). To generate the scorecards, you can click <b className="hl">Edit</b> and click{" "}
+          <b className="hl">Scorecards</b> (this button becomes available after the contest gets approved). Since there
+          is no registration through Cubing Contests yet, the names won't be filled in and there are no groups, but
+          there is one page for each round of each event. You can print as many copies of each page as you need for the
+          corresponding rounds, and ask the competitors to fill their names in by hand when submitting their puzzles.
+          Keep in mind that all names must be filled in for team events, but a signature from just one of the
+          competitors on a team is enough. To assign groups, you can use the{" "}
           <a href="https://cubingtools.de/tools/grouping" target="_blank" rel="noopener noreferrer">
             Unofficial Competition Groupifier
           </a>
@@ -83,11 +86,15 @@ function ModeratorInstructionsWca() {
         </p>
         <p>
           A9. Cubing Contests has an honorary dues system, which asks the organizers of WCA competitions and unofficial
-          competitions to <Link href="/donate">donate</Link> $0.10 (USD) per competitor to support the maintenance and
-          continued development of cubingcontests.com, after the contest is finished. For example, if the contest
-          reaches 100 competitors, the organizer will be asked to donate $10. This donation is voluntary. Note: the
-          honorary dues system only considers the number of competitors on the Cubing Contests contest page; if there
-          are more competitors in events held on another website, they are not counted.
+          competitions to{" "}
+          <Link href="/donate" prefetch={false}>
+            donate
+          </Link>{" "}
+          $0.10 (USD) per competitor to support the maintenance and continued development of cubingcontests.com, after
+          the contest is finished. For example, if the contest reaches 100 competitors, the organizer will be asked to
+          donate $10. This donation is voluntary. Note: the honorary dues system only considers the number of
+          competitors on the Cubing Contests contest page; if there are more competitors in events held on another
+          website, they are not counted.
         </p>
       </div>
     </>

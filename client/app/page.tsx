@@ -44,7 +44,7 @@ async function HomePage() {
       </p>
 
       <div className="d-flex justify-content-center fs-5 my-4 flex-column flex-md-row gap-3 gap-lg-4 align-items-center">
-        <Link href="/about" className="cc-homepage-link btn btn-primary">
+        <Link href="/about" prefetch={false} className="cc-homepage-link btn btn-primary">
           About Us
         </Link>
         <Link href="/competitions" prefetch={false} className="cc-homepage-link btn btn-primary">
@@ -74,7 +74,7 @@ async function HomePage() {
         </a>{" "}
         competition.
       </div>
-      <Link href="/moderator-instructions" className="btn btn-secondary mt-4">
+      <Link href="/moderator-instructions" prefetch={false} className="btn btn-secondary mt-4">
         Moderator Instructions
       </Link>
 

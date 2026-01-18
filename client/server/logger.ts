@@ -1,10 +1,15 @@
 import "server-only";
 import { fileURLToPath } from "node:url";
 import pino from "pino";
+import { defaultPreparePayload } from "pino-logflare";
 
+// This is just here so that Next JS doesn't tree shake out the Pino Logflare package during the build step.
+// Specifying it in serverExternalPackages isn't enough.
+defaultPreparePayload.name;
+
+if (!process.env.LOGFLARE_API_BASE_URL) console.error("LOGFLARE_API_BASE_URL environment variable not set!");
 if (!process.env.LOGFLARE_PUBLIC_ACCESS_TOKEN)
-  throw new Error("LOGFLARE_PUBLIC_ACCESS_TOKEN environment variable not set!");
-if (!process.env.LOGFLARE_API_BASE_URL) throw new Error("LOGFLARE_API_BASE_URL environment variable not set!");
+  console.error("LOGFLARE_PUBLIC_ACCESS_TOKEN environment variable not set!");
 
 /**
  * Use this query in Supabase Logs to view Cubing Contests logs:

@@ -16,25 +16,27 @@ import type { ResultResponse } from "../db/schema/results.ts";
 // This is needed when running Better Auth DB migrations
 if (process.env.NODE_ENV !== "production") loadEnvConfig(process.cwd(), true);
 
+if (!process.env.NEXT_PUBLIC_BASE_URL) throw new Error("NEXT_PUBLIC_BASE_URL environment variable not set!");
+
 // Mailtrap documentation: https://github.com/mailtrap/mailtrap-nodejs
 const client = new MailtrapClient({
-  token: process.env.EMAIL_API_KEY!,
+  token: process.env.EMAIL_API_KEY ?? "",
   sandbox: process.env.NODE_ENV !== "production",
   testInboxId: process.env.NODE_ENV === "production" ? undefined : Number(process.env.EMAIL_TEST_INBOX_ID),
 });
 
-const baseUrl = process.env.BASE_URL!;
+const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
 const from = {
   name: "No Reply",
-  email: `no-reply@${process.env.PROD_BASE_URL!.split("://").at(1)}`,
+  email: `no-reply@${baseUrl.split("://").at(1)}`,
 };
 const contestsEmail = {
   name: "Contests",
-  email: `contests@${process.env.PROD_BASE_URL!.split("://").at(1)}`,
+  email: `contests@${baseUrl.split("://").at(1)}`,
 };
 const resultsEmail = {
   name: "Results",
-  email: `results@${process.env.PROD_BASE_URL!.split("://").at(1)}`,
+  email: `results@${baseUrl.split("://").at(1)}`,
 };
 
 async function send({
@@ -46,7 +48,8 @@ async function send({
   context: Record<string, string | number | boolean>;
   callback: (html: string) => Promise<void>;
 }) {
-  if (!process.env.EMAIL_API_KEY || process.env.VITEST) {
+  if (process.env.VITEST) return;
+  if (!process.env.EMAIL_API_KEY) {
     if (process.env.NODE_ENV === "production")
       console.warn("Warning: Not sending email, because EMAIL_API_KEY environment variable isn't set!");
     return;
@@ -120,7 +123,7 @@ export async function sendResetPasswordEmail(to: string, url: string) {
 
 // async sendPasswordChangedNotification(to: string) {
 //   const contents = await getEmailContents("password-changed.hbs", {
-//     ccUrl: process.env.BASE_URL,
+//     ccUrl: baseUrl,
 //   });
 
 //   try {

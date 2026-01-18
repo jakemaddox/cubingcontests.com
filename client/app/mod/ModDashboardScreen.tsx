@@ -95,12 +95,14 @@ function ModDashboardScreen({ contests: initContests, session }: Props) {
               </Link>
             </>
           ) : (
-            <Link
+            <a
               href="https://docs.google.com/forms/d/12AuZdtH4qHwTxd4Kxd2Y_TwZHlBuBu8XuKX3VdKrE60"
+              target="_blank"
+              rel="noopener noreferrer"
               className="btn btn-light btn-sm btn-lg-md"
             >
               Request new event
-            </Link>
+            </a>
           )}
         </div>
         <p>

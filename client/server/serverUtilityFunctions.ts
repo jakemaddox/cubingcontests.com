@@ -23,8 +23,8 @@ import type { CcPermissions } from "./permissions.ts";
 export function logMessage(code: LogCode, message: string, { metadata }: { metadata?: object } = {}) {
   const messageWithCode = `[${code}] ${message}`;
 
-  // Log to terminal/Docker container
-  console.log(messageWithCode);
+  // Log to terminal/Docker container (except page visit logs)
+  if (code !== "CC0001") console.log(messageWithCode);
 
   if (!process.env.VITEST) {
     try {

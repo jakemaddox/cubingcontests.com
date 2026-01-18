@@ -252,7 +252,7 @@ async function RankingsPage({ params, searchParams }: Props) {
         </div>
 
         {(event.category === "extreme-bld" || event.submissionsAllowed) && (
-          <Link href={`/user/submit-results?eventId=${eventId}`} className="btn btn-success btn-sm">
+          <Link href={`/user/submit-results?eventId=${eventId}`} prefetch={false} className="btn btn-success btn-sm">
             Submit a result
           </Link>
         )}

@@ -9,7 +9,7 @@ export const db = drizzle({
     // TO-DO: MAKE SSL CONNECTION WORK!!!!!!!!!!!!!!!!!!!!!!!!
     // ssl: "verify-full",
     // Uncomment this if using Supabase "Transaction" pool mode (see https://orm.drizzle.team/docs/connect-supabase)
-    // prepare: false,
+    prepare: false,
   },
   casing: "snake_case",
   relations,

@@ -57,7 +57,7 @@ function NavbarItems({ initSession }: Props) {
   return (
     <nav className="navbar navbar-expand-lg bg-body-tertiary">
       <div className="container-md position-relative">
-        <Link className="navbar-brand" href="/">
+        <Link className="navbar-brand" href="/" prefetch={false}>
           <Image src="/favicon.png" height={45} width={45} alt="Home" />
         </Link>
         <button
@@ -117,7 +117,12 @@ function NavbarItems({ initSession }: Props) {
               </ul>
             </li>
             <li className="nav-item">
-              <Link className={`nav-link ${pathname === "/rules" ? "active" : ""}`} href="/rules" onClick={collapseAll}>
+              <Link
+                className={`nav-link ${pathname === "/rules" ? "active" : ""}`}
+                href="/rules"
+                prefetch={false}
+                onClick={collapseAll}
+              >
                 Rules
               </Link>
             </li>

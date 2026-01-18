@@ -13,7 +13,7 @@ function PartialHomePageDetails() {
         created for the benefit of the speedcubing community. Community donations help with the ongoing development and
         maintenance of the project.
       </p>
-      <Link href="/donate" className="btn btn-success mt-2">
+      <Link href="/donate" prefetch={false} className="btn btn-success mt-2">
         Donate
       </Link>
 

@@ -14,7 +14,11 @@ function ModeratorInstructionsUnofficial() {
           kinds of competitions.
         </p>
         <p>
-          B2. The rest of the process is the same as <Link href="wca">{tabs[0].title}</Link>.
+          B2. The rest of the process is the same as{" "}
+          <Link href="wca" prefetch={false}>
+            {tabs[0].title}
+          </Link>
+          .
         </p>
         <p>
           B3. Unofficial competitions are <b>only</b> allowed if they cannot reasonably be held as official WCA

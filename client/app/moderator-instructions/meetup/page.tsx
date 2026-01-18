@@ -17,7 +17,11 @@ function ModeratorInstructionsMeetup() {
           one day long.
         </p>
         <p>
-          C3. The rest of the process is mostly the same as <Link href="wca">{tabs[0].title}</Link>.
+          C3. The rest of the process is mostly the same as{" "}
+          <Link href="wca" prefetch={false}>
+            {tabs[0].title}
+          </Link>
+          .
         </p>
         <p>
           C4. A brand new event may not be created for a meetup. Only competitions may hold a new event for the first

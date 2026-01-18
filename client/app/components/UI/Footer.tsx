@@ -40,7 +40,7 @@ function Footer() {
           />
         </svg>
       </a>
-      <Link href="/about" className="text-light-emphasis">
+      <Link href="/about" prefetch={false} className="text-light-emphasis">
         About
       </Link>
       <FormCheckbox

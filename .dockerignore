@@ -1,4 +1,0 @@
-client/.env*.local
-client/.next
-client/node_modules
-client/dump

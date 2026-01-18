@@ -2,7 +2,7 @@
 #   Start:              docker compose up
 #   Stop:               docker compose down
 #   Destroy:            docker compose down -v --remove-orphans
-#   Reset everything:  ./supabase_reset.sh
+#   Reset everything:  ./bin/supabase-reset.sh
 
 name: supabase
 
@@ -10,6 +10,8 @@ services:
   studio:
     container_name: supabase-studio
     image: supabase/studio:2025.11.26-sha-8f096b5
+    networks:
+      - supabase
     restart: unless-stopped
     healthcheck:
       test:
@@ -61,10 +63,12 @@ services:
   kong:
     container_name: supabase-kong
     image: kong:2.8.1
+    networks:
+      - supabase
     restart: unless-stopped
     ports:
-      - ${KONG_HTTP_PORT}:8000/tcp
-      - ${KONG_HTTPS_PORT}:8443/tcp
+      - 127.0.0.1:${KONG_HTTP_PORT}:8000/tcp
+      - 127.0.0.1:${KONG_HTTPS_PORT}:8443/tcp
     volumes:
       # https://github.com/supabase/supabase/issues/12661
       - ./volumes/api/kong.yml:/home/kong/temp.yml:ro,z
@@ -89,6 +93,8 @@ services:
   # auth:
   #   container_name: supabase-auth
   #   image: supabase/gotrue:v2.183.0
+  #   networks:
+  #     - supabase
   #   restart: unless-stopped
   #   healthcheck:
   #     test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9999/health"]
@@ -164,6 +170,8 @@ services:
   # rest:
   #   container_name: supabase-rest
   #   image: postgrest/postgrest:v13.0.7
+  #   networks:
+  #     - supabase
   #   restart: unless-stopped
   #   depends_on:
   #     db:
@@ -185,6 +193,8 @@ services:
   #   # This container name looks inconsistent but is correct because realtime constructs tenant id by parsing the subdomain
   #   container_name: realtime-dev.supabase-realtime
   #   image: supabase/realtime:v2.65.3
+  #   networks:
+  #     - supabase
   #   restart: unless-stopped
   #   depends_on:
   #     db:
@@ -230,6 +240,8 @@ services:
   # storage:
   #   container_name: supabase-storage
   #   image: supabase/storage-api:v1.32.0
+  #   networks:
+  #     - supabase
   #   restart: unless-stopped
   #   volumes:
   #     - ./volumes/storage:/var/lib/storage:z
@@ -266,6 +278,8 @@ services:
   # imgproxy:
   #   container_name: supabase-imgproxy
   #   image: darthsim/imgproxy:v3.8.0
+  #   networks:
+  #     - supabase
   #   restart: unless-stopped
   #   volumes:
   #     - ./volumes/storage:/var/lib/storage:z
@@ -283,6 +297,8 @@ services:
   meta:
     container_name: supabase-meta
     image: supabase/postgres-meta:v0.93.1
+    networks:
+      - supabase
     restart: unless-stopped
     depends_on:
       db:
@@ -302,6 +318,8 @@ services:
   # functions:
   #   container_name: supabase-edge-functions
   #   image: supabase/edge-runtime:v1.69.25
+  #   networks:
+  #     - supabase
   #   restart: unless-stopped
   #   volumes:
   #     - ./volumes/functions:/home/deno/functions:Z
@@ -321,6 +339,9 @@ services:
   analytics:
     container_name: supabase-analytics
     image: supabase/logflare:1.26.13
+    networks:
+      - supabase
+      - shared
     restart: unless-stopped
     ports:
       - 127.0.0.1:4000:4000
@@ -364,6 +385,8 @@ services:
   db:
     container_name: supabase-db
     image: supabase/postgres:17.6.1.057
+    networks:
+      - supabase
     restart: unless-stopped
     volumes:
       # - ./volumes/db/realtime.sql:/docker-entrypoint-initdb.d/migrations/99-realtime.sql:Z
@@ -417,6 +440,8 @@ services:
   vector:
     container_name: supabase-vector
     image: timberio/vector:0.28.1-alpine
+    networks:
+      - supabase
     restart: unless-stopped
     volumes:
       - ./volumes/logs/vector.yml:/etc/vector/vector.yml:ro,z
@@ -436,6 +461,9 @@ services:
   supavisor:
     container_name: supabase-pooler
     image: supabase/supavisor:2.7.4
+    networks:
+      - supabase
+      - shared
     restart: unless-stopped
     ports:
       - 127.0.0.1:${POSTGRES_PORT}:5432
@@ -477,5 +505,12 @@ services:
         '/app/bin/migrate && /app/bin/supavisor eval "$$(cat /etc/pooler/pooler.exs)" && /app/bin/server',
       ]
 
+networks:
+  supabase:
+    name: cubingcontests_supabase
+    driver: bridge
+  shared:
+    name: cubingcontests_shared
+    driver: bridge
 volumes:
   db-config:

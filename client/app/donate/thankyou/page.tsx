@@ -11,7 +11,7 @@ function ThankYouPage() {
       </p>
 
       <div className="d-flex justify-content-center mt-5">
-        <Link href="/" className="btn btn-primary">
+        <Link href="/" prefetch={false} className="btn btn-primary">
           Back to Homepage
         </Link>
       </div>
