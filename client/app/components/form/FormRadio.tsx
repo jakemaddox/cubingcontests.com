@@ -11,7 +11,7 @@ type Props = {
   small?: boolean;
 };
 
-const FormRadio = ({
+function FormRadio({
   id,
   title,
   options,
@@ -20,10 +20,10 @@ const FormRadio = ({
   disabled = false,
   oneLine = false,
   small = false,
-}: Props) => {
+}: Props) {
   return (
     <div
-      className={`${oneLine ? "d-flex flex-wrap align-items-center gap-3 gap-md-5" : ""}  ${small ? "fs-6" : "fs-5"}`}
+      className={`${oneLine ? "d-flex flex-wrap gap-3 gap-md-5 align-items-center" : ""}  ${small ? "fs-6" : "fs-5"}`}
     >
       <h5 className={`${oneLine ? "m-0" : ""}  ${small ? "fs-6" : "fs-5"}`}>{title}</h5>
 
@@ -41,13 +41,15 @@ const FormRadio = ({
                 disabled={disabled || option.disabled}
                 className="form-check-input"
               />
-              <label className="form-check-label" htmlFor={uniqueId}>{option.label}</label>
+              <label className="form-check-label" htmlFor={uniqueId}>
+                {option.label}
+              </label>
             </div>
           );
         })}
       </div>
     </div>
   );
-};
+}
 
 export default FormRadio;

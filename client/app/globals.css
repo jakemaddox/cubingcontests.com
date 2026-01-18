@@ -1,9 +1,9 @@
 * {
-  word-wrap: break-word;
-  word-break: break-word;
-
   /* 768px corresponds to Bootstrap's md size */
   --cc-md-width: 768px;
+
+  word-break: break-word;
+  word-wrap: break-word;
 }
 
 body[data-bs-theme="dark"] {
@@ -62,8 +62,11 @@ body[data-bs-theme="light"] {
 
 /* Custom class for Bootstrap buttons. Bootstrap doesn't have this size. */
 .btn-xs {
+  /* biome-ignore lint/complexity/noImportantStyles: meh */
   --bs-btn-padding-y: 0.2rem !important;
+  /* biome-ignore lint/complexity/noImportantStyles: meh */
   --bs-btn-padding-x: 0.5rem !important;
+  /* biome-ignore lint/complexity/noImportantStyles: meh */
   --bs-btn-font-size: 0.75rem !important;
 }
 
@@ -77,14 +80,11 @@ body[data-bs-theme="light"] {
   flex-direction: row;
   align-items: center;
   padding: 0.1rem 0.3rem;
-  border: 0;
-  background: none;
   font-size: 1.5rem;
-  cursor: pointer;
-}
-
-.cc-icon-button {
   color: var(--bs-btn-bg);
+  cursor: pointer;
+  background: none;
+  border: 0;
 }
 
 .cc-icon-button:hover {

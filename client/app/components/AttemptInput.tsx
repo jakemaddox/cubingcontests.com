@@ -226,7 +226,7 @@ function AttemptInput({
 
         if (newCharacter === "0" && ["", "00"].includes(text)) return; // don't allow entering 0 as the first digit
 
-        const newText = !forMemo ? text + newCharacter : text.slice(0, -2) + newCharacter + "00";
+        const newText = !forMemo ? text + newCharacter : `${text.slice(0, -2)}${newCharacter}00`;
 
         if (newText.length <= C.maxFmMoves.toString().length || (newText.length <= 8 && event.format !== "number")) {
           const newAttempt = getAttempt(attempt, event, forMemo ? attemptText : newText, {
@@ -291,7 +291,7 @@ function AttemptInput({
     e.target.selectionEnd = e.target.value.length;
   };
 
-  const cubesInputClasses = "px-0" + (includeMemo ? " col-2" : " col-3");
+  const cubesInputClasses = `px-0 ${includeMemo ? " col-2" : " col-3"}`;
 
   let timeInputTooltip = "";
 
@@ -299,7 +299,7 @@ function AttemptInput({
     const extraTip = allowUnknownTime ? "\nUse U for Unknown time." : "";
 
     if (event.format !== "multi") {
-      timeInputTooltip = "Use D, F, or / for DNF.\nUse S or * for DNS." + extraTip;
+      timeInputTooltip = `Use D, F, or / for DNF.\nUse S or * for DNS.${extraTip}`;
     } else {
       timeInputTooltip =
         "Enter the result even for DNF attempts (they're treated as DNF, but the result is still shown).\nUse S or * for DNS." +

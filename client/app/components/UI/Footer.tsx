@@ -6,14 +6,16 @@ import FormCheckbox from "~/app/components/form/FormCheckbox.tsx";
 import { C } from "~/helpers/constants.ts";
 import { MainContext } from "~/helpers/contexts.ts";
 
-const Footer = () => {
+function Footer() {
   const { theme, setTheme } = useContext(MainContext);
 
   return (
-    <footer className="container d-flex flex-wrap gap-3 justify-content-center align-items-center min-vw-100 py-3 bg-body-tertiary text-center fs-5">
+    <footer className="d-flex justify-content-center min-vw-100 fs-5 container flex-wrap gap-3 bg-body-tertiary py-3 text-center align-items-center">
       <p className="m-0">
         Created by
-        <a href="https://denimintsaev.com/" className="ms-2 text-light-emphasis">Deni Mintsaev</a>
+        <a href="https://denimintsaev.com/" className="ms-2 text-light-emphasis">
+          Deni Mintsaev
+        </a>
       </p>
       <a
         href={C.sourceCodeLink}
@@ -50,6 +52,6 @@ const Footer = () => {
       />
     </footer>
   );
-};
+}
 
 export default Footer;

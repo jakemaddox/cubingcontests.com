@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
 import { isValid, parseISO } from "date-fns";
 import { formatInTimeZone, fromZonedTime } from "date-fns-tz";
+import { useEffect, useMemo, useState } from "react";
 import { C } from "~/helpers/constants.ts";
 import { genericOnKeyDown } from "~/helpers/utilityFunctions.ts";
 
@@ -15,7 +15,7 @@ type Props = {
   nextFocusTargetId?: string;
 };
 
-const FormDateInput = ({
+function FormDateInput({
   id,
   title,
   value,
@@ -23,7 +23,7 @@ const FormDateInput = ({
   disabled,
   nextFocusTargetId,
   className = "",
-}: Props & React.HTMLAttributes<HTMLElement>) => {
+}: Props & React.HTMLAttributes<HTMLElement>) {
   const [dateText, setDateText] = useState("");
   const [position, setPosition] = useState(0);
 
@@ -34,7 +34,7 @@ const FormDateInput = ({
       if (i === 2 || i === 5) {
         prettyDate += ".";
       } else {
-        let digit;
+        let digit = "";
         if (i < 2 && dateText.length > i) digit = dateText[i];
         else if ([3, 4].includes(i) && dateText.length > i - 1) digit = dateText[i - 1];
         else if (i > 5 && dateText.length > i - 2) digit = dateText[i - 2];
@@ -111,7 +111,11 @@ const FormDateInput = ({
     }
   };
 
-  const changePosition = ({ change, newPosition, dateTextLength = dateText.length }: {
+  const changePosition = ({
+    change,
+    newPosition,
+    dateTextLength = dateText.length,
+  }: {
     change?: number;
     newPosition?: number;
     dateTextLength?: number;
@@ -143,7 +147,11 @@ const FormDateInput = ({
 
   return (
     <div className={`fs-5 ${className}`}>
-      {title && <label htmlFor={inputId} className="form-label">{title}</label>}
+      {title && (
+        <label htmlFor={inputId} className="form-label">
+          {title}
+        </label>
+      )}
       <input
         id={inputId}
         type="text"
@@ -153,10 +161,10 @@ const FormDateInput = ({
         onFocus={() => changePosition()}
         onClick={(e: any) => setPosition(e.target.selectionStart)}
         disabled={disabled}
-        className={"form-control" + (value === null && dateText.length === 8 ? " is-invalid" : "")}
+        className={`form-control ${value === null && dateText.length === 8 ? "is-invalid" : ""}`}
       />
     </div>
   );
-};
+}
 
 export default FormDateInput;

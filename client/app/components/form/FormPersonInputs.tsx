@@ -151,7 +151,7 @@ function FormPersonInputs({
     if (!newPersons.includes(null)) {
       if (nextFocusTargetId) document.getElementById(nextFocusTargetId)?.focus();
     } else {
-      const emptyInputIndex = newPersons.findIndex((el) => el === null);
+      const emptyInputIndex = newPersons.indexOf(null);
       document.getElementById(`${title}_${emptyInputIndex + 1}`)?.focus();
     }
   };

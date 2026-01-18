@@ -26,6 +26,20 @@ const nextConfig: NextConfig = withMDX({
       },
     ]);
   },
+  // Enables streaming (https://nextjs.org/docs/app/guides/self-hosting#streaming-and-suspense)
+  async headers() {
+    return [
+      {
+        source: "/:path*{/}?",
+        headers: [
+          {
+            key: "X-Accel-Buffering",
+            value: "no",
+          },
+        ],
+      },
+    ];
+  },
 });
 
 export default nextConfig;

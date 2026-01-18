@@ -1,7 +1,7 @@
 "use client";
 
-import ToastMessages from "~/app/components/UI/ToastMessages.tsx";
 import Button from "~/app/components/UI/Button.tsx";
+import ToastMessages from "~/app/components/UI/ToastMessages.tsx";
 
 type Props = {
   children: React.ReactNode;
@@ -27,22 +27,14 @@ const Form = ({
   onCancel,
 }: Props) => {
   const showSubmitButton = !hideControls && buttonText;
-  if (showSubmitButton && !onSubmit) {
-    throw new Error(
-      "onSubmit cannot be undefined unless the submit button is hidden",
-    );
-  }
-  if (showCancelButton && !onCancel) {
-    throw new Error(
-      "onCancel cannot be undefined unless the cancel button is hidden",
-    );
-  }
+  if (showSubmitButton && !onSubmit) throw new Error("onSubmit cannot be undefined unless the submit button is hidden");
+  if (showCancelButton && !onCancel) throw new Error("onCancel cannot be undefined unless the cancel button is hidden");
 
   const controlsDisabled = disableControls || isLoading;
 
   return (
     <form
-      className="container my-4 mx-auto px-3 fs-5"
+      className="fs-5 container mx-auto my-4 px-3"
       style={{ maxWidth: "var(--cc-md-width)" }}
       onSubmit={(e) => e.preventDefault()}
     >
@@ -51,7 +43,7 @@ const Form = ({
       {children}
 
       {(showSubmitButton || showCancelButton) && (
-        <div className="d-flex gap-3 mt-4">
+        <div className="d-flex mt-4 gap-3">
           {showSubmitButton && (
             <Button
               id="form_submit_button"
@@ -64,12 +56,7 @@ const Form = ({
             </Button>
           )}
           {showCancelButton && (
-            <Button
-              id="form_cancel_button"
-              onClick={onCancel}
-              disabled={controlsDisabled}
-              className="btn-danger"
-            >
+            <Button id="form_cancel_button" onClick={onCancel} disabled={controlsDisabled} className="btn-danger">
               Cancel
             </Button>
           )}

@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-const ThankYouPage = () => {
+function ThankYouPage() {
   return (
     <div className="px-3">
       <h1 className="mb-4 text-center">Thank You!</h1>
@@ -11,10 +11,12 @@ const ThankYouPage = () => {
       </p>
 
       <div className="d-flex justify-content-center mt-5">
-        <Link href="/" className="btn btn-primary">Back to Homepage</Link>
+        <Link href="/" className="btn btn-primary">
+          Back to Homepage
+        </Link>
       </div>
     </div>
   );
-};
+}
 
 export default ThankYouPage;

@@ -1,4 +1,4 @@
-import { format, isSameDay, isSameMonth, isSameYear } from "date-fns";
+import { isSameDay, isSameMonth, isSameYear } from "date-fns";
 import { formatInTimeZone } from "date-fns-tz";
 import type { SafeActionResult } from "next-safe-action";
 import { remove as removeAccents } from "remove-accents";
@@ -52,7 +52,7 @@ const getCentiseconds = (
 
   if (time.length >= 5) {
     // Round attempts >= 10 minutes long, unless noRounding = true
-    if (time.length >= 6 && round) time = time.slice(0, -2) + "00";
+    if (time.length >= 6 && round) time = `${time.slice(0, -2)}00`;
 
     if (time.length >= 7) hours = parseInt(time.slice(0, time.length - 6), 10);
     minutes = parseInt(time.slice(Math.max(time.length - 6, 0), -4), 10);

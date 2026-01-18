@@ -1,4 +1,4 @@
-import { EventCategory } from "./types.ts";
+import type { EventCategory } from "./types.ts";
 
 export type EventCategoryObject = {
   title: string;

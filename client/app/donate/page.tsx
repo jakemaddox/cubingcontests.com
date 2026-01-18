@@ -1,6 +1,6 @@
 import { C } from "~/helpers/constants.ts";
 
-const DonatePage = () => {
+function DonatePage() {
   return (
     <div className="px-3">
       <h1 className="mb-4 text-center">Donate</h1>
@@ -34,9 +34,9 @@ const DonatePage = () => {
 
       <h3 className="cc-basic-heading">Monero</h3>
       <p>You can send a Monero (cryptocurrency) donation to the following XMR wallet:</p>
-      <p className="mt-4 p-3 border rounded-3 fw-bold">{C.moneroDonationAddress}</p>
+      <p className="fw-bold mt-4 rounded-3 border p-3">{C.moneroDonationAddress}</p>
     </div>
   );
-};
+}
 
 export default DonatePage;

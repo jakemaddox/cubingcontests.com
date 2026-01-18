@@ -1,7 +1,7 @@
 import Markdown from "react-markdown";
 import EventTitle from "~/app/components/EventTitle.tsx";
 import { roundFormats } from "~/helpers/roundFormats.ts";
-import { SelectEvent } from "~/server/db/schema/events.ts";
+import type { SelectEvent } from "~/server/db/schema/events.ts";
 
 type Props = {
   event: SelectEvent;

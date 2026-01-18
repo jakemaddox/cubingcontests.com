@@ -102,6 +102,7 @@ async function RecordsPage({ params, searchParams }: Props) {
 
             <div>
               <h5>Category</h5>
+              {/* biome-ignore lint/a11y/useSemanticElements: this is the most suitable way to make a button group */}
               <div className="btn-group btn-group-sm mt-2" role="group" aria-label="Contest Type">
                 <Link
                   href={`/records/${eventCategory}?${

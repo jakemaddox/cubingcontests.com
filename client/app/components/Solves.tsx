@@ -8,17 +8,11 @@ type Props = {
   showMultiPoints?: boolean;
 };
 
-function Solves({
-  event,
-  attempts,
-  showMultiPoints = false,
-}: Props) {
+function Solves({ event, attempts, showMultiPoints = false }: Props) {
   return (
     <div className="d-flex gap-2">
       {attempts.map((attempt, index) => (
-        <span key={index}>
-          {getFormattedTime(attempt.result, { event, showMultiPoints })}
-        </span>
+        <span key={index}>{getFormattedTime(attempt.result, { event, showMultiPoints })}</span>
       ))}
     </div>
   );

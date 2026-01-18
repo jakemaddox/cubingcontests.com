@@ -6,6 +6,7 @@ import { relations } from "./relations.ts";
 export const db = drizzle({
   connection: {
     url: process.env.DATABASE_URL!,
+    // TO-DO: MAKE SSL CONNECTION WORK!!!!!!!!!!!!!!!!!!!!!!!!
     // ssl: "verify-full",
     // Uncomment this if using Supabase "Transaction" pool mode (see https://orm.drizzle.team/docs/connect-supabase)
     // prepare: false,

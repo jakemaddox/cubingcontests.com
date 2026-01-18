@@ -2,7 +2,10 @@ import z from "zod";
 import { EventFormatValues, RoundFormatValues } from "~/helpers/types.ts";
 
 export const EventValidator = z.strictObject({
-  eventId: z.string().min(3).regex(/^[a-z0-9_]*$/),
+  eventId: z
+    .string()
+    .min(3)
+    .regex(/^[a-z0-9_]*$/),
   name: z.string().min(3),
   category: z.string().nonempty(),
   rank: z.int().min(1),

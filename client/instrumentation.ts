@@ -83,65 +83,65 @@ export async function register() {
     const eventsDump = JSON.parse(fs.readFileSync("./dump/events.json") as any);
     const roundsDump = JSON.parse(fs.readFileSync("./dump/rounds.json") as any) as any[];
 
-    const unoffEventIdConverter = {
-      "666": "666",
-      "777": "777",
-      rainb: "rainbow_cube",
-      skewb: "skewb",
-      "333si": "333_siamese",
-      snake: "snake",
-      mirbl: "333_mirror_blocks",
-      "360": "360_puzzle",
-      mstmo: "mmorphix",
-      illus: "777_illusion",
-      "333ni": "333_inspectionless",
-      "333r3": "333_x3_relay",
-      "333sbf": "333_speed_bld",
-      "3sc": "333mts_old",
-      "222oh": "222oh",
-      magico: "magic_oh",
-      "222bf": "222bf",
-      sq1bf: "sq1_bld",
-      mirbbf: "333_mirror_blocks_bld",
-      "234": "234relay",
-      // magicc: "",
-      // magicb: "",
-      // magccc: "",
-    };
-    const eeEventIdConverter = {
-      "113sia": "333_siamese",
-      "1mguild": "miniguild",
-      "222oh": "222oh",
-      "222pyra": "pyramorphix",
-      "223": "223_cuboid",
-      "2mguild": "miniguild_2_person",
-      "2to4relay": "234relay",
-      "2to7relay": "234567relay",
-      "332": "233_cuboid",
-      '333bets': "333_bets",
-      "333bfoh": "333bf_oh",
-      "333ft": "333ft",
-      "333omt": "333_oven_mitts",
-      "333rescr": "333mts",
-      "333scr": "333_scrambling",
-      "333ten": "333_x10_relay",
-      "3mguild": "miniguild_3_person",
-      "444ft": "444ft",
-      "444pyra": "mpyram",
-      "888": "888",
-      "999": "999",
-      clockscr: "clock_scrambling",
-      curvycopter: "curvycopter",
-      dino: "dino",
-      fifteen: "15puzzle",
-      fto: "fto",
-      ivy: "ivy_cube",
-      kilo: "kilominx",
-      mirror: "333_mirror_blocks",
-      mirrorbld: "333_mirror_blocks_bld",
-      redi: "redi",
-      teambld: "333_team_bld_old",
-    };
+    // const unoffEventIdConverter = {
+    //   "666": "666",
+    //   "777": "777",
+    //   rainb: "rainbow_cube",
+    //   skewb: "skewb",
+    //   "333si": "333_siamese",
+    //   snake: "snake",
+    //   mirbl: "333_mirror_blocks",
+    //   "360": "360_puzzle",
+    //   mstmo: "mmorphix",
+    //   illus: "777_illusion",
+    //   "333ni": "333_inspectionless",
+    //   "333r3": "333_x3_relay",
+    //   "333sbf": "333_speed_bld",
+    //   "3sc": "333mts_old",
+    //   "222oh": "222oh",
+    //   magico: "magic_oh",
+    //   "222bf": "222bf",
+    //   sq1bf: "sq1_bld",
+    //   mirbbf: "333_mirror_blocks_bld",
+    //   "234": "234relay",
+    //   // magicc: "",
+    //   // magicb: "",
+    //   // magccc: "",
+    // };
+    // const eeEventIdConverter = {
+    //   "113sia": "333_siamese",
+    //   "1mguild": "miniguild",
+    //   "222oh": "222oh",
+    //   "222pyra": "pyramorphix",
+    //   "223": "223_cuboid",
+    //   "2mguild": "miniguild_2_person",
+    //   "2to4relay": "234relay",
+    //   "2to7relay": "234567relay",
+    //   "332": "233_cuboid",
+    //   "333bets": "333_bets",
+    //   "333bfoh": "333bf_oh",
+    //   "333ft": "333ft",
+    //   "333omt": "333_oven_mitts",
+    //   "333rescr": "333mts",
+    //   "333scr": "333_scrambling",
+    //   "333ten": "333_x10_relay",
+    //   "3mguild": "miniguild_3_person",
+    //   "444ft": "444ft",
+    //   "444pyra": "mpyram",
+    //   "888": "888",
+    //   "999": "999",
+    //   clockscr: "clock_scrambling",
+    //   curvycopter: "curvycopter",
+    //   dino: "dino",
+    //   fifteen: "15puzzle",
+    //   fto: "fto",
+    //   ivy: "ivy_cube",
+    //   kilo: "kilominx",
+    //   mirror: "333_mirror_blocks",
+    //   mirrorbld: "333_mirror_blocks_bld",
+    //   redi: "redi",
+    //   teambld: "333_team_bld_old",
+    // };
 
     for (const testUser of testUsers) {
       const userExists =
@@ -222,7 +222,8 @@ export async function register() {
       if (!dumpUserObject) return null;
 
       const user = users.find((u) => u.username === dumpUserObject.username.slice(0, MAX_USERNAME_LENGTH));
-      if (!user) throw new Error(`User with username ${dumpUserObject.username.slice(0, MAX_USERNAME_LENGTH)} not found in DB`);
+      if (!user)
+        throw new Error(`User with username ${dumpUserObject.username.slice(0, MAX_USERNAME_LENGTH)} not found in DB`);
 
       return user.id;
     };
@@ -440,7 +441,7 @@ export async function register() {
           if (tempResults.length > 0) await tx.insert(resultsTable).values(tempResults);
         });
 
-      doSetResultRecords = true;
+        doSetResultRecords = true;
       } catch (e) {
         console.error("Unable to load results dump:", e);
       }

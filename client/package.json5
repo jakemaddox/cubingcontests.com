@@ -6,7 +6,7 @@
     dev: "cp ../.env ./.env.local && next dev -p $(cat .env.local | grep -E '^NEXTJS_PORT=' | sed -r 's/^NEXTJS_PORT=([0-9]+).*/\\1/')",
     build: 'next build',
     start: 'next start',
-    check: '@biomejs/biome lint && @biomejs/biome check',
+    check: 'npx @biomejs/biome check',
     test: 'vitest run',
     'test:watch': 'vitest watch',
     'db:push': 'NODE_OPTIONS="--conditions=react-server" drizzle-kit push',

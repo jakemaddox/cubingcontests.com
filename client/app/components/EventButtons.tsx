@@ -57,6 +57,7 @@ function EventButtons({ eventId, events, forPage }: Props) {
       {/* Event categories */}
       {["rankings", "competitions"].includes(forPage) && (
         <>
+          {/* biome-ignore lint/a11y/useSemanticElements: this is the most suitable way to make a button group */}
           <div className="btn-group btn-group-sm mt-2 mb-3" role="group">
             {filteredCategories.map((cat) => (
               <button

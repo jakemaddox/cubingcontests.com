@@ -89,6 +89,7 @@ function ContestForm({
   const { executeAsync: deleteContest, isPending: isDeleting } = useAction(deleteContestSF);
   const [activeTab, setActiveTab] = useState("details");
   const [detailsImported, setDetailsImported] = useState(mode === "edit" && contest?.type === "wca-comp");
+  // biome-ignore lint/correctness/noUnusedVariables: this is temporary
   const [queueEnabled, setQueueEnabled] = useState(contest?.queuePosition !== undefined);
 
   const [competitionId, setCompetitionId] = useState(contest?.competitionId ?? "");
@@ -456,6 +457,7 @@ function ContestForm({
     }
   };
 
+  // biome-ignore lint/correctness/noUnusedFunctionParameters: this is temporary
   const downloadScorecards = (pageSize: PageSize) => {
     throw new Error("NOT IMPLEMENTED");
     // myFetch.get(`/scorecards/${contest?.competitionId}?pageSize=${pageSize}`, {

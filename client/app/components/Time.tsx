@@ -17,7 +17,7 @@ function Time({ result, event, recordConfigs, average }: Props) {
   )!;
 
   return (
-    <div className="d-inline-flex align-items-center gap-2">
+    <div className="d-inline-flex gap-2 align-items-center">
       {getFormattedTime(average ? result.average : result.best, { event, showMultiPoints: true })}
 
       {recordConfig && (

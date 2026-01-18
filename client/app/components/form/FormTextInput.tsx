@@ -1,13 +1,30 @@
 "use client";
 
-import { useState } from "react";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEye, faEyeSlash } from "@fortawesome/free-solid-svg-icons";
-import FormInputLabel from "./FormInputLabel.tsx";
-import { genericOnKeyDown } from "~/helpers/utilityFunctions.ts";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { useState } from "react";
 import Button from "~/app/components/UI/Button.tsx";
+import { genericOnKeyDown } from "~/helpers/utilityFunctions.ts";
+import FormInputLabel from "./FormInputLabel.tsx";
 
-const FormTextInput = ({
+type Props = {
+  id?: string;
+  title?: string;
+  placeholder?: string;
+  tooltip?: string;
+  value: string;
+  setValue?: (val: any) => void;
+  nextFocusTargetId?: string;
+  required?: boolean;
+  disabled?: boolean;
+  password?: boolean;
+  monospace?: boolean;
+  submitOnEnter?: boolean;
+  invalid?: boolean;
+  oneLine?: boolean;
+};
+
+function FormTextInput({
   id,
   title,
   placeholder = "",
@@ -29,30 +46,9 @@ const FormTextInput = ({
   invalid,
   oneLine,
   className = "",
-}: {
-  id?: string;
-  title?: string;
-  placeholder?: string;
-  tooltip?: string;
-  value: string;
-  setValue?: (val: any) => void;
-  nextFocusTargetId?: string;
-  required?: boolean;
-  disabled?: boolean;
-  password?: boolean;
-  monospace?: boolean;
-  submitOnEnter?: boolean;
-  invalid?: boolean;
-  oneLine?: boolean;
-} & React.HTMLAttributes<HTMLInputElement>) => {
-  if (!id && !title) {
-    throw new Error("Neither title nor id are set in FormTextInput");
-  }
-  if (setValue && onChange) {
-    throw new Error(
-      "setValue and onChange cannot be used at the same time in FormTextInput",
-    );
-  }
+}: Props & React.HTMLAttributes<HTMLInputElement>) {
+  if (!id && !title) throw new Error("Neither title nor id are set in FormTextInput");
+  if (setValue && onChange) throw new Error("setValue and onChange cannot be used at the same time in FormTextInput");
 
   const [hidePassword, setHidePassword] = useState(password);
 
@@ -75,19 +71,16 @@ const FormTextInput = ({
   };
 
   return (
-    <div
-      className={`fs-5 ${oneLine ? "d-flex align-items-center gap-3" : ""} ${className}`}
-    >
+    <div className={`fs-5 ${oneLine ? "d-flex gap-3 align-items-center" : ""} ${className}`}>
       {title && <FormInputLabel text={title} inputId={inputId} tooltip={tooltip} />}
 
-      <div
-        className={`d-flex justify-content-between align-items-center gap-3 ${oneLine ? "" : "mt-2"}`}
-      >
+      <div className={`d-flex justify-content-between gap-3 align-items-center ${oneLine ? "" : "mt-2"}`}>
         <input
           type={hidePassword ? "password" : "text"}
           id={inputId}
           value={value}
           placeholder={placeholder}
+          // biome-ignore lint/a11y/noAutofocus: meh
           autoFocus={autoFocus}
           disabled={disabled}
           required={required}
@@ -96,9 +89,7 @@ const FormTextInput = ({
           onClick={onClick}
           onFocus={handleFocus}
           onBlur={handleBlur}
-          className={"form-control flex-grow-1" +
-            (monospace ? " font-monospace" : "") +
-            (invalid ? " is-invalid" : "")}
+          className={`form-control flex-grow-1 ${monospace ? "font-monospace" : ""} ${invalid ? "is-invalid" : ""}`}
         />
 
         {password && (
@@ -114,6 +105,6 @@ const FormTextInput = ({
       </div>
     </div>
   );
-};
+}
 
 export default FormTextInput;

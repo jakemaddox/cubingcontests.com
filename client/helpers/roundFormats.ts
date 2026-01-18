@@ -1,4 +1,4 @@
-import { RoundFormat } from "./types.ts";
+import type { RoundFormat } from "./types.ts";
 
 export type RoundFormatObject = {
   value: RoundFormat;

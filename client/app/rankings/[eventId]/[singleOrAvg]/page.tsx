@@ -132,6 +132,7 @@ async function RankingsPage({ params, searchParams }: Props) {
           <div className="d-flex flex-wrap gap-3">
             <div>
               <h5>Type</h5>
+              {/* biome-ignore lint/a11y/useSemanticElements: this is the most suitable way to make a button group */}
               <div className="btn-group btn-group-sm mt-2" role="group" aria-label="Type">
                 <Link
                   href={`/rankings/${eventId}/single?${urlSearchParams}`}
@@ -152,6 +153,7 @@ async function RankingsPage({ params, searchParams }: Props) {
 
             <div>
               <h5>Show</h5>
+              {/* biome-ignore lint/a11y/useSemanticElements: this is the most suitable way to make a button group */}
               <div className="btn-group btn-group-sm mt-2" role="group" aria-label="Show">
                 <Link
                   href={`/rankings/${eventId}/${singleOrAvg}?${urlSearchParamsWithoutShow}`}
@@ -174,6 +176,7 @@ async function RankingsPage({ params, searchParams }: Props) {
 
             <div>
               <h5>Top</h5>
+              {/* biome-ignore lint/a11y/useSemanticElements: this is the most suitable way to make a button group */}
               <div className="btn-group btn-group-sm mt-2" role="group" aria-label="Top">
                 <Link
                   href={`/rankings/${eventId}/${singleOrAvg}?${urlSearchParamsWithoutTopN}`}
@@ -205,6 +208,7 @@ async function RankingsPage({ params, searchParams }: Props) {
 
             <div>
               <h5>Category</h5>
+              {/* biome-ignore lint/a11y/useSemanticElements: this is the most suitable way to make a button group */}
               <div className="btn-group btn-group-sm mt-2" role="group" aria-label="Contest Type">
                 <Link
                   href={`/rankings/${eventId}/${singleOrAvg}?${

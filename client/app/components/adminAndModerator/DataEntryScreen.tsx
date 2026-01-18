@@ -78,6 +78,7 @@ function DataEntryScreen({
   const [personNames, setPersonNames] = useState(new Array(currEvent.participants).fill(""));
   const [attempts, setAttempts] = useState<Attempt[]>(new Array(roundFormat.attempts).fill({ result: 0 }));
   const [persons, setPersons] = useState<PersonResponse[]>(initPersons);
+  // biome-ignore lint/correctness/noUnusedVariables: this is temporary
   const [queuePosition, setQueuePosition] = useState(contest.queuePosition);
   const [loadingId, setLoadingId] = useState("");
 
@@ -228,6 +229,7 @@ function DataEntryScreen({
     setLoadingId("");
   };
 
+  // biome-ignore lint/correctness/noUnusedFunctionParameters: this is temporary
   const updateQueuePosition = async (mode: "decrement" | "increment" | "reset") => {
     throw new Error("NOT IMPLEMENTED!");
     // const res = await myFetch.patch(
@@ -313,7 +315,6 @@ function DataEntryScreen({
             />
             {attempts.map((attempt: Attempt, i: number) => (
               <AttemptInput
-                // biome-ignore lint/suspicious/noArrayIndexKey: there's no other way to key an attempt
                 key={i}
                 attNumber={i + 1}
                 attempt={attempt}

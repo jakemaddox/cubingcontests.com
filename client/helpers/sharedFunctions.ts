@@ -127,7 +127,7 @@ export const getFormattedTime = (
 
     if (showMinutes) {
       if (hours > 0 && minutes === 0) output += "00";
-      else if (minutes < 10 && hours > 0) output += "0" + minutes;
+      else if (minutes < 10 && hours > 0) output += `0${minutes}`;
       else output += minutes;
 
       if (!noDelimiterChars) output += ":";

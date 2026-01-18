@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import FormInputLabel from "./FormInputLabel.tsx";
 import { genericOnKeyDown } from "~/helpers/utilityFunctions.ts";
+import FormInputLabel from "./FormInputLabel.tsx";
 
 type Props = {
   id?: string;
@@ -36,9 +36,7 @@ function FormNumberInput({
   invalid = false,
   className = "",
 }: Props) {
-  if (!id && !title) {
-    throw new Error("Neither title nor id are set in FormNumberInput");
-  }
+  if (!id && !title) throw new Error("Neither title nor id are set in FormNumberInput");
 
   const [displayValue, setDisplayValue] = useState(value?.toString() || "");
 

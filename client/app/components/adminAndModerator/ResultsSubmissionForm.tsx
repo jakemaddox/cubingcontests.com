@@ -103,6 +103,7 @@ function ResultsSubmissionForm({
     }
   }, []);
 
+  // biome-ignore lint/correctness/noUnusedFunctionParameters: this is temporary
   const submitResult = async (approve = false) => {
     if (competitors.some((p: InputPerson) => !p)) {
       changeErrorMessages(["Invalid person(s)"]);
@@ -279,7 +280,6 @@ function ResultsSubmissionForm({
         <FormCheckbox title="Don't clear competitors" selected={keepCompetitors} setSelected={setKeepCompetitors} />
         {attempts.map((attempt: Attempt, i: number) => (
           <AttemptInput
-            // biome-ignore lint/suspicious/noArrayIndexKey: there's no other way to key an attempt
             key={i}
             attNumber={i + 1}
             attempt={attempt}
