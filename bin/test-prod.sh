@@ -20,5 +20,5 @@ if [ "$1" != "--cleanup" ] && [ "$1" != "-c" ]; then
                --build-arg NEXT_PUBLIC_BASE_URL="$LOCAL_BASE_URL" \
                -t "$DOCKER_IMAGE_NAME" ./client &&
 
-  docker compose -f docker-compose.yml -f docker-compose.cubingcontests.yml up
+  docker compose -f docker-compose.cubingcontests.yml up
 fi

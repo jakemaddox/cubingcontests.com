@@ -24,4 +24,4 @@ fi
 
 sudo docker compose -f docker-compose.cubingcontests.yml down &&
 
-sudo docker compose -f docker-compose.yml -f docker-compose.cubingcontests.yml up -d
+sudo docker compose -f docker-compose.cubingcontests.yml up -d
