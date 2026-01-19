@@ -5,7 +5,7 @@ import { tabs } from "~/app/moderator-instructions/tabs.ts";
 function ModeratorInstructionsMeetup() {
   return (
     <>
-      <Tabs tabs={tabs} activeTab="meetup" forServerSidePage prefetch />
+      <Tabs tabs={tabs} activeTab="meetup" forServerSidePage />
 
       <div className="mt-4">
         <p>

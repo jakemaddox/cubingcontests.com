@@ -1,4 +1,5 @@
 import "server-only";
+import bcrypt from "bcrypt";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { nextCookies } from "better-auth/next-js";
@@ -47,6 +48,11 @@ export const auth = betterAuth({
       if (process.env.EMAIL_API_KEY) logMessage("CC0031", `Sending reset password email for user with ID ${user.id}`);
 
       await sendResetPasswordEmail(user.email, url);
+    },
+    // THIS IS TEMPORARY!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    password: {
+      hash: async (password: string) => await bcrypt.hash(password, 10),
+      verify: async ({ password, hash }: { password: string; hash: string }) => await bcrypt.compare(password, hash),
     },
   },
   emailVerification: {

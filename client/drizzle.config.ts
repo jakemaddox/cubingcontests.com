@@ -6,8 +6,21 @@ import { defineConfig } from "drizzle-kit";
 
 loadEnvConfig(process.cwd(), true);
 
-if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL environment variable not set!");
-if (!process.env.CC_DB_SCHEMA) throw new Error("CC_DB_SCHEMA environment variable not set!");
+if (
+  !process.env.CC_DB_SCHEMA ||
+  !process.env.CC_DB_USERNAME ||
+  !process.env.CC_DB_PASSWORD ||
+  !process.env.POOLER_TENANT_ID ||
+  !process.env.POSTGRES_PORT ||
+  !process.env.POSTGRES_DB
+) {
+  throw new Error(
+    "One of these environment variables is not set: CC_DB_SCHEMA, CC_DB_USERNAME, CC_DB_PASSWORD, POOLER_TENANT_ID, POSTGRES_PORT, POSTGRES_DB!",
+  );
+}
+
+// This has to be different from DATABASE_URL, because DB push can't be done through the pooler, so this uses the direct DB connection port
+const url = `postgresql://${process.env.CC_DB_USERNAME}.${process.env.POOLER_TENANT_ID}:${process.env.CC_DB_PASSWORD}@localhost:${process.env.POSTGRES_PORT}/${process.env.POSTGRES_DB}`;
 
 export default defineConfig({
   out: "./server/db/drizzle",
@@ -15,7 +28,7 @@ export default defineConfig({
   schemaFilter: [process.env.CC_DB_SCHEMA],
   // migrations: { schema: process.env.CC_DB_SCHEMA },
   dialect: "postgresql",
-  dbCredentials: { url: process.env.DATABASE_URL },
+  dbCredentials: { url },
   casing: "snake_case",
   strict: true,
   // verbose: true,

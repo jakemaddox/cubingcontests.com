@@ -5,7 +5,7 @@ import { tabs } from "~/app/moderator-instructions/tabs.ts";
 function ModeratorInstructionsUnofficial() {
   return (
     <>
-      <Tabs tabs={tabs} activeTab="unofficial" forServerSidePage prefetch />
+      <Tabs tabs={tabs} activeTab="unofficial" forServerSidePage />
 
       <div className="mt-4">
         <p>

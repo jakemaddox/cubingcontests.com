@@ -33,6 +33,9 @@ services:
       - shared
     ports:
       - 127.0.0.1:$NEXTJS_PORT:$NEXTJS_PORT
+    volumes:
+      # THIS IS TEMPORARY!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      - ./client/dump/:/app/dump/:ro
     environment:
       DATABASE_URL: postgresql://${CC_DB_USERNAME}.${POOLER_TENANT_ID}:${CC_DB_PASSWORD}@supabase-pooler:${POOLER_PROXY_PORT_TRANSACTION}/${POSTGRES_DB}
       CC_DB_SCHEMA: ${CC_DB_SCHEMA}
@@ -41,6 +44,7 @@ services:
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
       LOGFLARE_API_BASE_URL: http://supabase-analytics:${LOGFLARE_PORT}
       LOGFLARE_PUBLIC_ACCESS_TOKEN: ${LOGFLARE_PUBLIC_ACCESS_TOKEN}
+      MIGRATE_DB: ${MIGRATE_DB} # THIS IS TEMPORARY!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     restart: always
 
 networks:

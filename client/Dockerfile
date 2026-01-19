@@ -54,6 +54,9 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY ./server/loggerUtils.js ./server/loggerUtils.js
 
+# THIS IS TEMPORARY!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+RUN mkdir new_records && chown nextjs:nodejs new_records
+
 USER nextjs
 
 EXPOSE ${PORT}

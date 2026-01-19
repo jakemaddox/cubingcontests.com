@@ -73,24 +73,24 @@ function ModDashboardScreen({ contests: initContests, session }: Props) {
         </div>
 
         <div className="d-flex fs-5 my-4 flex-wrap gap-3">
-          <Link href="/mod/competition" className="btn btn-success btn-sm btn-lg-md">
+          <Link href="/mod/competition" prefetch={false} className="btn btn-success btn-sm btn-lg-md">
             Create new contest
           </Link>
-          <Link href="/mod/competitors" className="btn btn-warning btn-sm btn-lg-md">
+          <Link href="/mod/competitors" prefetch={false} className="btn btn-warning btn-sm btn-lg-md">
             Manage competitors
           </Link>
           {isAdmin ? (
             <>
-              <Link href="/admin/results" className="btn btn-warning btn-sm btn-lg-md">
+              <Link href="/admin/results" prefetch={false} className="btn btn-warning btn-sm btn-lg-md">
                 Manage results
               </Link>
-              <Link href="/admin/users" className="btn btn-warning btn-sm btn-lg-md">
+              <Link href="/admin/users" prefetch={false} className="btn btn-warning btn-sm btn-lg-md">
                 Manage users
               </Link>
-              <Link href="/admin/events" className="btn btn-secondary btn-sm btn-lg-md">
+              <Link href="/admin/events" prefetch={false} className="btn btn-secondary btn-sm btn-lg-md">
                 Configure events
               </Link>
-              <Link href="/admin/records-configuration" className="btn btn-secondary btn-sm btn-lg-md">
+              <Link href="/admin/records-configuration" prefetch={false} className="btn btn-secondary btn-sm btn-lg-md">
                 Configure records
               </Link>
             </>

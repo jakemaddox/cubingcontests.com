@@ -5,7 +5,7 @@ import { tabs } from "~/app/moderator-instructions/tabs.ts";
 function ModeratorInstructionsWca() {
   return (
     <>
-      <Tabs tabs={tabs} activeTab="wca" forServerSidePage prefetch />
+      <Tabs tabs={tabs} activeTab="wca" forServerSidePage />
 
       <div className="mt-4">
         <p>

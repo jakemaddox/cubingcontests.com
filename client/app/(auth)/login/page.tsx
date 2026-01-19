@@ -75,13 +75,15 @@ function LoginPage() {
           submitOnEnter
           className="mb-3"
         />
-        <Link href="/forgot-password" className="d-block mt-4">
+        <Link href="/forgot-password" prefetch={false} className="d-block mt-4">
           Forgot password?
         </Link>
       </Form>
 
       <div className="fs-5 container mx-auto mt-4 px-3" style={{ maxWidth: "var(--cc-md-width)" }}>
-        <Link href="/register">Create account</Link>
+        <Link href="/register" prefetch={false}>
+          Create account
+        </Link>
       </div>
     </div>
   );

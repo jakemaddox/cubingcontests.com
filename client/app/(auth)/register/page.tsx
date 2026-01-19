@@ -97,7 +97,9 @@ function RegisterPage() {
       </Form>
 
       <div className="fs-5 container mx-auto mt-4 px-3" style={{ maxWidth: "var(--cc-md-width)" }}>
-        <Link href="/login">Log in</Link>
+        <Link href="/login" prefetch={false}>
+          Log in
+        </Link>
       </div>
     </div>
   );

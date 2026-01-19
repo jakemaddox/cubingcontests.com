@@ -1,4 +1,4 @@
-import type { randomUUID as randomUUIDType } from "node:crypto";
+// import type { randomUUID as randomUUIDType } from "node:crypto";
 import type fsType from "node:fs";
 import type { writeFile as writeFileType } from "node:fs/promises";
 import { eq, inArray, sql } from "drizzle-orm";
@@ -74,7 +74,7 @@ export async function register() {
 
     const fs: typeof fsType = await import("node:fs");
     const { writeFile }: { writeFile: typeof writeFileType } = await import("node:fs/promises");
-    const { randomUUID }: { randomUUID: typeof randomUUIDType } = await import("node:crypto");
+    // const { randomUUID }: { randomUUID: typeof randomUUIDType } = await import("node:crypto");
     const { auth }: { auth: typeof authType } = await import("~/server/auth.ts");
 
     const usersDump = JSON.parse(fs.readFileSync("./dump/users.json") as any) as any[];
@@ -143,29 +143,31 @@ export async function register() {
     //   teambld: "333_team_bld_old",
     // };
 
-    for (const testUser of testUsers) {
-      const userExists =
-        (await db.select().from(usersTable).where(eq(usersTable.email, testUser.email)).limit(1)).length > 0;
+    if (process.env.NODE_ENV !== "production") {
+      for (const testUser of testUsers) {
+        const userExists =
+          (await db.select().from(usersTable).where(eq(usersTable.email, testUser.email)).limit(1)).length > 0;
 
-      if (!userExists) {
-        if (process.env.EMAIL_API_KEY) throw new Error(message);
+        if (!userExists) {
+          if (process.env.EMAIL_API_KEY) throw new Error(message);
 
-        const { role, emailVerified, ...body } = testUser;
-        await auth.api.signUpEmail({ body });
+          const { role, emailVerified, ...body } = testUser;
+          await auth.api.signUpEmail({ body });
 
-        // Set emailVerified and personId
-        const [user] = await db
-          .update(usersTable)
-          .set({ emailVerified, personId: testUser.personId })
-          .where(eq(usersTable.email, testUser.email))
-          .returning();
+          // Set emailVerified and personId
+          const [user] = await db
+            .update(usersTable)
+            .set({ emailVerified, personId: testUser.personId })
+            .where(eq(usersTable.email, testUser.email))
+            .returning();
 
-        await db.update(accountsTable).set({ password: hashForCc }).where(eq(accountsTable.userId, user.id));
+          await db.update(accountsTable).set({ password: hashForCc }).where(eq(accountsTable.userId, user.id));
 
-        // Set role
-        if (role) await db.update(usersTable).set({ role }).where(eq(usersTable.id, user.id));
+          // Set role
+          if (role) await db.update(usersTable).set({ role }).where(eq(usersTable.id, user.id));
 
-        console.log(`Seeded test user: ${testUser.username}`);
+          console.log(`Seeded test user: ${testUser.username}`);
+        }
       }
     }
 
@@ -188,7 +190,9 @@ export async function register() {
                 username,
                 displayUsername: user.username,
                 // Resetting all passwords due to hashing algorithm change (further encrypted by scrypt)
-                password: randomUUID(),
+                // password: randomUUID(),
+                // THIS AND THE LINE BELOW TO SET THE PASSWORD DIRECTLY IN THE DB IS TEMPORARY!!!!!!!!!!!!!!!!!!!!!!!!!
+                password: user.password,
                 personId: user.personId,
                 name: user.username,
               },
@@ -206,7 +210,11 @@ export async function register() {
 
             await tx
               .update(accountsTable)
-              .set({ createdAt: new Date(user.createdAt.$date), updatedAt: new Date(user.updatedAt.$date) })
+              .set({
+                password: user.password, // TEMPORARY!!!!!!!
+                createdAt: new Date(user.createdAt.$date),
+                updatedAt: new Date(user.updatedAt.$date),
+              })
               .where(eq(accountsTable.userId, res.user.id));
           }
         });
@@ -638,6 +646,11 @@ export async function register() {
       await db.transaction(async (tx) => {
         for (const category of ["meetups", "video-based-results", "competitions"]) {
           for (const event of eventsDump) {
+            if (!(await tx.query.results.findFirst({ columns: { id: true }, where: { eventId: event.eventId } }))) {
+              console.log(`No results found for event ${event.eventId}, skipping`);
+              continue;
+            }
+
             const newWrResults = [];
 
             for (const bestOrAverage of ["best", "average"] as ("best" | "average")[]) {
@@ -701,11 +714,13 @@ export async function register() {
                     AND ${resultsTable[bestOrAverage]} = results_with_record_times.curr_record`)
                   .then((val: any) => val.map(({ id }: any) => id));
 
-                await tx
-                  .update(resultsTable)
-                  .set({ [recordField]: crType })
-                  .where(inArray(resultsTable.id, newCrIds))
-                  .returning();
+                if (newCrIds.length > 0) {
+                  await tx
+                    .update(resultsTable)
+                    .set({ [recordField]: crType })
+                    .where(inArray(resultsTable.id, newCrIds))
+                    .returning();
+                }
               }
 
               const newNrIds = [];
@@ -736,17 +751,19 @@ export async function register() {
                 if (nrIdsForCountry.length > 0) newNrIds.push(...nrIdsForCountry.map(({ id }: any) => id));
               }
 
-              await tx
-                .update(resultsTable)
-                .set({ [recordField]: "NR" })
-                .where(inArray(resultsTable.id, newNrIds))
-                .returning();
+              if (newNrIds.length > 0) {
+                await tx
+                  .update(resultsTable)
+                  .set({ [recordField]: "NR" })
+                  .where(inArray(resultsTable.id, newNrIds))
+                  .returning();
+              }
             }
 
             // Save WRs, if there were any (could be that the event doesn't have any non-DNF results in the category)
             if (newWrResults.length > 0) {
               await writeFile(
-                `./dump/new_records/${event.eventId}_${newWrResults[0].regionalSingleRecord}s`,
+                `./new_records/${event.eventId}_${newWrResults[0].regionalSingleRecord}s`,
                 JSON.stringify(newWrResults.map(recordMapper as any), null, 2),
               );
             }

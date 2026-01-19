@@ -18,8 +18,11 @@ function ModeratorInstructions({ children }: Props) {
         </p>
         <div style={{ height: "1rem" }} />
         <p>
-          1. <Link href="/register">Create an account</Link> and send an email to {C.contactEmail} with the following
-          information (exception: for WCA competitions,{" "}
+          1.{" "}
+          <Link href="/register" prefetch={false}>
+            Create an account
+          </Link>{" "}
+          and send an email to {C.contactEmail} with the following information (exception: for WCA competitions,{" "}
           <b>you must first wait until the competition has been announced</b> on the WCA website):
         </p>
         <p>1.1. Username</p>

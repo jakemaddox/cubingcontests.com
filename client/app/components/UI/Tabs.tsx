@@ -5,25 +5,12 @@ type Props = {
   tabs: NavigationItem[];
   activeTab: string; // the value of the currently active tab
   setActiveTab?: (val: string) => void; // not needed on a client-side-rendered page
-  prefetch?: boolean;
   replace?: boolean;
   forServerSidePage?: boolean;
   disabledTabs?: string[];
 };
 
-const Tabs = ({
-  tabs,
-  activeTab,
-  setActiveTab,
-  prefetch = false,
-  replace = false,
-  forServerSidePage = false,
-  disabledTabs = [],
-}: Props) => {
-  if (prefetch && !forServerSidePage) {
-    throw new Error("The Tabs component only supports prefetch when forServerSidePage is true");
-  }
-
+function Tabs({ tabs, activeTab, setActiveTab, replace = false, forServerSidePage = false, disabledTabs = [] }: Props) {
   return (
     <ul className="nav nav-tabs mb-3">
       {tabs
@@ -43,7 +30,7 @@ const Tabs = ({
             ) : (
               <Link
                 href={tab.route!}
-                prefetch={prefetch}
+                prefetch={false}
                 replace={replace}
                 className={`nav-link ${activeTab === tab.value ? "active" : ""}`}
               >
@@ -55,6 +42,6 @@ const Tabs = ({
         ))}
     </ul>
   );
-};
+}
 
 export default Tabs;

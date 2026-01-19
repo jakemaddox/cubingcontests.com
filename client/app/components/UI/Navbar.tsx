@@ -138,7 +138,7 @@ function NavbarItems({ initSession }: Props) {
             </li>
             {!user ? (
               <li className="nav-item">
-                <Link className="nav-link" href="/login" onClick={collapseAll}>
+                <Link className="nav-link" href="/login" prefetch={false} onClick={collapseAll}>
                   Log In
                 </Link>
               </li>
@@ -154,18 +154,18 @@ function NavbarItems({ initSession }: Props) {
                 <ul className={`dropdown-menu end-0 px-3 px-lg-2 py-0 ${userExpanded ? "show" : ""}`}>
                   {canAccessModDashboard && (
                     <li>
-                      <Link className="nav-link" href="/mod" onClick={collapseAll}>
+                      <Link className="nav-link" href="/mod" prefetch={false} onClick={collapseAll}>
                         Mod Dashboard
                       </Link>
                     </li>
                   )}
                   <li>
-                    <Link className="nav-link" href="/user/submit-results" onClick={collapseAll}>
+                    <Link className="nav-link" href="/user/submit-results" prefetch={false} onClick={collapseAll}>
                       Submit Results
                     </Link>
                   </li>
                   <li>
-                    <Link className="nav-link" href="/user/settings" onClick={collapseAll}>
+                    <Link className="nav-link" href="/user/settings" prefetch={false} onClick={collapseAll}>
                       Settings
                     </Link>
                   </li>
