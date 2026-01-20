@@ -12,15 +12,13 @@ if [ "$(pwd | tail -c 5)" == "/bin" ]; then
 fi
 
 if [ "$1" != "--restart" ] && [ "$1" != "-r" ]; then
+  sudo docker compose -f docker-compose.cc.yml up -d
+else
   sudo apt update &&
   sudo apt dist-upgrade &&
 
   # TO-DO: MAKE DUMPS WORK AGAIN!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   # ./bin/dump-db.sh /dump
 
-  if [ "$?" -gt 0 ]; then
-    exit 2
-  fi
+  sudo docker compose -f docker-compose.cc.yml restart nextjs
 fi
-
-sudo docker compose -f docker-compose.cc.yml restart nextjs

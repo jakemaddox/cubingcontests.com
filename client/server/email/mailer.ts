@@ -16,7 +16,7 @@ import type { ResultResponse } from "../db/schema/results.ts";
 // This is needed when running Better Auth DB migrations
 if (process.env.NODE_ENV !== "production") loadEnvConfig(process.cwd(), true);
 
-if (!process.env.NEXT_PUBLIC_BASE_URL) throw new Error("NEXT_PUBLIC_BASE_URL environment variable not set!");
+if (!process.env.NEXT_PUBLIC_BASE_URL) console.error("NEXT_PUBLIC_BASE_URL environment variable not set!");
 
 // Mailtrap documentation: https://github.com/mailtrap/mailtrap-nodejs
 const client = new MailtrapClient({
@@ -25,7 +25,7 @@ const client = new MailtrapClient({
   testInboxId: process.env.NODE_ENV === "production" ? undefined : Number(process.env.EMAIL_TEST_INBOX_ID),
 });
 
-const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? "";
 const from = {
   name: "No Reply",
   email: `no-reply@${baseUrl.split("://").at(1)}`,
