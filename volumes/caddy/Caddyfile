@@ -1,7 +1,7 @@
 # TO-DO: IMPROVE HARDENING!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 {$PROD_HOSTNAME} {
-  reverse_proxy http://localhost:{$NEXTJS_PORT}
+  reverse_proxy http://cc-nextjs:{$NEXTJS_PORT}
 
   handle_errors 500 502 503 504 {
     rewrite * /down-for-maintenance-page.html
@@ -12,4 +12,8 @@
 
 www.{$PROD_HOSTNAME} {
   redir https://{$PROD_HOSTNAME}{uri} permanent
+}
+
+supabase.{$PROD_HOSTNAME} {
+  reverse_proxy http://supabase-studio:{$KONG_HTTP_PORT}
 }

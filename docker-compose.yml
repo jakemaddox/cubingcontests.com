@@ -12,6 +12,7 @@ services:
     image: supabase/studio:2025.11.26-sha-8f096b5
     networks:
       - supabase
+      - shared
     restart: unless-stopped
     healthcheck:
       test:
