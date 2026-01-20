@@ -1,32 +1,51 @@
 name: cubingcontests
 
 services:
-  nginx:
-    container_name: cc-nginx
-    image: nginx
-    network_mode: host
+  # nginx:
+  #   container_name: cc-nginx
+  #   image: nginx
+  #   network_mode: host
+  #   volumes:
+  #     - ./volumes/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+  #     # The env vars in this template file get substituted in the command below, and the final config file is saved
+  #     - ./volumes/nginx/default.conf.template:/default.conf.template:ro
+  #     - ./volumes/nginx/ssl/:/etc/nginx/ssl/:ro
+  #     - ./down-for-maintenance-page.html:/var/www/html/50x.html:ro
+  #   # The envsubst command below has to match this
+  #   environment:
+  #     NEXTJS_PORT: ${NEXTJS_PORT}
+  #     KONG_HTTP_PORT: ${KONG_HTTP_PORT}
+  #     KONG_HTTPS_PORT: ${KONG_HTTPS_PORT}
+  #     PROD_HOSTNAME: ${PROD_HOSTNAME}
+  #   command: [
+  #       "/bin/sh",
+  #       "-c",
+  #       "envsubst '$$NEXTJS_PORT,$$KONG_HTTP_PORT,$$KONG_HTTPS_PORT,$$PROD_HOSTNAME' \
+  #         < /default.conf.template \
+  #         > /etc/nginx/conf.d/default.conf \
+  #         && exec nginx -g 'daemon off;'"
+  #     ]
+  
+  caddy:
+    container_name: cc-caddy
+    image: caddy:2.11-alpine
+    ports:
+      - 80:80
+      - 443:443
+      - 443:443/udp
     volumes:
-      - ./volumes/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      # The env vars in this template file get substituted in the command below, and the final config file is saved
-      - ./volumes/nginx/default.conf.template:/default.conf.template:ro
-      - ./volumes/nginx/ssl/:/etc/nginx/ssl/:ro
-      - ./down-for-maintenance-page.html:/var/www/html/50x.html:ro
-    # The envsubst command below has to match this
+      - ./volumes/caddy/:/etc/caddy/:ro
+      - ./down-for-maintenance-page.html:/srv/down-for-maintenance-page.html:ro
+      - caddy_data:/data
+      - caddy_config:/config
     environment:
       NEXTJS_PORT: ${NEXTJS_PORT}
-      KONG_HTTP_PORT: ${KONG_HTTP_PORT}
-      KONG_HTTPS_PORT: ${KONG_HTTPS_PORT}
+      # KONG_HTTP_PORT: ${KONG_HTTP_PORT}
+      # KONG_HTTPS_PORT: ${KONG_HTTPS_PORT}
       PROD_HOSTNAME: ${PROD_HOSTNAME}
-    command: [
-        "/bin/sh",
-        "-c",
-        "envsubst '$$NEXTJS_PORT,$$KONG_HTTP_PORT,$$KONG_HTTPS_PORT,$$PROD_HOSTNAME' \
-          < /default.conf.template \
-          > /etc/nginx/conf.d/default.conf \
-          && exec nginx -g 'daemon off;'"
-      ]
+    restart: unless-stopped
 
-  client:
+  nextjs:
     container_name: cc-nextjs
     image: ${DOCKER_IMAGE_NAME}
     networks:
@@ -51,3 +70,6 @@ networks:
   shared:
     name: cubingcontests_shared
     external: true # configured in docker-compose.yml
+volumes:
+  caddy_data:
+  caddy_config:

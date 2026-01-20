@@ -1,0 +1,15 @@
+# TO-DO: IMPROVE HARDENING!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+{$PROD_HOSTNAME} {
+  reverse_proxy http://localhost:{$NEXTJS_PORT}
+
+  handle_errors 500 502 503 504 {
+    rewrite * /down-for-maintenance-page.html
+    root * /srv
+    file_server
+  }
+}
+
+www.{$PROD_HOSTNAME} {
+  redir https://{$PROD_HOSTNAME}{uri} permanent
+}
