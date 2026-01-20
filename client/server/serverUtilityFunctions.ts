@@ -180,8 +180,8 @@ export async function getRankings(
   const defaultNumberOfAttempts = getDefaultAverageAttempts(event.defaultRoundFormat);
   const regionCondition = region
     ? Continents.some((c) => c.code === region)
-      ? `AND super_region_code = '${region}'`
-      : `AND region_code = '${region}'`
+      ? `AND results.super_region_code = '${region}'`
+      : `AND results.region_code = '${region}'`
     : "";
   let rankings: Ranking[];
 
