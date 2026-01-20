@@ -4,6 +4,8 @@ services:
   caddy:
     container_name: cc-caddy
     image: caddy:2.11-alpine
+    networks:
+      - shared
     ports:
       - 80:80
       - 443:443
