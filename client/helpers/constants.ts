@@ -9,7 +9,7 @@ export const C = {
   minResultsForOneMoreRound: 8,
   // IF THIS IS EVER UPDATED, ALSO CONSIDER THE LINES WITH 24000000 IN AttemptInput
   maxTime: 24 * 60 * 60 * 100, // 24 hours
-  maxResult: 999999999999999, // accounts for max possible Multi-Blind result
+  maxResult: 999_999_999_999_999, // accounts for max possible Multi-Blind result
   maxFmMoves: 999,
   maxTimeLimit: 60 * 60 * 100, // 1 hour
   defaultTimeLimit: 10 * 60 * 100, // 10 minutes
@@ -20,6 +20,7 @@ export const C = {
   maxProceedPercentage: 75,
   maxTotalMeetupRounds: 15,
   maxPersonMatches: 6,
+  maxRankings: 100_000,
   duePerCompetitor: 0.1,
   wcaApiBaseUrl: "https://api.worldcubeassociation.org",
   wcaV0ApiBaseUrl: "https://www.worldcubeassociation.org/api/v0",

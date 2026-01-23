@@ -11,6 +11,9 @@ if [ "$(pwd | tail -c 5)" == "/bin" ]; then
   exit 1
 fi
 
+source .env
+sudo docker pull "$DOCKER_IMAGE_NAME"
+
 if [ "$1" != "--restart" ] && [ "$1" != "-r" ]; then
   sudo docker compose -f docker-compose.cc.yml up -d
 else
@@ -20,5 +23,6 @@ else
   # TO-DO: MAKE DUMPS WORK AGAIN!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   # ./bin/dump-db.sh /dump
 
-  sudo docker compose -f docker-compose.cc.yml restart nextjs
+  sudo docker stop cc-nextjs &&
+  sudo docker compose -f docker-compose.cc.yml up -d
 fi

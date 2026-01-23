@@ -3,10 +3,11 @@ import { and, eq, gt, lte, ne, sql } from "drizzle-orm";
 import { camelCase } from "lodash";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { Continents } from "~/helpers/Countries.ts";
+import z from "zod";
+import { Continents, CountryCodes } from "~/helpers/Countries.ts";
 import { C } from "~/helpers/constants.ts";
 import type { Ranking } from "~/helpers/types/Rankings.ts";
-import { type RecordCategory, type RecordType, RecordTypeValues } from "~/helpers/types.ts";
+import { type RecordCategory, RecordCategoryValues, type RecordType, RecordTypeValues } from "~/helpers/types.ts";
 import { getIsAdmin } from "~/helpers/utilityFunctions.ts";
 import { type DbTransactionType, db } from "~/server/db/provider.ts";
 import { type ContestResponse, contestsTable } from "~/server/db/schema/contests.ts";
@@ -177,12 +178,22 @@ export async function getRankings(
     topN?: number;
   },
 ): Promise<Ranking[]> {
+  z.strictObject({
+    bestOrAverage: z.enum(["best", "average"]),
+    recordCategory: z.enum([...RecordCategoryValues, "all"]),
+    show: z.enum(["persons", "results"]).optional(),
+    region: z.enum([...CountryCodes, ...Continents.map((c) => c.code)]).optional(),
+    topN: z.int().min(1).max(C.maxRankings),
+  }).parse({ bestOrAverage, recordCategory, show, region, topN });
+
   const defaultNumberOfAttempts = getDefaultAverageAttempts(event.defaultRoundFormat);
+  const recordCategoryCondition =
+    recordCategory === "all" ? sql`` : sql`AND ${resultsTable.recordCategory} = ${recordCategory}`;
   const regionCondition = region
     ? Continents.some((c) => c.code === region)
-      ? `AND results.super_region_code = '${region}'`
-      : `AND results.region_code = '${region}'`
-    : "";
+      ? sql`AND ${resultsTable.superRegionCode} = ${region}`
+      : sql`AND ${resultsTable.regionCode} = ${region}`
+    : sql``;
   let rankings: Ranking[];
 
   const mapRankingsData = (val: any[]) =>
@@ -225,10 +236,10 @@ export async function getRankings(
             UNNEST(${resultsTable.personIds}) AS person_id
           WHERE ${resultsTable.approved} IS TRUE
             AND ${resultsTable.eventId} = ${event.eventId}
-            ${sql.raw(recordCategory === "all" ? "" : `AND record_category = '${recordCategory}'`)}
+            ${recordCategoryCondition}
             AND ${resultsTable[bestOrAverage]} > 0
-            ${sql.raw(bestOrAverage === "best" ? "" : `AND CARDINALITY(attempts) = ${defaultNumberOfAttempts}`)}
-            ${sql.raw(regionCondition)}
+            ${bestOrAverage === "best" ? sql`` : sql`AND CARDINALITY(${resultsTable.attempts}) = ${defaultNumberOfAttempts}`}
+            ${regionCondition}
           ORDER BY person_id, ${resultsTable[bestOrAverage]}, ${resultsTable.date}
         ), rankings AS (
           SELECT personal_records.*,
@@ -308,9 +319,9 @@ export async function getRankings(
             UNNEST(${resultsTable.attempts}) WITH ORDINALITY AS attempts_data(attempt, attempt_number)
           WHERE ${resultsTable.approved} IS TRUE
             AND ${resultsTable.eventId} = ${event.eventId}
-            ${sql.raw(recordCategory === "all" ? "" : `AND record_category = '${recordCategory}'`)}
+            ${recordCategoryCondition}
             AND CAST(attempts_data.attempt->>'result' AS BIGINT) > 0
-            ${sql.raw(regionCondition)}
+            ${regionCondition}
           ORDER BY ranking, ${resultsTable.date}
         )
         SELECT * FROM rankings
@@ -358,10 +369,10 @@ export async function getRankings(
               ON ${resultsTable.competitionId} = ${contestsTable.competitionId}
           WHERE ${resultsTable.approved} IS TRUE
             AND ${resultsTable.eventId} = ${event.eventId}
-            ${sql.raw(recordCategory === "all" ? "" : `AND record_category = '${recordCategory}'`)}
+            ${recordCategoryCondition}
             AND ${resultsTable.average} > 0
             AND CARDINALITY(${resultsTable.attempts}) = ${defaultNumberOfAttempts}
-            ${sql.raw(regionCondition)}
+            ${regionCondition}
           ORDER BY ${resultsTable.average}, ${resultsTable.date}
         )
         SELECT * FROM rankings
