@@ -56,7 +56,7 @@ RUN mkdir new_records && chown nextjs:nodejs new_records
 
 USER nextjs
 
-EXPOSE ${PORT}
+EXPOSE 3000
 
 # server.js is created by next build from the standalone output
 # https://nextjs.org/docs/pages/api-reference/config/next-config-js/output

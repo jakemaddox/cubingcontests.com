@@ -18,5 +18,8 @@ if [ "$1" != "--cleanup" ] && [ "$1" != "-c" ]; then
 
   docker build --build-arg NEXT_PUBLIC_BASE_URL="$NEXT_PUBLIC_BASE_URL" -t "$DOCKER_IMAGE_NAME" ./client &&
 
-  docker compose -f docker-compose.cc.yml up
+  docker compose -f docker-compose.cc.yml up -d &&
+
+  cd client
+  pnpm run db:migrate
 fi

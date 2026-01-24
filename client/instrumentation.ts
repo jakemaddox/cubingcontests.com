@@ -568,6 +568,15 @@ export async function register() {
             })),
           );
 
+          if (!(await tx.query.collectiveSolutions.findFirst({ where: { state: "solved" } }))) {
+            console.log("There is no solved collective solution. Setting ongoing solution to solved...");
+
+            await tx
+              .update(collectiveSolutionsTable)
+              .set({ state: "solved" })
+              .where(eq(collectiveSolutionsTable.state, "ongoing"));
+          }
+
           await tx.execute(
             sql.raw(
               `ALTER SEQUENCE ${ccSchema.schemaName}.collective_solutions_attempt_number_seq RESTART WITH ${collectiveSolutionsDump.at(-1)!.attemptNumber + 1};`,

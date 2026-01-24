@@ -27,7 +27,7 @@ BIND_MOUNTS=(
 for DIR in "${BIND_MOUNTS[@]}"; do
   if [ -d "$DIR" ]; then
     echo "Deleting $DIR..."
-    rm -rf "$DIR"
+    sudo rm -rf "$DIR"
   else
     echo "Directory $DIR does not exist. Skipping bind mount deletion step..."
   fi
