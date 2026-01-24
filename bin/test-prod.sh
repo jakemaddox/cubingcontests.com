@@ -16,9 +16,7 @@ docker compose -f docker-compose.cc.yml down
 if [ "$1" != "--cleanup" ] && [ "$1" != "-c" ]; then
   source .env # needed for the build args
 
-  docker build --build-arg PORT="$NEXTJS_PORT" \
-               --build-arg NEXT_PUBLIC_BASE_URL="http://localhost:$NEXTJS_PORT" \
-               -t "$DOCKER_IMAGE_NAME" ./client &&
+  docker build --build-arg NEXT_PUBLIC_BASE_URL="$NEXT_PUBLIC_BASE_URL" -t "$DOCKER_IMAGE_NAME" ./client &&
 
   docker compose -f docker-compose.cc.yml up
 fi

@@ -16,7 +16,6 @@ services:
       - caddy_data:/data
       - caddy_config:/config
     environment:
-      NEXTJS_PORT: ${NEXTJS_PORT}
       KONG_HTTP_PORT: ${KONG_HTTP_PORT}
       PROD_HOSTNAME: ${PROD_HOSTNAME}
     restart: unless-stopped
@@ -26,16 +25,19 @@ services:
     image: ${DOCKER_IMAGE_NAME}
     networks:
       - shared
+    ports:
+      - 127.0.0.1:${NEXTJS_PORT}:3000 # the Caddyfile assumes the Next JS port used internally in the container is 3000
     volumes:
       # THIS IS TEMPORARY!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       - ./client/dump/:/app/dump/:ro
     environment:
+      # Mostly the same as DATABASE_URL in .env.development
       DATABASE_URL: postgresql://${CC_DB_USERNAME}.${POOLER_TENANT_ID}:${CC_DB_PASSWORD}@supabase-pooler:${POOLER_PROXY_PORT_TRANSACTION}/${POSTGRES_DB}
       CC_DB_SCHEMA: ${CC_DB_SCHEMA}
       EMAIL_API_KEY: ${EMAIL_API_KEY}
-      BETTER_AUTH_URL: https://${PROD_HOSTNAME} # same as NEXT_PUBLIC_BASE_URL in the publish script
+      BETTER_AUTH_URL: ${BETTER_AUTH_URL}
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
-      LOGFLARE_API_BASE_URL: http://supabase-analytics:${LOGFLARE_PORT}
+      LOGFLARE_API_BASE_URL: ${LOGFLARE_API_BASE_URL}
       LOGFLARE_PUBLIC_ACCESS_TOKEN: ${LOGFLARE_PUBLIC_ACCESS_TOKEN}
       MIGRATE_DB: ${MIGRATE_DB} # THIS IS TEMPORARY!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     restart: always

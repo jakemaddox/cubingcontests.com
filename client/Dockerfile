@@ -36,11 +36,8 @@ RUN pnpm run build
 FROM base AS runner
 WORKDIR /app
 
-ARG PORT
-
 ENV NODE_ENV=production
 ENV HOSTNAME="0.0.0.0"
-ENV PORT=${PORT}
 # Uncomment the following line in case you want to disable telemetry during runtime.
 # ENV NEXT_TELEMETRY_DISABLED=1
 

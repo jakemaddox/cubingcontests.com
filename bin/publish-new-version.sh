@@ -31,10 +31,8 @@ if [ -z "$1" ] || [ "$1" != '--no-docker' ]; then
 
   source .env # needed for the build args
 
-  # Build Next JS container (NEXT_PUBLIC_BASE_URL is same as BETTER_AUTH_URL in the Docker Compose file)
-  docker build --build-arg PORT="$NEXTJS_PORT" \
-               --build-arg NEXT_PUBLIC_BASE_URL="https://$PROD_HOSTNAME" \
-               -t "$DOCKER_IMAGE_NAME:$new_version" ./client &&
+  # Build Next JS container
+  docker build --build-arg NEXT_PUBLIC_BASE_URL="https://$PROD_HOSTNAME" -t "$DOCKER_IMAGE_NAME:$new_version" ./client &&
 
   docker tag "$DOCKER_IMAGE_NAME:$new_version"  "$DOCKER_IMAGE_NAME:latest" &&
   docker push "$DOCKER_IMAGE_NAME:$new_version"  &&

@@ -1,7 +1,7 @@
 # TO-DO: IMPROVE HARDENING!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 {$PROD_HOSTNAME} {
-  reverse_proxy http://cc-nextjs:{$NEXTJS_PORT}
+  reverse_proxy http://cc-nextjs:3000
 
   handle_errors 500 502 503 504 {
     rewrite * /down-for-maintenance-page.html
