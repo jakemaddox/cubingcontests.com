@@ -24,8 +24,8 @@ else
   # ./bin/dump-db.sh /dump
 
   sudo docker stop cc-nextjs &&
-  sudo docker compose -f docker-compose.cc.yml up -d &&
-
-  cd client
-  pnpm run db:migrate
+  sudo docker compose -f docker-compose.cc.yml up -d
 fi
+
+cd client
+pnpm run db:migrate
