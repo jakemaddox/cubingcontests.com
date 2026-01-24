@@ -215,3 +215,10 @@ etc.) that is stored in the database is determined by the following:
 The structure of many objects like competitions and rounds is mostly similar to
 the
 [WCIF specification](https://github.com/thewca/wcif/blob/master/specification.md).
+
+
+# NOTES (TODO: CLEAN THIS UP!!!!!!!!!!!)
+
+Logging into DB with admin privileges locally:
+
+docker exec supabase-db psql postgresql://supabase_admin:${POSTGRES_PASSWORD}@localhost:${POSTGRES_PORT}/${POSTGRES_DB}

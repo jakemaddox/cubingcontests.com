@@ -15,6 +15,10 @@ source .env
 sudo docker pull "$DOCKER_IMAGE_NAME"
 
 if [ "$1" != "--restart" ] && [ "$1" != "-r" ]; then
+  cd client &&
+  pnpm run db:migrate &&
+  cd .. &&
+
   sudo docker compose -f docker-compose.cc.yml up -d
 else
   sudo apt update &&
@@ -24,8 +28,10 @@ else
   # ./bin/dump-db.sh /dump
 
   sudo docker stop cc-nextjs &&
+
+  cd client &&
+  pnpm run db:migrate &&
+  cd .. &&
+
   sudo docker compose -f docker-compose.cc.yml up -d
 fi
-
-cd client
-pnpm run db:migrate
