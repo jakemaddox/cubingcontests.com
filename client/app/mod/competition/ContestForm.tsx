@@ -49,6 +49,7 @@ import {
   createContestSF,
   deleteContestSF,
   getTimeZoneFromCoordsSF,
+  unfinishContestSF,
   updateContestSF,
 } from "~/server/serverFunctions/contestServerFunctions.ts";
 import {
@@ -92,6 +93,7 @@ function ContestForm({
   const { executeAsync: getTimeZoneFromCoords, isPending: isPendingTimeZone } = useAction(getTimeZoneFromCoordsSF);
   const { executeAsync: createContest, isPending: isCreating } = useAction(createContestSF);
   const { executeAsync: updateContest, isPending: isUpdating } = useAction(updateContestSF);
+  const { executeAsync: unfinishContest, isPending: isUnfinishing } = useAction(unfinishContestSF);
   const { executeAsync: deleteContest, isPending: isDeleting } = useAction(deleteContestSF);
   const [activeTab, setActiveTab] = useState("details");
   const [detailsImported, setDetailsImported] = useState(mode === "edit" && contest?.type === "wca-comp");
@@ -171,6 +173,7 @@ function ContestForm({
   const isPending =
     isCreating ||
     isUpdating ||
+    isUnfinishing ||
     isDeleting ||
     isPendingTimeZone ||
     isPendingWcaCompDetails ||
@@ -437,25 +440,17 @@ function ContestForm({
     }
   };
 
-  const unfinishContest = async () => {
-    throw new Error("NOT IMPLEMENTED!");
-    // const answer = confirm(`Are you sure you would like to set ${contest!.name} back to ongoing?`);
+  const onUnfinishContest = async () => {
+    if (confirm(`Are you sure you would like to un-finish ${contest!.name}?`)) {
+      const res = await unfinishContest({ competitionId });
 
-    // if (answer) {
-    //   const res = await myFetch.patch(
-    //     `/competitions/set-state/${competitionId}`,
-    //     { newState: "ongoing" },
-    //     { loadingId: "unfinish_contest_button", keepLoadingOnSuccess: true },
-    //   );
-
-    //   if (res.success) window.history.back(); // change to router.back()
-    // }
+      if (res.serverError || res.validationErrors) changeErrorMessages([getActionError(res)]);
+      else router.push("/mod");
+    }
   };
 
   const onDeleteContest = async () => {
-    const answer = confirm(`Are you sure you would like to remove ${contest!.name}?`);
-
-    if (answer) {
+    if (confirm(`Are you sure you would like to remove ${contest!.name}?`)) {
       const res = await deleteContest({ competitionId });
 
       if (res.serverError || res.validationErrors) changeErrorMessages([getActionError(res)]);
@@ -559,9 +554,9 @@ function ContestForm({
                     <>
                       {contest.state === "finished" && (
                         <Button
-                          id="unfinish_contest_button"
-                          onClick={unfinishContest}
-                          // loadingId={loadingId}
+                          type="button"
+                          onClick={() => onUnfinishContest()}
+                          isLoading={isUnfinishing}
                           disabled={isPending}
                           className="btn-warning"
                         >

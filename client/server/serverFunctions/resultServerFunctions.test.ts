@@ -128,7 +128,7 @@ describe("createContestResultSF", () => {
     expect(res.data![0].regionalAverageRecord).toBeNull();
   });
 
-  describe("validation errors", () => {
+  describe("validation errors", async () => {
     it("throws validation error for the same person being entered twice", async () => {
       const res = await createContestResultSF({
         newResultDto: {
@@ -184,7 +184,7 @@ describe("createContestResultSF", () => {
     });
   });
 
-  describe("server errors", () => {
+  describe("server errors", async () => {
     it("throws error for contest not found", async () => {
       const competitionId = "INVALID";
       const res = await createContestResultSF({
@@ -404,8 +404,8 @@ describe("createContestResultSF", () => {
     });
   });
 
-  describe("Record result creation", () => {
-    describe("3x3x3 + OH + BLD Team Relay results", () => {
+  describe("Record result creation", async () => {
+    describe("3x3x3 + OH + BLD Team Relay results", async () => {
       const eventId = "333_oh_bld_team_relay";
       const partialResult = {
         eventId,
@@ -643,7 +643,7 @@ describe("deleteContestResultSF", () => {
     expect(res.data).toBeDefined();
   });
 
-  describe("server errors", () => {
+  describe("server errors", async () => {
     it("throws error for invalid result ID", async () => {
       const id = 0;
       const res = await deleteContestResultSF({ id });
@@ -670,8 +670,8 @@ describe("deleteContestResultSF", () => {
     });
   });
 
-  describe("Record result deletion (sometimes leading to future records being set)", () => {
-    describe("3x3x3 Blindfolded 2-man Relay results", () => {
+  describe("Record result deletion (sometimes leading to future records being set)", async () => {
+    describe("3x3x3 Blindfolded 2-man Relay results", async () => {
       const eventId = "333bf_2_person_relay";
 
       it("deletes NR result and sets prevented future NR", async () => {
@@ -772,6 +772,20 @@ describe("deleteContestResultSF", () => {
         expect(crChangedToWr?.regionalSingleRecord).toBe("WR");
         expect(crChangedToWr?.regionalAverageRecord).toBe("WR");
       });
+
+      describe("edge cases", async () => {
+        it("deletes WR result and doesn't set future average WR with a different average format", async () => {
+          const res = await deleteContestResultSF({ id: 12 });
+
+          expect(res.serverError).toBeUndefined();
+          expect(res.validationErrors).toBeUndefined();
+          expect(res.data?.length).toBe(2);
+
+          const differentAverageFormatResult = await db.query.results.findFirst({ where: { id: 22, eventId } });
+          expect(differentAverageFormatResult?.regionalSingleRecord).toBe("WR");
+          expect(differentAverageFormatResult?.regionalAverageRecord).toBeNull();
+        });
+      });
     });
   });
 });
@@ -817,7 +831,7 @@ describe("createVideoBasedResultSF", () => {
     expect(res.data!.regionalAverageRecord).toBeNull();
   });
 
-  describe("validation errors", () => {
+  describe("validation errors", async () => {
     it("throws validation error for date being in the future", async () => {
       const res = await createVideoBasedResultSF({
         newResultDto: {
@@ -874,7 +888,7 @@ describe("createVideoBasedResultSF", () => {
     });
   });
 
-  describe("server errors", () => {
+  describe("server errors", async () => {
     it("throws error for invalid event ID", async () => {
       const eventId = "INVALID";
       const res = await createVideoBasedResultSF({
@@ -942,8 +956,8 @@ describe("createVideoBasedResultSF", () => {
     });
   });
 
-  describe("Record result creation", () => {
-    describe("4x4x4 Blindfolded results", () => {
+  describe("Record result creation", async () => {
+    describe("4x4x4 Blindfolded results", async () => {
       const eventId = "444bf";
       const partialResult = { eventId, date, videoLink: "https://example.com", discussionLink: null };
 
@@ -1150,7 +1164,7 @@ describe("createVideoBasedResultSF", () => {
         expect(wrChangedToCr3?.regionalAverageRecord).toBe("ER");
       });
 
-      describe("edge cases", () => {
+      describe("edge cases", async () => {
         it("creates tied NR result (tying FWR)", async () => {
           const res = await createVideoBasedResultSF({
             newResultDto: {

@@ -66,7 +66,7 @@ function ManageResultsScreen({ results, recordConfigs }: Props) {
           display="one-line"
         />
         {persons.at(0) && (
-          <Button onClick={resetFilters} className="btn btn-secondary btn-md">
+          <Button onClick={resetFilters} className="btn-secondary btn-md">
             Reset
           </Button>
         )}

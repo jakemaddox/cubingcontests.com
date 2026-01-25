@@ -200,6 +200,14 @@ export const roundsStub: (InsertRound & { id: number })[] = [
     timeLimitCumulativeRoundIds: [],
   },
   {
+    competitionId: "TestMeetupApr2025",
+    eventId: "333bf_2_person_relay",
+    roundNumber: 1,
+    roundTypeId: "f" as RoundType,
+    format: "a" as RoundFormat, // not the ranked average format
+    timeLimitCentiseconds: 10 * 60 * 100,
+  },
+  {
     competitionId: "TestCompApr2025",
     eventId: "333_oh_bld_team_relay",
     roundNumber: 1,
@@ -277,6 +285,9 @@ export const testMeetupMar2025_333bf_2_person_relay_r1 = roundsStub.find(
 )!;
 export const testCompMar2025_333_oh_bld_team_relay_r1 = roundsStub.find(
   (r) => r.competitionId === "TestCompMar2025" && r.eventId === "333_oh_bld_team_relay",
+)!;
+export const testMeetupApr2025_333bf_2_person_relay_r1 = roundsStub.find(
+  (r) => r.competitionId === "TestMeetupApr2025" && r.eventId === "333bf_2_person_relay",
 )!;
 export const testCompApr2025_333_oh_bld_team_relay_r1 = roundsStub.find(
   (r) => r.competitionId === "TestCompApr2025" && r.eventId === "333_oh_bld_team_relay",

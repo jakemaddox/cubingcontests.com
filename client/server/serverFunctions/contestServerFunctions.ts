@@ -375,6 +375,31 @@ export const finishContestSF = actionClient
     },
   );
 
+export const unfinishContestSF = actionClient
+  .metadata({ permissions: { competitions: ["publish"], meetups: ["publish"] } })
+  .inputSchema(
+    z.strictObject({
+      competitionId: z.string().nonempty(),
+    }),
+  )
+  .action(async ({ parsedInput: { competitionId } }) => {
+    logMessage("CC0008", `Un-finishing contest ${competitionId}`);
+
+    const contest = await db.query.contests.findFirst({ columns: { state: true }, where: { competitionId } });
+    if (!contest) throw new CcActionError(`Contest with ID ${competitionId} not found`);
+    if (contest.state !== "finished") throw new CcActionError("Contest cannot be un-finished");
+
+    // Set contest state back to ongoing and re-open all final rounds
+    await db.transaction(async (tx) => {
+      await tx.update(table).set({ state: "ongoing" }).where(eq(table.competitionId, competitionId));
+
+      await tx
+        .update(roundsTable)
+        .set({ open: true })
+        .where(and(eq(roundsTable.competitionId, competitionId), eq(roundsTable.roundTypeId, "f")));
+    });
+  });
+
 export const publishContestSF = actionClient
   .metadata({ permissions: { competitions: ["publish"], meetups: ["publish"] } })
   .inputSchema(

@@ -62,7 +62,7 @@ const ModFilters = ({ onSelectPerson, onResetFilters, disabled }: Props) => {
         display="one-line"
       />
       {persons[0] && (
-        <Button onClick={resetFilters} className="btn btn-secondary btn-md">
+        <Button onClick={resetFilters} className="btn-secondary btn-md">
           Reset
         </Button>
       )}

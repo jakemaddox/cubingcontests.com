@@ -2,7 +2,7 @@
 import type fsType from "node:fs";
 import type { writeFile as writeFileType } from "node:fs/promises";
 import { eq, inArray, sql } from "drizzle-orm";
-import { getFormattedTime } from "~/helpers/utilityFunctions.ts";
+import { getDefaultAverageAttempts, getFormattedTime } from "~/helpers/utilityFunctions.ts";
 import type { auth as authType } from "~/server/auth.ts";
 import type { db as dbType } from "~/server/db/provider.ts";
 import { accountsTable, usersTable } from "~/server/db/schema/auth-schema.ts";
@@ -16,7 +16,7 @@ import { contestsTable } from "./server/db/schema/contests.ts";
 import { eventsTable, type SelectEvent } from "./server/db/schema/events.ts";
 import { personsTable } from "./server/db/schema/persons.ts";
 import { recordConfigsTable } from "./server/db/schema/record-configs.ts";
-import { type InsertResult, resultsTable, type SelectResult } from "./server/db/schema/results.ts";
+import { type Attempt, type InsertResult, resultsTable, type SelectResult } from "./server/db/schema/results.ts";
 import { roundsTable } from "./server/db/schema/rounds.ts";
 
 const MAX_USERNAME_LENGTH = 40; // same as in auth.ts
@@ -108,6 +108,27 @@ export async function register() {
     //   // magicb: "",
     //   // magccc: "",
     // };
+
+    // EE competition with ID CampeonatoBaiano2020 is already in the CC DB!
+    // EE competition with ID CubingUSAWesternChampionship2021 is already in the CC DB!
+    // EE competition with ID EdneyvilleSpring2022 is already in the CC DB!
+    // EE competition with ID GACubersBigBlindTime2022 is already in the CC DB!
+    // EE competition with ID GACubersBigGoobers2022 is already in the CC DB!
+    // EE competition with ID GACubersReturnB2021 is already in the CC DB!
+    // EE competition with ID HappyValleySpring2022 is already in the CC DB!
+    // EE competition with ID OhioStateExpoOpen2022 is already in the CC DB!
+    // EE competition with ID PittsburghFall2021 is already in the CC DB!
+    // EE competition with ID PittsburghWinter2022 is already in the CC DB!
+    // EE competition with ID SacCubingIX2020 is already in the CC DB!
+    // EE competition with ID SacCubingX2021 is already in the CC DB!
+    // EE competition with ID SlowNSteadyFall2021 is already in the CC DB!
+    // EE competition with ID SlowNSteadySpring2022 is already in the CC DB!
+    // EE competition with ID SnoCoGoesBacktoSquare12021 is already in the CC DB!
+    // EE competition with ID SorguesOpen2022 is already in the CC DB!
+    // EE competition with ID SoutheastChampionship2022 is already in the CC DB!
+    // EE competition with ID WelcomeBackPortland2022 is already in the CC DB!
+    // EE competition with ID WindyCityNewYear2022 is already in the CC DB!
+
     // const eeEventIdConverter = {
     //   "113sia": "333_siamese",
     //   "1mguild": "miniguild",
@@ -417,10 +438,11 @@ export async function register() {
               personIds: r.personIds,
               regionCode: isSameRegionParticipants ? participants[0].regionCode : null,
               superRegionCode: isSameSuperRegionParticipants ? firstParticipantSuperRegion : null,
-              attempts: r.attempts.map((a: any) => ({
-                result: Number(a.result),
-                memo: Number(a.memo),
-              })),
+              attempts: r.attempts.map((a: any) => {
+                const attempt: Attempt = { result: Number(a.result) };
+                if (a.memo) attempt.memo = Number(a.memo);
+                return attempt;
+              }),
               best: Number(r.best),
               average: Number(r.average),
               recordCategory: contest ? (contest.type === 1 ? "meetups" : "competitions") : "video-based-results",
@@ -664,6 +686,11 @@ export async function register() {
 
             for (const bestOrAverage of ["best", "average"] as ("best" | "average")[]) {
               const recordField = bestOrAverage === "best" ? "regionalSingleRecord" : "regionalAverageRecord";
+              const defaultNumberOfAttempts = getDefaultAverageAttempts(event.defaultRoundFormat);
+              const numberOfAttemptsCondition =
+                bestOrAverage === "best"
+                  ? sql``
+                  : sql`AND (${resultsTable.date} < '2023-01-01T00:00:00.000Z' OR CARDINALITY(${resultsTable.attempts}) = ${defaultNumberOfAttempts})`;
 
               const newWrIds = await tx
                 .execute(sql`
@@ -675,6 +702,7 @@ export async function register() {
                   WHERE ${resultsTable[bestOrAverage]} > 0
                     AND ${resultsTable.eventId} = ${event.eventId}
                     AND ${resultsTable.recordCategory} = ${category}
+                    ${numberOfAttemptsCondition}
                   ORDER BY ${resultsTable.date}
                 ), results_with_record_times AS (
                   SELECT id, MIN(day_min_time) OVER(ORDER BY date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS curr_record
@@ -710,6 +738,7 @@ export async function register() {
                       AND ${resultsTable.eventId} = ${event.eventId}
                       AND ${resultsTable.superRegionCode} = ${superRegionCode}
                       AND ${resultsTable.recordCategory} = ${category}
+                      ${numberOfAttemptsCondition}
                     ORDER BY ${resultsTable.date}
                   ), results_with_record_times AS (
                     SELECT id, MIN(day_min_time) OVER(ORDER BY date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS curr_record
@@ -745,6 +774,7 @@ export async function register() {
                       AND ${resultsTable.eventId} = ${event.eventId}
                       AND ${resultsTable.regionCode} = ${code}
                       AND ${resultsTable.recordCategory} = ${category}
+                      ${numberOfAttemptsCondition}
                     ORDER BY ${resultsTable.date}
                   ), results_with_record_times AS (
                     SELECT id, MIN(day_min_time) OVER(ORDER BY date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS curr_record

@@ -108,7 +108,7 @@ function ContestControls({ contest, isAdmin = false, forPage, onUpdateContestSta
           onClick={() => onApproveContest()}
           isLoading={isApproving}
           disabled={isPending}
-          className={`btn btn-warning ${smallButtons ? "btn-xs" : ""}`}
+          className={`btn-warning ${smallButtons ? "btn-xs" : ""}`}
         >
           Approve
         </Button>
@@ -119,7 +119,7 @@ function ContestControls({ contest, isAdmin = false, forPage, onUpdateContestSta
           onClick={() => onFinishContest()}
           isLoading={isFinishing}
           disabled={isPending}
-          className={`btn btn-warning ${smallButtons ? "btn-xs" : ""}`}
+          className={`btn-warning ${smallButtons ? "btn-xs" : ""}`}
         >
           Finish
         </Button>
@@ -131,7 +131,7 @@ function ContestControls({ contest, isAdmin = false, forPage, onUpdateContestSta
             onClick={() => onPublishContest()}
             isLoading={isPublishing}
             disabled={isPending}
-            className={`btn btn-warning ${smallButtons ? "btn-xs" : ""}`}
+            className={`btn-warning ${smallButtons ? "btn-xs" : ""}`}
           >
             Publish
           </Button>

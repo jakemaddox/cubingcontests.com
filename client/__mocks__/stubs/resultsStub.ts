@@ -36,6 +36,7 @@ import {
   testCompJan2025_333_oh_bld_team_relay_r1,
   testCompMar2020_333_oh_bld_team_relay_r1,
   testCompMar2025_333_oh_bld_team_relay_r1,
+  testMeetupApr2025_333bf_2_person_relay_r1,
   testMeetupFeb2020_333bf_2_person_relay_r1,
   testMeetupFeb2023_333bf_2_person_relay_r1,
   testMeetupFeb2025_333bf_2_person_relay_r1,
@@ -328,6 +329,13 @@ export const resultsStub: InsertResult[] = [
     superRegionCode: "NORTH_AMERICA",
     attempts: [{ result: 6400 }, { result: 6500 }, { result: 6600 }],
     ranking: 2,
+  }),
+  // Not the ranked average format
+  getContestResult(testMeetupApr2025_333bf_2_person_relay_r1, {
+    // id: 22,
+    personIds: [jpPersonNaokoYoshida.id, dePersonHansBauer.id],
+    attempts: [{ result: 5600 }, { result: 5700 }, { result: 5800 }, { result: 5900 }, { result: 6000 }],
+    ranking: 1,
   }),
 
   // 3x3x3 + OH + BLD Team Relay (competition results)

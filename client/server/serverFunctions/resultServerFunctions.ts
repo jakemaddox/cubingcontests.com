@@ -1,6 +1,6 @@
 "use server";
 
-import { addDays, format } from "date-fns";
+import { addDays, differenceInDays, format } from "date-fns";
 import { and, eq, gt, gte, inArray, isNotNull, isNull, or, sql } from "drizzle-orm";
 import z from "zod";
 import { ContinentRecordType, Countries, getSuperRegion } from "~/helpers/Countries.ts";
@@ -41,6 +41,9 @@ import {
   getUserHasAccessToContest,
   logMessage,
 } from "../serverUtilityFunctions.ts";
+
+const OLD_RESULT_WITH_RECORD_VALIDATION_ERROR_MSG =
+  "The result is more than 30 days old and contains a record, which could affect other records. Please contact the development team.";
 
 export const getWrPairUpToDateSF = actionClient
   .metadata({ permissions: { videoBasedResults: ["create"] } })
@@ -113,10 +116,11 @@ export const createContestResultSF = actionClient
       const notFoundPersonId = personIds.find((pid) => !participants.some((p) => p.id === pid));
       if (notFoundPersonId) throw new CcActionError(`Person with ID ${notFoundPersonId} not found`);
       // Same check as in createVideoBasedResultSF
-      if (newResultDto.personIds.length !== event.participants)
+      if (newResultDto.personIds.length !== event.participants) {
         throw new CcActionError(
           `This event must have ${event.participants} participant${event.participants > 1 ? "s" : ""}`,
         );
+      }
       if (roundResults.some((r) => r.personIds.some((pid) => newResultDto.personIds.includes(pid))))
         throw new CcActionError("The competitor(s) already has a result in this round");
       // Check that all of the participants have proceeded to this round
@@ -207,6 +211,13 @@ export const createContestResultSF = actionClient
 
       await setResultRecordsAndRegions(newResult, event, recordConfigs, participants);
 
+      if (
+        (newResult.regionalSingleRecord || newResult.regionalAverageRecord) &&
+        differenceInDays(new Date(), newResult.date) > 30
+      ) {
+        throw new CcActionError(OLD_RESULT_WITH_RECORD_VALIDATION_ERROR_MSG);
+      }
+
       await db.transaction(async (tx) => {
         const [createdResult] = await tx.insert(table).values(newResult).returning();
 
@@ -283,6 +294,16 @@ export const updateContestResultSF = actionClient
 
       await setResultRecords(newResult, event, recordConfigs, { excludeResultId: id });
 
+      if (
+        (result.regionalSingleRecord ||
+          result.regionalAverageRecord ||
+          newResult.regionalSingleRecord ||
+          newResult.regionalAverageRecord) &&
+        differenceInDays(new Date(), result.date) > 30
+      ) {
+        throw new CcActionError(OLD_RESULT_WITH_RECORD_VALIDATION_ERROR_MSG);
+      }
+
       await db.transaction(async (tx) => {
         const [updatedResult] = await tx
           .update(table)
@@ -339,6 +360,13 @@ export const deleteContestResultSF = actionClient
     }) => {
       const result = await db.query.results.findFirst({ where: { id, competitionId: { isNotNull: true } } });
       if (!result) throw new CcActionError(`Result with ID ${id} not found`);
+
+      if (
+        (result.regionalSingleRecord || result.regionalAverageRecord) &&
+        differenceInDays(new Date(), result.date) > 30
+      ) {
+        throw new CcActionError(OLD_RESULT_WITH_RECORD_VALIDATION_ERROR_MSG);
+      }
 
       logMessage("CC0015", `Deleting contest result: ${JSON.stringify(result)}`);
 
@@ -580,13 +608,14 @@ async function setFutureRecords(
   const type = bestOrAverage === "best" ? "single" : "average";
   const { category } = recordConfigs[0];
   const recordsUpTo = addDays(deletedResult.date, -1);
+  const defaultNumberOfAttempts = getDefaultAverageAttempts(event.defaultRoundFormat);
+  const numberOfAttemptsCondition =
+    bestOrAverage === "best" ? sql`` : sql`AND CARDINALITY(${table.attempts}) = ${defaultNumberOfAttempts}`;
 
   // Set WRs
   if (deletedResult[recordField] === "WR") {
-    const prevWrResult = await getRecordResult(event, bestOrAverage, "WR", category, {
-      tx,
-      recordsUpTo,
-    });
+    const prevWrResult = await getRecordResult(event, bestOrAverage, "WR", category, { tx, recordsUpTo });
+
     const newWrIds = await tx
       .execute(sql`
         WITH day_min_times AS (
@@ -599,6 +628,7 @@ async function setFutureRecords(
             AND ${table.eventId} = ${deletedResult.eventId}
             AND ${table.date} >= ${deletedResult.date.toISOString()}
             AND ${table.recordCategory} = ${category}
+            ${numberOfAttemptsCondition}
           ORDER BY ${table.date}
         ), results_with_record_times AS (
           SELECT id, MIN(day_min_time) OVER(ORDER BY date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS curr_record
@@ -627,10 +657,8 @@ async function setFutureRecords(
   // Set CRs
   if (deletedResult.superRegionCode && deletedResult[recordField] !== "NR") {
     const crType = ContinentRecordType[deletedResult.superRegionCode as ContinentCode];
-    const prevCrResult = await getRecordResult(event, bestOrAverage, crType, category, {
-      tx,
-      recordsUpTo,
-    });
+    const prevCrResult = await getRecordResult(event, bestOrAverage, crType, category, { tx, recordsUpTo });
+
     const newCrIds = await tx
       .execute(sql`
         WITH day_min_times AS (
@@ -644,6 +672,7 @@ async function setFutureRecords(
             AND ${table.date} >= ${deletedResult.date.toISOString()}
             AND ${table.superRegionCode} = ${deletedResult.superRegionCode}
             AND ${table.recordCategory} = ${category}
+            ${numberOfAttemptsCondition}
           ORDER BY ${table.date}
         ), results_with_record_times AS (
           SELECT id, MIN(day_min_time) OVER(ORDER BY date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS curr_record
@@ -690,6 +719,7 @@ async function setFutureRecords(
             AND ${table.date} >= ${deletedResult.date.toISOString()}
             AND ${table.regionCode} = ${deletedResult.regionCode}
             AND ${table.recordCategory} = ${category}
+            ${numberOfAttemptsCondition}
           ORDER BY ${table.date}
         ), results_with_record_times AS (
           SELECT id, MIN(day_min_time) OVER(ORDER BY date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS curr_record
