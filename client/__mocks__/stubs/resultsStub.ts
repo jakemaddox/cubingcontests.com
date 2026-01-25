@@ -2,8 +2,8 @@ import { contestsStub } from "~/__mocks__/stubs/contestsStub.ts";
 import { eventsStub } from "~/__mocks__/stubs/eventsStub.ts";
 import { Countries } from "~/helpers/Countries.ts";
 import { roundFormats } from "~/helpers/roundFormats.ts";
-import { getBestAndAverage } from "~/helpers/sharedFunctions.ts";
 import { RecordCategoryValues } from "~/helpers/types.ts";
+import { getBestAndAverage } from "~/helpers/utilityFunctions.ts";
 import type { Attempt, InsertResult } from "~/server/db/schema/results.ts";
 import type { InsertRound } from "~/server/db/schema/rounds.ts";
 import {

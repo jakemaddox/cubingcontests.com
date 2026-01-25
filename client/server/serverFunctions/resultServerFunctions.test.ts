@@ -20,7 +20,7 @@ import {
   testCompJan2025_333_oh_bld_team_relay_r1,
   testCompJan2025_333_oh_bld_team_relay_r2,
 } from "~/__mocks__/stubs/roundsStub.ts";
-import { getFormattedTime } from "~/helpers/sharedFunctions";
+import { getFormattedTime } from "~/helpers/utilityFunctions.ts";
 import { db } from "~/server/db/provider.ts";
 import {
   createContestResultSF,

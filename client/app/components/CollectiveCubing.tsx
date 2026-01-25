@@ -8,12 +8,24 @@ import Button from "~/app/components/UI/Button.tsx";
 import ToastMessages from "~/app/components/UI/ToastMessages.tsx";
 import { MainContext } from "~/helpers/contexts.ts";
 import { type NxNMove, nxnMoves } from "~/helpers/types/NxNMove.ts";
-import { getActionError, getIsWebglSupported } from "~/helpers/utilityFunctions.ts";
+import { getActionError } from "~/helpers/utilityFunctions.ts";
 import type { CollectiveSolutionResponse } from "~/server/db/schema/collective-solutions.ts";
 import {
   makeCollectiveCubingMoveSF,
   startNewCollectiveCubingSolutionSF,
 } from "~/server/serverFunctions/serverFunctions.ts";
+
+export function getIsWebglSupported(): boolean {
+  try {
+    const canvas = document.createElement("canvas");
+    const webglContext = canvas.getContext("webgl");
+    const webglExperimentalContext = canvas.getContext("experimental-webgl");
+
+    return !!window.WebGLRenderingContext && !!webglContext && !!webglExperimentalContext;
+  } catch (_e) {
+    return false;
+  }
+}
 
 type Props = {
   initCollectiveSolution: CollectiveSolutionResponse | null;

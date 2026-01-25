@@ -5,7 +5,7 @@ import Solves from "~/app/components/Solves.tsx";
 import Time from "~/app/components/Time.tsx";
 import Button from "~/app/components/UI/Button.tsx";
 import { roundFormats } from "~/helpers/roundFormats.ts";
-import { getIsProceedableResult } from "~/helpers/sharedFunctions.ts";
+import { getIsProceedableResult } from "~/helpers/utilityFunctions.ts";
 import type { EventResponse } from "~/server/db/schema/events.ts";
 import type { PersonResponse } from "~/server/db/schema/persons.ts";
 import type { RecordConfigResponse } from "~/server/db/schema/record-configs.ts";

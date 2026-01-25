@@ -9,11 +9,10 @@ import Solves from "~/app/components/Solves.tsx";
 import Tabs from "~/app/components/UI/Tabs.tsx";
 import RegionSelect from "~/app/rankings/[eventId]/[singleOrAvg]/RegionSelect";
 import { eventCategories } from "~/helpers/eventCategories.ts";
-import { getFormattedTime } from "~/helpers/sharedFunctions.ts";
 import type { NavigationItem } from "~/helpers/types/NavigationItem.ts";
 import type { EventRecords, RecordRanking } from "~/helpers/types/Rankings";
 import type { RecordCategory } from "~/helpers/types.ts";
-import { getFormattedDate } from "~/helpers/utilityFunctions.ts";
+import { getFormattedDate, getFormattedTime } from "~/helpers/utilityFunctions.ts";
 import { db } from "~/server/db/provider";
 import { getRankings } from "~/server/serverUtilityFunctions";
 

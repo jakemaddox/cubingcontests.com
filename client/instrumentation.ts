@@ -2,7 +2,7 @@
 import type fsType from "node:fs";
 import type { writeFile as writeFileType } from "node:fs/promises";
 import { eq, inArray, sql } from "drizzle-orm";
-import { getFormattedTime } from "~/helpers/sharedFunctions.ts";
+import { getFormattedTime } from "~/helpers/utilityFunctions.ts";
 import type { auth as authType } from "~/server/auth.ts";
 import type { db as dbType } from "~/server/db/provider.ts";
 import { accountsTable, usersTable } from "~/server/db/schema/auth-schema.ts";

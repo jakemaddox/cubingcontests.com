@@ -9,9 +9,8 @@ import ContestName from "~/app/components/ContestName.tsx";
 import Country from "~/app/components/Country.tsx";
 import RankingLinks from "~/app/components/RankingLinks.tsx";
 import Solves from "~/app/components/Solves.tsx";
-import { getFormattedTime } from "~/helpers/sharedFunctions.ts";
 import type { Ranking } from "~/helpers/types/Rankings";
-import { getFormattedDate } from "~/helpers/utilityFunctions.ts";
+import { getFormattedDate, getFormattedTime } from "~/helpers/utilityFunctions.ts";
 import type { EventResponse } from "~/server/db/schema/events.ts";
 
 type RankingProps = {

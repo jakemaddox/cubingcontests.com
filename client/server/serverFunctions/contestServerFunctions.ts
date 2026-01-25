@@ -7,9 +7,13 @@ import { find as findTimezone } from "geo-tz";
 import z from "zod";
 import { C } from "~/helpers/constants.ts";
 import { roundFormats } from "~/helpers/roundFormats.ts";
-import { getMaxAllowedRounds, getNameAndLocalizedName, getResultProceeds } from "~/helpers/sharedFunctions.ts";
 import type { Schedule } from "~/helpers/types/Schedule.ts";
-import { getIsAdmin } from "~/helpers/utilityFunctions.ts";
+import {
+  getIsAdmin,
+  getMaxAllowedRounds,
+  getNameAndLocalizedName,
+  getResultProceeds,
+} from "~/helpers/utilityFunctions.ts";
 import { type ContestDto, ContestValidator } from "~/helpers/validators/Contest.ts";
 import { CoordinatesValidator } from "~/helpers/validators/Coordinates.ts";
 import { type RoundDto, RoundValidator } from "~/helpers/validators/Round.ts";

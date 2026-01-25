@@ -27,10 +27,16 @@ import type { authClient } from "~/helpers/authClient.ts";
 import { C } from "~/helpers/constants.ts";
 import { MainContext } from "~/helpers/contexts.ts";
 import { contestTypeOptions } from "~/helpers/multipleChoiceOptions.ts";
-import { getDateOnly, getIsCompType, getIsUrgent } from "~/helpers/sharedFunctions.ts";
 import type { Room, Schedule } from "~/helpers/types/Schedule.ts";
 import type { ContestType, Creator, InputPerson, PageSize } from "~/helpers/types.ts";
-import { getActionError, getContestIdFromName, getIsAdmin } from "~/helpers/utilityFunctions.ts";
+import {
+  getActionError,
+  getContestIdFromName,
+  getDateOnly,
+  getIsAdmin,
+  getIsCompType,
+  getIsUrgent,
+} from "~/helpers/utilityFunctions.ts";
 import { ContestValidator } from "~/helpers/validators/Contest.ts";
 import { CoordinatesValidator } from "~/helpers/validators/Coordinates.ts";
 import type { RoundDto } from "~/helpers/validators/Round.ts";

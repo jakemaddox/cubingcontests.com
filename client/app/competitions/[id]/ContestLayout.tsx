@@ -1,5 +1,5 @@
 import Tabs from "~/app/components/UI/Tabs.tsx";
-import { getIsCompType } from "~/helpers/sharedFunctions.ts";
+import { getIsCompType } from "~/helpers/utilityFunctions.ts";
 import type { ContestResponse } from "~/server/db/schema/contests.ts";
 
 type Props = {

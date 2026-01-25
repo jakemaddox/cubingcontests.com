@@ -32,6 +32,7 @@ else
   cd client &&
   pnpm run db:migrate &&
   cd .. &&
+  echo && # just print a new line in the terminal
 
   sudo docker compose -f docker-compose.cc.yml up -d
 fi

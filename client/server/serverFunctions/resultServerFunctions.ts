@@ -6,18 +6,18 @@ import z from "zod";
 import { ContinentRecordType, Countries, getSuperRegion } from "~/helpers/Countries.ts";
 import { C } from "~/helpers/constants.ts";
 import { roundFormats } from "~/helpers/roundFormats.ts";
+import { type ContinentCode, type EventWrPair, RecordCategoryValues, type RecordType } from "~/helpers/types.ts";
 import {
   compareAvgs,
   compareSingles,
   getBestAndAverage,
   getDefaultAverageAttempts,
   getFormattedTime,
+  getIsAdmin,
   getMakesCutoff,
   getResultProceeds,
   getRoundDate,
-} from "~/helpers/sharedFunctions.ts";
-import { type ContinentCode, type EventWrPair, RecordCategoryValues, type RecordType } from "~/helpers/types.ts";
-import { getIsAdmin } from "~/helpers/utilityFunctions.ts";
+} from "~/helpers/utilityFunctions.ts";
 import { AttemptsValidator, ResultValidator, VideoBasedResultValidator } from "~/helpers/validators/Result.ts";
 import { contestsTable, type SelectContest } from "~/server/db/schema/contests.ts";
 import type { RoundResponse } from "~/server/db/schema/rounds.ts";

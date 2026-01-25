@@ -17,7 +17,7 @@ import { recordConfigsPublicCols, recordConfigsTable } from "~/server/db/schema/
 import { resultsTable, type SelectResult } from "~/server/db/schema/results.ts";
 import { type LogCode, logger } from "~/server/logger.ts";
 import { CcActionError } from "~/server/safeAction.ts";
-import { getDateOnly, getDefaultAverageAttempts, getNameAndLocalizedName } from "../helpers/sharedFunctions.ts";
+import { getDateOnly, getDefaultAverageAttempts, getNameAndLocalizedName } from "../helpers/utilityFunctions.ts";
 import { auth } from "./auth.ts";
 import type { CcPermissions } from "./permissions.ts";
 

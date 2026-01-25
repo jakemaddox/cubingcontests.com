@@ -7,7 +7,7 @@ import { MailtrapClient } from "mailtrap";
 import { Countries } from "~/helpers/Countries.ts";
 import { C } from "~/helpers/constants.ts";
 import { roundFormats } from "~/helpers/roundFormats.ts";
-import { getFormattedTime, getIsCompType, getIsUrgent } from "~/helpers/sharedFunctions.ts";
+import { getFormattedTime, getIsCompType, getIsUrgent } from "~/helpers/utilityFunctions.ts";
 import type { SelectContest } from "~/server/db/schema/contests.ts";
 import { logMessage } from "~/server/serverUtilityFunctions.ts";
 import type { SelectEvent } from "../db/schema/events.ts";

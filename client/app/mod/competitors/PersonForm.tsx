@@ -9,9 +9,8 @@ import FormCheckbox from "~/app/components/form/FormCheckbox.tsx";
 import FormCountrySelect from "~/app/components/form/FormCountrySelect.tsx";
 import FormTextInput from "~/app/components/form/FormTextInput.tsx";
 import { MainContext } from "~/helpers/contexts.ts";
-import { fetchWcaPerson } from "~/helpers/sharedFunctions.ts";
 import type { Creator } from "~/helpers/types.ts";
-import { getActionError } from "~/helpers/utilityFunctions.ts";
+import { fetchWcaPerson, getActionError } from "~/helpers/utilityFunctions.ts";
 import type { PersonDto } from "~/helpers/validators/Person.ts";
 import type { PersonResponse } from "~/server/db/schema/persons.ts";
 import {

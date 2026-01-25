@@ -2,9 +2,9 @@ import { toZonedTime } from "date-fns-tz";
 import z from "zod";
 import { CountryCodes } from "~/helpers/Countries.ts";
 import { C } from "~/helpers/constants.ts";
-import { getDateOnly } from "~/helpers/sharedFunctions.ts";
 import type { Activity } from "~/helpers/types/Schedule.ts";
 import { ContestTypeValues } from "~/helpers/types.ts";
+import { getDateOnly } from "~/helpers/utilityFunctions.ts";
 import { ColorValidator } from "~/helpers/validators/Validators.ts";
 
 const ActivityValidator = z.lazy((): any =>

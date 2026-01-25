@@ -18,10 +18,16 @@ import ToastMessages from "~/app/components/UI/ToastMessages.tsx";
 import { MainContext } from "~/helpers/contexts.ts";
 import { roundFormats } from "~/helpers/roundFormats.ts";
 import { roundTypes } from "~/helpers/roundTypes.ts";
-import { getMakesCutoff, getMaxAllowedRounds, getRoundDate } from "~/helpers/sharedFunctions.ts";
 import type { MultiChoiceOption } from "~/helpers/types/MultiChoiceOption.ts";
 import type { EventWrPair, InputPerson, RoundFormat, RoundType } from "~/helpers/types.ts";
-import { getActionError, getBlankCompetitors, shortenEventName } from "~/helpers/utilityFunctions.ts";
+import {
+  getActionError,
+  getBlankCompetitors,
+  getMakesCutoff,
+  getMaxAllowedRounds,
+  getRoundDate,
+  shortenEventName,
+} from "~/helpers/utilityFunctions.ts";
 import { type ResultDto, ResultValidator } from "~/helpers/validators/Result.ts";
 import type { SelectContest } from "~/server/db/schema/contests.ts";
 import type { EventResponse } from "~/server/db/schema/events.ts";

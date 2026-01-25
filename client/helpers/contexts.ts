@@ -2,7 +2,7 @@ import { createContext } from "react";
 
 export type Theme = "dark" | "light";
 
-export interface IMainContext {
+interface MainContext {
   theme: Theme;
   setTheme: (value: Theme) => void;
   errorMessages: string[];
@@ -12,7 +12,7 @@ export interface IMainContext {
   resetMessages: () => void;
 }
 
-export const MainContext = createContext<IMainContext>({
+export const MainContext = createContext<MainContext>({
   theme: "dark",
   setTheme: () => {},
   errorMessages: [],
