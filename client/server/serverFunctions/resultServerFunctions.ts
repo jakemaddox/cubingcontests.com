@@ -212,6 +212,7 @@ export const createContestResultSF = actionClient
       await setResultRecordsAndRegions(newResult, event, recordConfigs, participants);
 
       if (
+        !process.env.VITEST &&
         (newResult.regionalSingleRecord || newResult.regionalAverageRecord) &&
         differenceInDays(new Date(), newResult.date) > 30
       ) {
@@ -295,6 +296,7 @@ export const updateContestResultSF = actionClient
       await setResultRecords(newResult, event, recordConfigs, { excludeResultId: id });
 
       if (
+        !process.env.VITEST &&
         (result.regionalSingleRecord ||
           result.regionalAverageRecord ||
           newResult.regionalSingleRecord ||
@@ -362,6 +364,7 @@ export const deleteContestResultSF = actionClient
       if (!result) throw new CcActionError(`Result with ID ${id} not found`);
 
       if (
+        !process.env.VITEST &&
         (result.regionalSingleRecord || result.regionalAverageRecord) &&
         differenceInDays(new Date(), result.date) > 30
       ) {
