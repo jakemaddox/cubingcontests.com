@@ -5,6 +5,7 @@ import AffiliateLink from "~/app/components/AffiliateLink.tsx";
 import EventButtons from "~/app/components/EventButtons.tsx";
 import EventTitle from "~/app/components/EventTitle.tsx";
 import RankingRow from "~/app/components/RankingRow";
+import Tooltip from "~/app/components/UI/Tooltip";
 import RegionSelect from "~/app/rankings/[eventId]/[singleOrAvg]/RegionSelect.tsx";
 import type { RecordCategory } from "~/helpers/types";
 import { db } from "~/server/db/provider";
@@ -131,7 +132,15 @@ async function RankingsPage({ params, searchParams }: Props) {
 
           <div className="d-flex flex-wrap gap-3">
             <div>
-              <h5>Type</h5>
+              <h5 className="d-flex gap-1">
+                Type
+                {singleOrAvg === "average" && (
+                  <Tooltip
+                    id="type_tooltip"
+                    text="For results from 01.01.2023 onwards this only includes averages that have the ranked average format"
+                  />
+                )}
+              </h5>
               {/* biome-ignore lint/a11y/useSemanticElements: this is the most suitable way to make a button group */}
               <div className="btn-group btn-group-sm mt-2" role="group" aria-label="Type">
                 <Link

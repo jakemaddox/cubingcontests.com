@@ -114,6 +114,8 @@ export const createPersonSF = actionClient
         session: { user },
       },
     }) => {
+      newPersonDto.name = newPersonDto.name.trim();
+      if (newPersonDto.localizedName) newPersonDto.localizedName = newPersonDto.localizedName.trim();
       const { name, wcaId } = newPersonDto;
       logMessage("CC0019", `Creating person with name ${name} and ${wcaId ? `WCA ID ${wcaId}` : "no WCA ID"}`);
 

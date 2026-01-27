@@ -116,7 +116,7 @@ function ManageUsersScreen({ users: initUsers, userPersons: initUserPersons }: P
               <FormTextInput title="Username" value={username} disabled />
             </div>
             <div className="col">
-              <FormTextInput title="Email" value={email} setValue={setEmail} />
+              <FormTextInput title="Email" value={email} setValue={setEmail} disabled />
             </div>
           </div>
           <FormPersonInputs

@@ -79,8 +79,9 @@ export type LogCode =
   // Users
   | "CC0030" // send verification email
   | "CC0031" // send reset password email
-  | "CC0032" // update user
-  | "CC0033" // delete user
+  | "CC0032" // send password changed email
+  | "CC0033" // update user
+  | "CC0034" // delete user
 
   // Error codes
   | "CC5001"; // send email error

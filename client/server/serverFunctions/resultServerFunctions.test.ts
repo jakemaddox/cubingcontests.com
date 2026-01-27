@@ -14,11 +14,11 @@ import {
 } from "~/__mocks__/stubs/personsStub.ts";
 import { resultsStub } from "~/__mocks__/stubs/resultsStub.ts";
 import {
-  testComp2023_333_oh_bld_team_relay_r1,
-  testComp2023_333_r1,
-  testCompJan2020_333_oh_bld_team_relay_r1,
-  testCompJan2025_333_oh_bld_team_relay_r1,
-  testCompJan2025_333_oh_bld_team_relay_r2,
+  testComp2026_333_oh_bld_team_relay_r1,
+  testComp2026_333_r1,
+  testCompJan2023_333_oh_bld_team_relay_r1,
+  testCompJan2028_333_oh_bld_team_relay_r1,
+  testCompJan2028_333_oh_bld_team_relay_r2,
 } from "~/__mocks__/stubs/roundsStub.ts";
 import { getFormattedTime } from "~/helpers/utilityFunctions.ts";
 import { db } from "~/server/db/provider.ts";
@@ -29,7 +29,7 @@ import {
   getWrPairUpToDateSF,
 } from "~/server/serverFunctions/resultServerFunctions.ts";
 
-const date = new Date(2023, 0, 1);
+const date = new Date(2026, 0, 1);
 
 describe("getWrPairUpToDateSF", () => {
   it("gets WR pair up to date", async () => {
@@ -110,8 +110,8 @@ describe("createContestResultSF", () => {
         eventId: "333_oh_bld_team_relay",
         personIds: [gbPersonTomDillon.id, gbPersonSamMarsh.id, gbPersonJamesStone.id],
         attempts: [{ result: 10000 }, { result: 10100 }, { result: 10200 }],
-        competitionId: "TestComp2023",
-        roundId: testComp2023_333_oh_bld_team_relay_r1.id,
+        competitionId: "TestComp2026",
+        roundId: testComp2026_333_oh_bld_team_relay_r1.id,
       },
     });
 
@@ -123,7 +123,7 @@ describe("createContestResultSF", () => {
     expect(res.data![0].superRegionCode).toBe("EUROPE");
     expect(res.data![0].best).toBe(10000);
     expect(res.data![0].average).toBe(10100);
-    expect(res.data![0].date.getTime()).toBe(new Date(2023, 0, 1).getTime());
+    expect(res.data![0].date.getTime()).toBe(new Date(2026, 0, 1).getTime());
     expect(res.data![0].regionalSingleRecord).toBeNull();
     expect(res.data![0].regionalAverageRecord).toBeNull();
   });
@@ -135,8 +135,8 @@ describe("createContestResultSF", () => {
           eventId: "333_oh_bld_team_relay",
           personIds: [1, 2, 1],
           attempts: [{ result: 1234 }],
-          competitionId: "TestCompJan2020",
-          roundId: testCompJan2020_333_oh_bld_team_relay_r1.id,
+          competitionId: "TestCompJan2023",
+          roundId: testCompJan2023_333_oh_bld_team_relay_r1.id,
         },
       });
 
@@ -153,8 +153,8 @@ describe("createContestResultSF", () => {
           eventId: "333_oh_bld_team_relay",
           personIds: [1, 2, 3],
           attempts: [{ result: 0 }, { result: 0 }, { result: 0 }],
-          competitionId: "TestCompJan2020",
-          roundId: testCompJan2020_333_oh_bld_team_relay_r1.id,
+          competitionId: "TestCompJan2023",
+          roundId: testCompJan2023_333_oh_bld_team_relay_r1.id,
         },
       });
 
@@ -171,8 +171,8 @@ describe("createContestResultSF", () => {
           eventId: "333_oh_bld_team_relay",
           personIds: [1, 2, 3],
           attempts: [{ result: -2 }, { result: -2 }, { result: -2 }],
-          competitionId: "TestCompJan2020",
-          roundId: testCompJan2020_333_oh_bld_team_relay_r1.id,
+          competitionId: "TestCompJan2023",
+          roundId: testCompJan2023_333_oh_bld_team_relay_r1.id,
         },
       });
 
@@ -193,7 +193,7 @@ describe("createContestResultSF", () => {
           personIds: [1, 2, 3],
           attempts: [{ result: 10000 }, { result: 10100 }, { result: 10200 }],
           competitionId,
-          roundId: testComp2023_333_oh_bld_team_relay_r1.id,
+          roundId: testComp2026_333_oh_bld_team_relay_r1.id,
         },
       });
 
@@ -209,8 +209,8 @@ describe("createContestResultSF", () => {
           eventId: "333_oh_bld_team_relay",
           personIds: [1, 2, 3],
           attempts: [{ result: 10000 }, { result: 10100 }, { result: 10200 }],
-          competitionId: "TestComp2023",
-          roundId: testComp2023_333_oh_bld_team_relay_r1.id,
+          competitionId: "TestComp2026",
+          roundId: testComp2026_333_oh_bld_team_relay_r1.id,
         },
       });
 
@@ -225,8 +225,8 @@ describe("createContestResultSF", () => {
           eventId,
           personIds: [1],
           attempts: [{ result: 10000 }, { result: 10100 }, { result: 10200 }],
-          competitionId: "TestComp2023",
-          roundId: testComp2023_333_oh_bld_team_relay_r1.id,
+          competitionId: "TestComp2026",
+          roundId: testComp2026_333_oh_bld_team_relay_r1.id,
         },
       });
 
@@ -241,7 +241,7 @@ describe("createContestResultSF", () => {
           eventId: "333_oh_bld_team_relay",
           personIds: [1, 2, 3],
           attempts: [{ result: 10000 }, { result: 10100 }, { result: 10200 }],
-          competitionId: "TestComp2023",
+          competitionId: "TestComp2026",
           roundId,
         },
       });
@@ -257,8 +257,8 @@ describe("createContestResultSF", () => {
           eventId: "333_oh_bld_team_relay",
           personIds: [1, 2, personId],
           attempts: [{ result: 10000 }, { result: 10100 }, { result: 10200 }],
-          competitionId: "TestComp2023",
-          roundId: testComp2023_333_oh_bld_team_relay_r1.id,
+          competitionId: "TestComp2026",
+          roundId: testComp2026_333_oh_bld_team_relay_r1.id,
         },
       });
 
@@ -272,8 +272,8 @@ describe("createContestResultSF", () => {
           eventId: "333_oh_bld_team_relay",
           personIds: [1, 2],
           attempts: [{ result: 10000 }, { result: 10100 }, { result: 10200 }],
-          competitionId: "TestComp2023",
-          roundId: testComp2023_333_oh_bld_team_relay_r1.id,
+          competitionId: "TestComp2026",
+          roundId: testComp2026_333_oh_bld_team_relay_r1.id,
         },
       });
 
@@ -283,7 +283,7 @@ describe("createContestResultSF", () => {
 
     it("throws error for second result in the same round for the same competitor", async () => {
       const resultFrom_333_oh_bld_team_relay_Round = await db.query.results.findFirst({
-        where: { eventId: "333_oh_bld_team_relay", roundId: testCompJan2020_333_oh_bld_team_relay_r1.id },
+        where: { eventId: "333_oh_bld_team_relay", roundId: testCompJan2023_333_oh_bld_team_relay_r1.id },
       });
       const res = await createContestResultSF({
         newResultDto: {
@@ -303,7 +303,7 @@ describe("createContestResultSF", () => {
       const resultFrom_333_oh_bld_team_relay_FirstRound = await db.query.results.findFirst({
         where: {
           eventId: "333_oh_bld_team_relay",
-          roundId: testCompJan2025_333_oh_bld_team_relay_r1.id,
+          roundId: testCompJan2028_333_oh_bld_team_relay_r1.id,
           proceeds: false,
         },
       });
@@ -312,8 +312,8 @@ describe("createContestResultSF", () => {
           eventId: "333_oh_bld_team_relay",
           personIds: resultFrom_333_oh_bld_team_relay_FirstRound!.personIds,
           attempts: [{ result: 10000 }, { result: 10100 }, { result: 10200 }],
-          competitionId: "TestCompJan2025",
-          roundId: testCompJan2025_333_oh_bld_team_relay_r2.id,
+          competitionId: "TestCompJan2028",
+          roundId: testCompJan2028_333_oh_bld_team_relay_r2.id,
         },
       });
 
@@ -327,8 +327,8 @@ describe("createContestResultSF", () => {
           eventId: "333_oh_bld_team_relay",
           personIds: [1, 2, 3],
           attempts: [{ result: 10000 }],
-          competitionId: "TestComp2023",
-          roundId: testComp2023_333_oh_bld_team_relay_r1.id,
+          competitionId: "TestComp2026",
+          roundId: testComp2026_333_oh_bld_team_relay_r1.id,
         },
       });
 
@@ -337,13 +337,13 @@ describe("createContestResultSF", () => {
     });
 
     it("throws error for result not meeting the time limit", async () => {
-      const { id: roundId, timeLimitCentiseconds: timeLimit } = testComp2023_333_oh_bld_team_relay_r1;
+      const { id: roundId, timeLimitCentiseconds: timeLimit } = testComp2026_333_oh_bld_team_relay_r1;
       const res = await createContestResultSF({
         newResultDto: {
           eventId: "333_oh_bld_team_relay",
           personIds: [1, 2, 3],
           attempts: [{ result: timeLimit! + 1 }, { result: 1234 }, { result: 1234 }],
-          competitionId: "TestComp2023",
+          competitionId: "TestComp2026",
           roundId,
         },
       });
@@ -353,14 +353,14 @@ describe("createContestResultSF", () => {
     });
 
     it("throws error for result not meeting the cumulative time limit", async () => {
-      const { id: roundId, timeLimitCentiseconds: timeLimit } = testComp2023_333_oh_bld_team_relay_r1;
+      const { id: roundId, timeLimitCentiseconds: timeLimit } = testComp2026_333_oh_bld_team_relay_r1;
       const res = await createContestResultSF({
         newResultDto: {
           eventId: "333_oh_bld_team_relay",
           personIds: [1, 2, 3],
           // First result just barely passes the time limit, but the second one pushes it over the cumulative limit
           attempts: [{ result: timeLimit! }, { result: 1234 }, { result: 1234 }],
-          competitionId: "TestComp2023",
+          competitionId: "TestComp2026",
           roundId,
         },
       });
@@ -372,13 +372,13 @@ describe("createContestResultSF", () => {
     });
 
     it("throws error for result that doesn't meet cutoff having too many attempts", async () => {
-      const { id: roundId, cutoffAttemptResult } = testComp2023_333_oh_bld_team_relay_r1;
+      const { id: roundId, cutoffAttemptResult } = testComp2026_333_oh_bld_team_relay_r1;
       const res = await createContestResultSF({
         newResultDto: {
           eventId: "333_oh_bld_team_relay",
           personIds: [1, 2, 3],
           attempts: [{ result: cutoffAttemptResult! + 1 }, { result: 1234 }, { result: 1234 }],
-          competitionId: "TestComp2023",
+          competitionId: "TestComp2026",
           roundId,
         },
       });
@@ -388,13 +388,13 @@ describe("createContestResultSF", () => {
     });
 
     it("throws error for result that doesn't meet cutoff having too few attempts", async () => {
-      const { id: roundId, cutoffAttemptResult, cutoffNumberOfAttempts } = testComp2023_333_r1;
+      const { id: roundId, cutoffAttemptResult, cutoffNumberOfAttempts } = testComp2026_333_r1;
       const res = await createContestResultSF({
         newResultDto: {
           eventId: "333",
           personIds: [1],
           attempts: [{ result: cutoffAttemptResult! + 1 }],
-          competitionId: "TestComp2023",
+          competitionId: "TestComp2026",
           roundId,
         },
       });
@@ -409,8 +409,8 @@ describe("createContestResultSF", () => {
       const eventId = "333_oh_bld_team_relay";
       const partialResult = {
         eventId,
-        competitionId: "TestComp2023",
-        roundId: testComp2023_333_oh_bld_team_relay_r1.id,
+        competitionId: "TestComp2026",
+        roundId: testComp2026_333_oh_bld_team_relay_r1.id,
       };
 
       it("creates NR result and cancels future NR", async () => {
@@ -428,7 +428,7 @@ describe("createContestResultSF", () => {
         expect(res.data![0].regionalAverageRecord).toBe("NR");
 
         const cancelledNr = await db.query.results.findFirst({
-          where: { eventId, date: { eq: new Date(2025, 0, 1) }, ranking: 2 },
+          where: { eventId, date: { eq: new Date(2028, 0, 1) }, ranking: 2 },
         });
         expect(cancelledNr?.regionalSingleRecord).toBeNull();
         expect(cancelledNr?.regionalAverageRecord).toBeNull();
@@ -450,17 +450,17 @@ describe("createContestResultSF", () => {
         expect(res.data![0].regionalAverageRecord).toBe("ER");
 
         const cancelledCrWithNoRegion = await db.query.results.findFirst({
-          where: { eventId, date: { eq: new Date(2025, 0, 1) }, ranking: 1 },
+          where: { eventId, date: { eq: new Date(2028, 0, 1) }, ranking: 1 },
         });
         expect(cancelledCrWithNoRegion?.regionalSingleRecord).toBeNull();
         expect(cancelledCrWithNoRegion?.regionalAverageRecord).toBeNull();
         const cancelledNr = await db.query.results.findFirst({
-          where: { eventId, date: { eq: new Date(2025, 0, 1) }, ranking: 2 },
+          where: { eventId, date: { eq: new Date(2028, 0, 1) }, ranking: 2 },
         });
         expect(cancelledNr?.regionalSingleRecord).toBeNull();
         expect(cancelledNr?.regionalAverageRecord).toBeNull();
         const cancelledCr = await db.query.results.findFirst({
-          where: { eventId, date: { eq: new Date(2025, 1, 1) }, ranking: 2 },
+          where: { eventId, date: { eq: new Date(2028, 1, 1) }, ranking: 2 },
         });
         expect(cancelledCr?.regionalSingleRecord).toBeNull();
         expect(cancelledCr?.regionalAverageRecord).toBeNull();
@@ -482,17 +482,17 @@ describe("createContestResultSF", () => {
         expect(res.data![0].regionalAverageRecord).toBe("ER");
 
         const cancelledCr = await db.query.results.findFirst({
-          where: { eventId, date: { eq: new Date(2025, 0, 1) }, ranking: 1 },
+          where: { eventId, date: { eq: new Date(2028, 0, 1) }, ranking: 1 },
         });
         expect(cancelledCr?.regionalSingleRecord).toBeNull();
         expect(cancelledCr?.regionalAverageRecord).toBeNull();
         const notCancelledNr = await db.query.results.findFirst({
-          where: { eventId, date: { eq: new Date(2025, 0, 1) }, ranking: 2 },
+          where: { eventId, date: { eq: new Date(2028, 0, 1) }, ranking: 2 },
         });
         expect(notCancelledNr?.regionalSingleRecord).toBe("NR");
         expect(notCancelledNr?.regionalAverageRecord).toBe("NR");
         const crChangedToNr = await db.query.results.findFirst({
-          where: { eventId, date: { eq: new Date(2025, 1, 1) }, ranking: 2 },
+          where: { eventId, date: { eq: new Date(2028, 1, 1) }, ranking: 2 },
         });
         expect(crChangedToNr?.regionalSingleRecord).toBe("NR");
         expect(crChangedToNr?.regionalAverageRecord).toBe("NR");
@@ -514,32 +514,32 @@ describe("createContestResultSF", () => {
         expect(res.data![0].regionalAverageRecord).toBe("WR");
 
         const cancelledCr1 = await db.query.results.findFirst({
-          where: { eventId, date: { eq: new Date(2025, 0, 1) }, ranking: 1 },
+          where: { eventId, date: { eq: new Date(2028, 0, 1) }, ranking: 1 },
         });
         expect(cancelledCr1?.regionalSingleRecord).toBeNull();
         expect(cancelledCr1?.regionalAverageRecord).toBeNull();
         const cancelledNr = await db.query.results.findFirst({
-          where: { eventId, date: { eq: new Date(2025, 0, 1) }, ranking: 2 },
+          where: { eventId, date: { eq: new Date(2028, 0, 1) }, ranking: 2 },
         });
         expect(cancelledNr?.regionalSingleRecord).toBeNull();
         expect(cancelledNr?.regionalAverageRecord).toBeNull();
         const cancelledWr1 = await db.query.results.findFirst({
-          where: { eventId, date: { eq: new Date(2025, 1, 1) }, ranking: 1 },
+          where: { eventId, date: { eq: new Date(2028, 1, 1) }, ranking: 1 },
         });
         expect(cancelledWr1?.regionalSingleRecord).toBeNull();
         expect(cancelledWr1?.regionalAverageRecord).toBeNull();
         const cancelledCr2 = await db.query.results.findFirst({
-          where: { eventId, date: { eq: new Date(2025, 1, 1) }, ranking: 2 },
+          where: { eventId, date: { eq: new Date(2028, 1, 1) }, ranking: 2 },
         });
         expect(cancelledCr2?.regionalSingleRecord).toBeNull();
         expect(cancelledCr2?.regionalAverageRecord).toBeNull();
         const cancelledWr2 = await db.query.results.findFirst({
-          where: { eventId, date: { eq: new Date(2025, 2, 1) } },
+          where: { eventId, date: { eq: new Date(2028, 2, 1) } },
         });
         expect(cancelledWr2?.regionalSingleRecord).toBeNull();
         expect(cancelledWr2?.regionalAverageRecord).toBeNull();
         const cancelledWr3 = await db.query.results.findFirst({
-          where: { eventId, date: { eq: new Date(2025, 3, 1) } },
+          where: { eventId, date: { eq: new Date(2028, 3, 1) } },
         });
         expect(cancelledWr3?.regionalSingleRecord).toBeNull();
         expect(cancelledWr3?.regionalAverageRecord).toBeNull();
@@ -561,27 +561,27 @@ describe("createContestResultSF", () => {
         expect(res.data![0].regionalAverageRecord).toBe("WR");
 
         const cancelledCr = await db.query.results.findFirst({
-          where: { eventId, date: { eq: new Date(2025, 0, 1) }, ranking: 1 },
+          where: { eventId, date: { eq: new Date(2028, 0, 1) }, ranking: 1 },
         });
         expect(cancelledCr?.regionalSingleRecord).toBeNull();
         expect(cancelledCr?.regionalAverageRecord).toBeNull();
         const cancelledWr1 = await db.query.results.findFirst({
-          where: { eventId, date: { eq: new Date(2025, 1, 1) }, ranking: 1 },
+          where: { eventId, date: { eq: new Date(2028, 1, 1) }, ranking: 1 },
         });
         expect(cancelledWr1?.regionalSingleRecord).toBeNull();
         expect(cancelledWr1?.regionalAverageRecord).toBeNull();
         const crChangedToNr = await db.query.results.findFirst({
-          where: { eventId, date: { eq: new Date(2025, 1, 1) }, ranking: 2 },
+          where: { eventId, date: { eq: new Date(2028, 1, 1) }, ranking: 2 },
         });
         expect(crChangedToNr?.regionalSingleRecord).toBe("NR");
         expect(crChangedToNr?.regionalAverageRecord).toBe("NR");
         const cancelledWr2 = await db.query.results.findFirst({
-          where: { eventId, date: { eq: new Date(2025, 2, 1) } },
+          where: { eventId, date: { eq: new Date(2028, 2, 1) } },
         });
         expect(cancelledWr2?.regionalSingleRecord).toBeNull();
         expect(cancelledWr2?.regionalAverageRecord).toBeNull();
         const wrChangedToNr = await db.query.results.findFirst({
-          where: { eventId, date: { eq: new Date(2025, 3, 1) } },
+          where: { eventId, date: { eq: new Date(2028, 3, 1) } },
         });
         expect(wrChangedToNr?.regionalSingleRecord).toBe("NR");
         expect(wrChangedToNr?.regionalAverageRecord).toBe("NR");
@@ -603,22 +603,22 @@ describe("createContestResultSF", () => {
         expect(res.data![0].regionalAverageRecord).toBe("WR");
 
         const cancelledWr = await db.query.results.findFirst({
-          where: { eventId, date: { eq: new Date(2025, 1, 1) }, ranking: 1 },
+          where: { eventId, date: { eq: new Date(2028, 1, 1) }, ranking: 1 },
         });
         expect(cancelledWr?.regionalSingleRecord).toBeNull();
         expect(cancelledWr?.regionalAverageRecord).toBeNull();
         const notCancelledCr = await db.query.results.findFirst({
-          where: { eventId, date: { eq: new Date(2025, 1, 1) }, ranking: 2 },
+          where: { eventId, date: { eq: new Date(2028, 1, 1) }, ranking: 2 },
         });
         expect(notCancelledCr?.regionalSingleRecord).toBe("ER");
         expect(notCancelledCr?.regionalAverageRecord).toBe("ER");
         const wrChangedToCr1 = await db.query.results.findFirst({
-          where: { eventId, date: { eq: new Date(2025, 2, 1) } },
+          where: { eventId, date: { eq: new Date(2028, 2, 1) } },
         });
         expect(wrChangedToCr1?.regionalSingleRecord).toBe("ER");
         expect(wrChangedToCr1?.regionalAverageRecord).toBe("ER");
         const wrChangedToCr2 = await db.query.results.findFirst({
-          where: { eventId, date: { eq: new Date(2025, 3, 1) } },
+          where: { eventId, date: { eq: new Date(2028, 3, 1) } },
         });
         expect(wrChangedToCr2?.regionalSingleRecord).toBe("ER");
         expect(wrChangedToCr2?.regionalAverageRecord).toBe("ER");
@@ -774,6 +774,30 @@ describe("deleteContestResultSF", () => {
       });
 
       describe("edge cases", async () => {
+        it("deletes NR result and doesn't set future average NR with a different average format", async () => {
+          const res = await deleteContestResultSF({ id: 16 });
+
+          expect(res.serverError).toBeUndefined();
+          expect(res.validationErrors).toBeUndefined();
+          expect(res.data?.length).toBe(2);
+
+          const differentAverageFormatResult = await db.query.results.findFirst({ where: { id: 24, eventId } });
+          expect(differentAverageFormatResult?.regionalSingleRecord).toBe("NR");
+          expect(differentAverageFormatResult?.regionalAverageRecord).toBeNull();
+        });
+
+        it("deletes CR result and doesn't set future average CR with a different average format", async () => {
+          const res = await deleteContestResultSF({ id: 20 });
+
+          expect(res.serverError).toBeUndefined();
+          expect(res.validationErrors).toBeUndefined();
+          expect(res.data?.length).toBe(1);
+
+          const differentAverageFormatResult = await db.query.results.findFirst({ where: { id: 23, eventId } });
+          expect(differentAverageFormatResult?.regionalSingleRecord).toBe("ER");
+          expect(differentAverageFormatResult?.regionalAverageRecord).toBeNull();
+        });
+
         it("deletes WR result and doesn't set future average WR with a different average format", async () => {
           const res = await deleteContestResultSF({ id: 12 });
 
@@ -976,7 +1000,7 @@ describe("createVideoBasedResultSF", () => {
         expect(res.data!.regionalAverageRecord).toBe("NR");
 
         const cancelledNr = await db.query.results.findFirst({
-          where: { eventId, date: { eq: new Date(2025, 0, 1) } },
+          where: { eventId, date: { eq: new Date(2028, 0, 1) } },
         });
         expect(cancelledNr?.regionalSingleRecord).toBeNull();
         expect(cancelledNr?.regionalAverageRecord).toBeNull();
@@ -997,12 +1021,12 @@ describe("createVideoBasedResultSF", () => {
         expect(res.data!.regionalAverageRecord).toBe("NAR");
 
         const cancelledNr = await db.query.results.findFirst({
-          where: { eventId, date: { eq: new Date(2025, 0, 1) } },
+          where: { eventId, date: { eq: new Date(2028, 0, 1) } },
         });
         expect(cancelledNr?.regionalSingleRecord).toBeNull();
         expect(cancelledNr?.regionalAverageRecord).toBeNull();
         const crChangedToNr = await db.query.results.findFirst({
-          where: { eventId, date: { eq: new Date(2025, 1, 1) } },
+          where: { eventId, date: { eq: new Date(2028, 1, 1) } },
         });
         expect(crChangedToNr?.regionalSingleRecord).toBe("NR");
         expect(crChangedToNr?.regionalAverageRecord).toBe("NR");
@@ -1053,7 +1077,7 @@ describe("createVideoBasedResultSF", () => {
         expect(res.data!.regionalAverageRecord).toBe("AsR");
 
         const cancelledCr = await db.query.results.findFirst({
-          where: { eventId, date: { eq: new Date(2025, 2, 1) } },
+          where: { eventId, date: { eq: new Date(2028, 2, 1) } },
         });
         expect(cancelledCr?.regionalSingleRecord).toBeNull();
         expect(cancelledCr?.regionalAverageRecord).toBeNull();
@@ -1073,17 +1097,17 @@ describe("createVideoBasedResultSF", () => {
         expect(res.data!.regionalAverageRecord).toBe("WR");
 
         const cancelledWr = await db.query.results.findFirst({
-          where: { eventId, date: { eq: new Date(2025, 3, 1) } },
+          where: { eventId, date: { eq: new Date(2028, 3, 1) } },
         });
         expect(cancelledWr?.regionalSingleRecord).toBeNull();
         expect(cancelledWr?.regionalAverageRecord).toBeNull();
         const wrChangedToCr = await db.query.results.findFirst({
-          where: { eventId, date: { eq: new Date(2025, 4, 1) } },
+          where: { eventId, date: { eq: new Date(2028, 4, 1) } },
         });
         expect(wrChangedToCr?.regionalSingleRecord).toBe("AsR");
         expect(wrChangedToCr?.regionalAverageRecord).toBe("AsR");
         const wrChangedToNr = await db.query.results.findFirst({
-          where: { eventId, date: { eq: new Date(2025, 5, 1) } },
+          where: { eventId, date: { eq: new Date(2028, 5, 1) } },
         });
         expect(wrChangedToNr?.regionalSingleRecord).toBe("NR");
         expect(wrChangedToNr?.regionalAverageRecord).toBe("NR");
@@ -1103,22 +1127,22 @@ describe("createVideoBasedResultSF", () => {
         expect(res.data!.regionalAverageRecord).toBe("WR");
 
         const cancelledCr = await db.query.results.findFirst({
-          where: { eventId, date: { eq: new Date(2025, 2, 1) } },
+          where: { eventId, date: { eq: new Date(2028, 2, 1) } },
         });
         expect(cancelledCr?.regionalSingleRecord).toBeNull();
         expect(cancelledCr?.regionalAverageRecord).toBeNull();
         const wrChangedToCr1 = await db.query.results.findFirst({
-          where: { eventId, date: { eq: new Date(2025, 3, 1) } },
+          where: { eventId, date: { eq: new Date(2028, 3, 1) } },
         });
         expect(wrChangedToCr1?.regionalSingleRecord).toBe("ER");
         expect(wrChangedToCr1?.regionalAverageRecord).toBe("ER");
         const wrChangedToNr = await db.query.results.findFirst({
-          where: { eventId, date: { eq: new Date(2025, 4, 1) } },
+          where: { eventId, date: { eq: new Date(2028, 4, 1) } },
         });
         expect(wrChangedToNr?.regionalSingleRecord).toBe("NR");
         expect(wrChangedToNr?.regionalAverageRecord).toBe("NR");
         const wrChangedToCr2 = await db.query.results.findFirst({
-          where: { eventId, date: { eq: new Date(2025, 5, 1) } },
+          where: { eventId, date: { eq: new Date(2028, 5, 1) } },
         });
         expect(wrChangedToCr2?.regionalSingleRecord).toBe("ER");
         expect(wrChangedToCr2?.regionalAverageRecord).toBe("ER");
@@ -1138,27 +1162,27 @@ describe("createVideoBasedResultSF", () => {
         expect(res.data!.regionalAverageRecord).toBe("WR");
 
         const cancelledNr = await db.query.results.findFirst({
-          where: { eventId, date: { eq: new Date(2025, 0, 1) } },
+          where: { eventId, date: { eq: new Date(2028, 0, 1) } },
         });
         expect(cancelledNr?.regionalSingleRecord).toBeNull();
         expect(cancelledNr?.regionalAverageRecord).toBeNull();
         const crChangedToNr = await db.query.results.findFirst({
-          where: { eventId, date: { eq: new Date(2025, 1, 1) } },
+          where: { eventId, date: { eq: new Date(2028, 1, 1) } },
         });
         expect(crChangedToNr?.regionalSingleRecord).toBe("NR");
         expect(crChangedToNr?.regionalAverageRecord).toBe("NR");
         const wrChangedToCr1 = await db.query.results.findFirst({
-          where: { eventId, date: { eq: new Date(2025, 3, 1) } },
+          where: { eventId, date: { eq: new Date(2028, 3, 1) } },
         });
         expect(wrChangedToCr1?.regionalSingleRecord).toBe("ER");
         expect(wrChangedToCr1?.regionalAverageRecord).toBe("ER");
         const wrChangedToCr2 = await db.query.results.findFirst({
-          where: { eventId, date: { eq: new Date(2025, 4, 1) } },
+          where: { eventId, date: { eq: new Date(2028, 4, 1) } },
         });
         expect(wrChangedToCr2?.regionalSingleRecord).toBe("AsR");
         expect(wrChangedToCr2?.regionalAverageRecord).toBe("AsR");
         const wrChangedToCr3 = await db.query.results.findFirst({
-          where: { eventId, date: { eq: new Date(2025, 5, 1) } },
+          where: { eventId, date: { eq: new Date(2028, 5, 1) } },
         });
         expect(wrChangedToCr3?.regionalSingleRecord).toBe("ER");
         expect(wrChangedToCr3?.regionalAverageRecord).toBe("ER");
@@ -1195,7 +1219,7 @@ describe("createVideoBasedResultSF", () => {
           expect(res.data!.regionalAverageRecord).toBe("NR");
 
           const notCancelledTiedNr = await db.query.results.findFirst({
-            where: { eventId, date: { eq: new Date(2025, 0, 1) } },
+            where: { eventId, date: { eq: new Date(2028, 0, 1) } },
           });
           expect(notCancelledTiedNr?.regionalSingleRecord).toBe("NR");
           expect(notCancelledTiedNr?.regionalAverageRecord).toBe("NR");
@@ -1216,7 +1240,7 @@ describe("createVideoBasedResultSF", () => {
           expect(res.data!.regionalAverageRecord).toBe("NAR");
 
           const cancelledNr = await db.query.results.findFirst({
-            where: { eventId, date: { eq: new Date(2025, 0, 1) } },
+            where: { eventId, date: { eq: new Date(2028, 0, 1) } },
           });
           expect(cancelledNr?.regionalSingleRecord).toBeNull();
           expect(cancelledNr?.regionalAverageRecord).toBeNull();
@@ -1237,12 +1261,12 @@ describe("createVideoBasedResultSF", () => {
           expect(res.data!.regionalAverageRecord).toBe("NAR");
 
           const cancelledNr = await db.query.results.findFirst({
-            where: { eventId, date: { eq: new Date(2025, 0, 1) } },
+            where: { eventId, date: { eq: new Date(2028, 0, 1) } },
           });
           expect(cancelledNr?.regionalSingleRecord).toBeNull();
           expect(cancelledNr?.regionalAverageRecord).toBeNull();
           const notCancelledTiedCr = await db.query.results.findFirst({
-            where: { eventId, date: { eq: new Date(2025, 1, 1) } },
+            where: { eventId, date: { eq: new Date(2028, 1, 1) } },
           });
           expect(notCancelledTiedCr?.regionalSingleRecord).toBe("NAR");
           expect(notCancelledTiedCr?.regionalAverageRecord).toBe("NAR");
@@ -1262,12 +1286,12 @@ describe("createVideoBasedResultSF", () => {
           expect(res.data!.regionalAverageRecord).toBe("WR");
 
           const cancelledNr = await db.query.results.findFirst({
-            where: { eventId, date: { eq: new Date(2025, 0, 1) } },
+            where: { eventId, date: { eq: new Date(2028, 0, 1) } },
           });
           expect(cancelledNr?.regionalSingleRecord).toBeNull();
           expect(cancelledNr?.regionalAverageRecord).toBeNull();
           const crChangedToNr = await db.query.results.findFirst({
-            where: { eventId, date: { eq: new Date(2025, 1, 1) } },
+            where: { eventId, date: { eq: new Date(2028, 1, 1) } },
           });
           expect(crChangedToNr?.regionalSingleRecord).toBe("NR");
           expect(crChangedToNr?.regionalAverageRecord).toBe("NR");
@@ -1287,17 +1311,17 @@ describe("createVideoBasedResultSF", () => {
           expect(res.data!.regionalAverageRecord).toBe("WR");
 
           const cancelledNr = await db.query.results.findFirst({
-            where: { eventId, date: { eq: new Date(2025, 0, 1) } },
+            where: { eventId, date: { eq: new Date(2028, 0, 1) } },
           });
           expect(cancelledNr?.regionalSingleRecord).toBeNull();
           expect(cancelledNr?.regionalAverageRecord).toBeNull();
           const crChangedToNr = await db.query.results.findFirst({
-            where: { eventId, date: { eq: new Date(2025, 1, 1) } },
+            where: { eventId, date: { eq: new Date(2028, 1, 1) } },
           });
           expect(crChangedToNr?.regionalSingleRecord).toBe("NR");
           expect(crChangedToNr?.regionalAverageRecord).toBe("NR");
           const notCancelledTiedWr = await db.query.results.findFirst({
-            where: { eventId, date: { eq: new Date(2025, 3, 1) } },
+            where: { eventId, date: { eq: new Date(2028, 3, 1) } },
           });
           expect(notCancelledTiedWr?.regionalSingleRecord).toBe("WR");
           expect(notCancelledTiedWr?.regionalAverageRecord).toBe("WR");
@@ -1308,7 +1332,7 @@ describe("createVideoBasedResultSF", () => {
             newResultDto: {
               ...partialResult,
               personIds: [dePersonJakobBach.id],
-              date: new Date(2020, 5, 1), // same date as German NR by Hans Bauer
+              date: new Date(2023, 5, 1), // same date as German NR by Hans Bauer
               attempts: [{ result: 7600 }, { result: 7700 }, { result: 7800 }],
             },
           });
@@ -1324,7 +1348,7 @@ describe("createVideoBasedResultSF", () => {
             newResultDto: {
               ...partialResult,
               personIds: [dePersonJakobBach.id],
-              date: new Date(2020, 5, 1), // same date as German NR by Hans Bauer
+              date: new Date(2023, 5, 1), // same date as German NR by Hans Bauer
               attempts: [{ result: 7200 }, { result: 7300 }, { result: 7400 }],
             },
           });
@@ -1335,7 +1359,7 @@ describe("createVideoBasedResultSF", () => {
           expect(res.data!.regionalAverageRecord).toBe("NR");
 
           const cancelledNr = await db.query.results.findFirst({
-            where: { id: { ne: res.data!.id }, eventId, date: { eq: new Date(2020, 5, 1) } },
+            where: { id: { ne: res.data!.id }, eventId, date: { eq: new Date(2023, 5, 1) } },
           });
           expect(cancelledNr?.regionalSingleRecord).toBeNull();
           expect(cancelledNr?.regionalAverageRecord).toBeNull();

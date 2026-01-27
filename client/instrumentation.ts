@@ -1,8 +1,9 @@
-// import type { randomUUID as randomUUIDType } from "node:crypto";
+import type { randomUUID as randomUUIDType } from "node:crypto";
 import type fsType from "node:fs";
 import type { writeFile as writeFileType } from "node:fs/promises";
-import { eq, inArray, sql } from "drizzle-orm";
-import { getDefaultAverageAttempts, getFormattedTime } from "~/helpers/utilityFunctions.ts";
+import { desc, eq, inArray, sql } from "drizzle-orm";
+import { getDefaultAverageAttempts, getFormattedTime, getNameAndLocalizedName } from "~/helpers/utilityFunctions.ts";
+import { WcaCompetitionValidator } from "~/helpers/validators/wca/WcaCompetition.ts";
 import type { auth as authType } from "~/server/auth.ts";
 import type { db as dbType } from "~/server/db/provider.ts";
 import { accountsTable, usersTable } from "~/server/db/schema/auth-schema.ts";
@@ -12,9 +13,9 @@ import { Continents, Countries, getSuperRegion } from "./helpers/Countries.ts";
 import { C } from "./helpers/constants.ts";
 import type { Schedule, Venue } from "./helpers/types/Schedule.ts";
 import { type ContestState, type ContestType, RecordTypeValues } from "./helpers/types.ts";
-import { contestsTable } from "./server/db/schema/contests.ts";
+import { contestsTable, type InsertContest } from "./server/db/schema/contests.ts";
 import { eventsTable, type SelectEvent } from "./server/db/schema/events.ts";
-import { personsTable } from "./server/db/schema/persons.ts";
+import { type PersonResponse, personsTable } from "./server/db/schema/persons.ts";
 import { recordConfigsTable } from "./server/db/schema/record-configs.ts";
 import { type Attempt, type InsertResult, resultsTable, type SelectResult } from "./server/db/schema/results.ts";
 import { roundsTable } from "./server/db/schema/rounds.ts";
@@ -74,7 +75,7 @@ export async function register() {
 
     const fs: typeof fsType = await import("node:fs");
     const { writeFile }: { writeFile: typeof writeFileType } = await import("node:fs/promises");
-    // const { randomUUID }: { randomUUID: typeof randomUUIDType } = await import("node:crypto");
+    const { randomUUID }: { randomUUID: typeof randomUUIDType } = await import("node:crypto");
     const { auth }: { auth: typeof authType } = await import("~/server/auth.ts");
 
     const usersDump = JSON.parse(fs.readFileSync("./dump/users.json") as any) as any[];
@@ -108,26 +109,6 @@ export async function register() {
     //   // magicb: "",
     //   // magccc: "",
     // };
-
-    // EE competition with ID CampeonatoBaiano2020 is already in the CC DB!
-    // EE competition with ID CubingUSAWesternChampionship2021 is already in the CC DB!
-    // EE competition with ID EdneyvilleSpring2022 is already in the CC DB!
-    // EE competition with ID GACubersBigBlindTime2022 is already in the CC DB!
-    // EE competition with ID GACubersBigGoobers2022 is already in the CC DB!
-    // EE competition with ID GACubersReturnB2021 is already in the CC DB!
-    // EE competition with ID HappyValleySpring2022 is already in the CC DB!
-    // EE competition with ID OhioStateExpoOpen2022 is already in the CC DB!
-    // EE competition with ID PittsburghFall2021 is already in the CC DB!
-    // EE competition with ID PittsburghWinter2022 is already in the CC DB!
-    // EE competition with ID SacCubingIX2020 is already in the CC DB!
-    // EE competition with ID SacCubingX2021 is already in the CC DB!
-    // EE competition with ID SlowNSteadyFall2021 is already in the CC DB!
-    // EE competition with ID SlowNSteadySpring2022 is already in the CC DB!
-    // EE competition with ID SnoCoGoesBacktoSquare12021 is already in the CC DB!
-    // EE competition with ID SorguesOpen2022 is already in the CC DB!
-    // EE competition with ID SoutheastChampionship2022 is already in the CC DB!
-    // EE competition with ID WelcomeBackPortland2022 is already in the CC DB!
-    // EE competition with ID WindyCityNewYear2022 is already in the CC DB!
 
     // const eeEventIdConverter = {
     //   "113sia": "333_siamese",
@@ -163,6 +144,149 @@ export async function register() {
     //   redi: "redi",
     //   teambld: "333_team_bld_old",
     // };
+
+    // const doArchiveMigration = false;
+    // if (doArchiveMigration) {
+    //   console.log("Doing archive migration...");
+
+    //   const eeCompetitionsDump = JSON.parse(fs.readFileSync("./dump/ee_competitions.json") as any) as any[];
+    //   const eeCountriesDump = JSON.parse(fs.readFileSync("./dump/ee_countries.json") as any) as any[];
+    //   const eeOrganizersDump = JSON.parse(fs.readFileSync("./dump/ee_organizers.json") as any) as any[];
+
+    //   let reachedCheckpoint = false;
+    //   for (const eeComp of eeCompetitionsDump) {
+    //     if (!reachedCheckpoint) {
+    //       if (eeComp.id === "x") reachedCheckpoint = true;
+    //       else continue;
+    //     }
+    //     if (eeComp.status !== "completed") {
+    //       console.log(`EE competition ${eeComp.id} has status ${eeComp.status}, skipping...`);
+    //       continue;
+    //     }
+
+    //     const sameCompInCc = await db.query.contests.findFirst({ where: { competitionId: eeComp.id } });
+    //     if (sameCompInCc) console.log(`EE competition with ID ${eeComp.id} is already in the CC DB, checking...`);
+    //     else console.log(`New competition from EE DB: ${eeComp.id}`);
+    //     const eeCountry = eeCountriesDump.find((c) => c.id === eeComp.country_id);
+    //     if (!eeCountry || !Countries.some((c) => c.code === eeCountry.iso2))
+    //       throw new Error(`Unrecognized country code: ${eeComp.country_id}`);
+    //     const eeOrganizers = eeOrganizersDump.filter((o) => o.competition_id === eeComp.id);
+
+    //     await new Promise((res) => setTimeout(res, 1000));
+    //     const wcaCompData = await fetch(`${C.wcaApiBaseUrl}/competitions/${eeComp.id}`).then(async (res) => {
+    //       const notFoundMsg = `Competition with ID ${eeComp.id} not found`;
+    //       if (res.status === 404) throw new Error(notFoundMsg);
+    //       if (!res.ok) throw new Error(C.unknownErrorMsg);
+    //       const data = await res.json();
+    //       return WcaCompetitionValidator.parse(data);
+    //     });
+
+    //     const organizers: PersonResponse[] = [];
+    //     const organizersWcaInternalIds = new Set<number>();
+    //     const notFoundPersonNames = new Set();
+
+    //     // Set organizer objects
+    //     for (const org of [
+    //       ...wcaCompData.organizers,
+    //       ...wcaCompData.delegates,
+    //       ...eeOrganizers.map((o) => ({
+    //         id: o.person,
+    //         wca_id: o.person,
+    //         name: "EE person",
+    //         country_iso2: "EE person",
+    //       })),
+    //     ]) {
+    //       // It's possible that the same person is both a delegate and organizer
+    //       if (organizersWcaInternalIds.has(org.id)) continue;
+    //       organizersWcaInternalIds.add(org.id);
+    //       const { name } = getNameAndLocalizedName(org.name);
+
+    //       const person = org.wca_id
+    //         ? await db.query.persons.findFirst({ where: { wcaId: org.wca_id } })
+    //         : await db.query.persons.findFirst({ where: { name: { ilike: name }, regionCode: org.country_iso2 } });
+
+    //       if (!org.wca_id && person && person.name !== name)
+    //         console.log(`Assuming ${org.name} (no WCA ID) is ${name} from the CC DB`);
+
+    //       if (!person)
+    //         notFoundPersonNames.add(
+    //           `${org.name}${org.wca_id ? ` (WCA ID: ${org.wca_id})` : ` (country: ${org.country_iso2})`}`,
+    //         );
+    //       else if (!organizers.some((o) => o.id === person.id)) organizers.push(person);
+    //     }
+
+    //     if (notFoundPersonNames.size > 0) {
+    //       const notFoundNames = Array.from(notFoundPersonNames).join(", ");
+    //       console.error(`Organizers with these names were not found: ${notFoundNames}`);
+    //     }
+
+    //     const insertContestObject: InsertContest = {
+    //       competitionId: eeComp.id,
+    //       state: "published",
+    //       name: wcaCompData.name,
+    //       shortName: wcaCompData.short_name,
+    //       type: "wca-comp",
+    //       city: wcaCompData.city,
+    //       regionCode: wcaCompData.country_iso2,
+    //       venue: wcaCompData.venue.split("]")[0].replace("[", ""),
+    //       address: wcaCompData.venue_address,
+    //       latitudeMicrodegrees: wcaCompData.latitude_degrees,
+    //       longitudeMicrodegrees: wcaCompData.longitude_degrees,
+    //       startDate: new Date(wcaCompData.start_date),
+    //       endDate: new Date(wcaCompData.end_date),
+    //       organizerIds: organizers.map((o) => o.id),
+    //       contact: eeComp.contact,
+    //       description: "",
+    //       competitorLimit: wcaCompData.competitor_limit,
+    //       // schedule: ,
+    //       createdAt: new Date(eeComp.create_timestamp),
+    //       updatedAt: new Date(eeComp.update_timestamp),
+    //     };
+
+    //     if (eeCountry.iso2 !== insertContestObject.regionCode)
+    //       console.error(`Country field from ${eeComp.id} is wrong`);
+    //     if (eeComp.name !== insertContestObject.name) console.error(`Name field from ${eeComp.id} is wrong`);
+    //     if (eeComp.city !== insertContestObject.city) console.error(`City field from ${eeComp.id} is wrong`);
+    //     if (new Date(eeComp.start_date).getTime() !== insertContestObject.startDate.getTime())
+    //       console.error(`Start date field from ${eeComp.id} is wrong`);
+    //     if (new Date(eeComp.end_date).getTime() !== insertContestObject.endDate.getTime())
+    //       console.error(`End date field from ${eeComp.id} is wrong`);
+    //     const missingEeOrganizer = eeOrganizers.find((o) => !organizers.some((o2) => o2.wcaId === o.person));
+    //     if (missingEeOrganizer)
+    //       console.error(`EE organizer from ${eeComp.id} is missing: ${missingEeOrganizer.person}`);
+
+    //     if (sameCompInCc) {
+    //       if (sameCompInCc.state !== insertContestObject.state)
+    //         console.error(`State field from ${eeComp.id} is wrong in CC DB`);
+    //       if (sameCompInCc.name !== insertContestObject.name)
+    //         console.error(`Name field from ${eeComp.id} is wrong in CC DB`);
+    //       if (sameCompInCc.shortName !== insertContestObject.shortName)
+    //         console.error(`Short name field from ${eeComp.id} is wrong in CC DB`);
+    //       if (sameCompInCc.city !== insertContestObject.city)
+    //         console.error(`City field from ${eeComp.id} is wrong in CC DB`);
+    //       if (sameCompInCc.regionCode !== insertContestObject.regionCode)
+    //         console.error(`Country field from ${eeComp.id} is wrong in CC DB`);
+    //       if (sameCompInCc.venue !== insertContestObject.venue)
+    //         console.error(`Venue field from ${eeComp.id} is wrong in CC DB`);
+    //       if (sameCompInCc.address !== insertContestObject.address)
+    //         console.error(`Address field from ${eeComp.id} is wrong in CC DB`);
+    //       if (sameCompInCc.latitudeMicrodegrees !== insertContestObject.latitudeMicrodegrees)
+    //         console.error(`Latitude microdegrees field from ${eeComp.id} is wrong in CC DB`);
+    //       if (sameCompInCc.longitudeMicrodegrees !== insertContestObject.longitudeMicrodegrees)
+    //         console.error(`Longitude microdegrees field from ${eeComp.id} is wrong in CC DB`);
+    //       if (sameCompInCc.startDate.getTime() !== insertContestObject.startDate.getTime())
+    //         console.error(`Start date field from ${eeComp.id} is wrong in CC DB`);
+    //       if (sameCompInCc.endDate.getTime() !== insertContestObject.endDate.getTime())
+    //         console.error(`End date field from ${eeComp.id} is wrong in CC DB`);
+    //       if (sameCompInCc.organizerIds.join(",") !== insertContestObject.organizerIds.join(","))
+    //         console.error(`Organizer IDs field from ${eeComp.id} is wrong in CC DB`);
+    //       if (sameCompInCc.competitorLimit !== insertContestObject.competitorLimit)
+    //         console.error(`Competitor limit field from ${eeComp.id} is wrong in CC DB`);
+    //     }
+    //   }
+
+    //   console.log("Archive migration done");
+    // }
 
     if (process.env.NODE_ENV !== "production") {
       for (const testUser of testUsers) {
@@ -211,9 +335,7 @@ export async function register() {
                 username,
                 displayUsername: user.username,
                 // Resetting all passwords due to hashing algorithm change (further encrypted by scrypt)
-                // password: randomUUID(),
-                // THIS AND THE LINE BELOW TO SET THE PASSWORD DIRECTLY IN THE DB IS TEMPORARY!!!!!!!!!!!!!!!!!!!!!!!!!
-                password: user.password,
+                password: randomUUID(),
                 personId: user.personId,
                 name: user.username,
               },
@@ -231,11 +353,7 @@ export async function register() {
 
             await tx
               .update(accountsTable)
-              .set({
-                password: user.password, // TEMPORARY!!!!!!!
-                createdAt: new Date(user.createdAt.$date),
-                updatedAt: new Date(user.updatedAt.$date),
-              })
+              .set({ createdAt: new Date(user.createdAt.$date), updatedAt: new Date(user.updatedAt.$date) })
               .where(eq(accountsTable.userId, res.user.id));
           }
         });
@@ -591,17 +709,29 @@ export async function register() {
           );
 
           if (!(await tx.query.collectiveSolutions.findFirst({ where: { state: "solved" } }))) {
-            console.log("There is no solved collective solution. Setting ongoing solution to solved...");
+            console.log(
+              "There is no solved collective solution. Removing current solution and setting last one to solved...",
+            );
+
+            const [prevOngoing] = await tx
+              .delete(collectiveSolutionsTable)
+              .where(eq(collectiveSolutionsTable.state, "ongoing"))
+              .returning();
 
             await tx
               .update(collectiveSolutionsTable)
               .set({ state: "solved" })
-              .where(eq(collectiveSolutionsTable.state, "ongoing"));
+              .where(eq(collectiveSolutionsTable.attemptNumber, prevOngoing.attemptNumber - 1));
           }
+
+          const [lastSolution] = await tx
+            .select()
+            .from(collectiveSolutionsTable)
+            .orderBy(desc(collectiveSolutionsTable.attemptNumber));
 
           await tx.execute(
             sql.raw(
-              `ALTER SEQUENCE ${ccSchema.schemaName}.collective_solutions_attempt_number_seq RESTART WITH ${collectiveSolutionsDump.at(-1)!.attemptNumber + 1};`,
+              `ALTER SEQUENCE ${ccSchema.schemaName}.collective_solutions_attempt_number_seq RESTART WITH ${lastSolution.attemptNumber + 1};`,
             ),
           );
         });
@@ -690,7 +820,8 @@ export async function register() {
               const numberOfAttemptsCondition =
                 bestOrAverage === "best"
                   ? sql``
-                  : sql`AND (${resultsTable.date} < '2023-01-01T00:00:00.000Z' OR CARDINALITY(${resultsTable.attempts}) = ${defaultNumberOfAttempts})`;
+                  : sql`AND (${resultsTable.date} < ${C.cutoffDateForFlexibleAverageRecords}
+                          OR CARDINALITY(${resultsTable.attempts}) = ${defaultNumberOfAttempts})`;
 
               const newWrIds = await tx
                 .execute(sql`

@@ -290,7 +290,7 @@ function AttemptInput({
     e.target.selectionEnd = e.target.value.length;
   };
 
-  const cubesInputClasses = `px-0 ${includeMemo ? " col-2" : " col-3"}`;
+  const cubesInputClasses = `px-0 ${includeMemo ? "col-2" : "col-3"}`;
 
   let timeInputTooltip = "";
 

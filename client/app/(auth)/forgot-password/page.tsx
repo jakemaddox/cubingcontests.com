@@ -41,9 +41,13 @@ function RequestPasswordResetPage() {
 
   return (
     <div>
-      <h2 className="mb-4 text-center">Forgot Password</h2>
+      <h2 className="mb-5 text-center">Forgot Password</h2>
 
       <Form onSubmit={handleSubmit} disableControls={isDisabled} isLoading={isPending}>
+        <p className="mb-4">
+          Enter the email address tied to your account and click submit to request a password reset link.
+        </p>
+
         <FormTextInput
           id="email"
           title="Email address"

@@ -1,6 +1,6 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAction } from "next-safe-action/hooks";
 import { useContext, useEffect, useRef, useState, useTransition } from "react";
 import CreatorDetails from "~/app/components/CreatorDetails.tsx";
@@ -28,6 +28,7 @@ type Props = {
 };
 
 function PersonForm({ personUnderEdit, creator, creatorPerson, onSubmit, onCancel }: Props) {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const { changeErrorMessages, changeSuccessMessage, resetMessages } = useContext(MainContext);
 
@@ -98,8 +99,7 @@ function PersonForm({ personUnderEdit, creator, creatorPerson, onSubmit, onCance
       if (hasWcaId) setNextFocusTarget("wca_id");
       else setNextFocusTarget("full_name");
     } else {
-      throw new Error("NOT IMPLEMENTED: ADD BUTTON THAT REDIRECTS BACK AND FOCUS IT");
-      // setTimeout(() => window.location.href = redirect, 2000);
+      setTimeout(() => router.push(redirect), 2000);
     }
   };
 

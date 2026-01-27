@@ -1,5 +1,4 @@
 import "server-only";
-import bcrypt from "bcrypt";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { nextCookies } from "better-auth/next-js";
@@ -11,7 +10,7 @@ import {
   usersTable as users,
   verificationsTable as verifications,
 } from "~/server/db/schema/auth-schema.ts";
-import { sendResetPasswordEmail, sendVerificationEmail } from "~/server/email/mailer.ts";
+import { sendPasswordChangedEmail, sendResetPasswordEmail, sendVerificationEmail } from "~/server/email/mailer.ts";
 import { ac, admin, mod, user } from "~/server/permissions.ts";
 import { logMessage } from "~/server/serverUtilityFunctions";
 
@@ -47,19 +46,19 @@ export const auth = betterAuth({
     sendResetPassword: async ({ user, url }) => {
       if (process.env.EMAIL_API_KEY) logMessage("CC0031", `Sending reset password email for user with ID ${user.id}`);
 
-      await sendResetPasswordEmail(user.email, url);
+      sendResetPasswordEmail(user.email, url);
     },
-    // THIS IS TEMPORARY!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    password: {
-      hash: async (password: string) => await bcrypt.hash(password, 10),
-      verify: async ({ password, hash }: { password: string; hash: string }) => await bcrypt.compare(password, hash),
+    onPasswordReset: async ({ user }) => {
+      if (process.env.EMAIL_API_KEY) logMessage("CC0032", `Sending password changed email for user with ID ${user.id}`);
+
+      sendPasswordChangedEmail(user.email);
     },
   },
   emailVerification: {
     sendVerificationEmail: async ({ user, url }) => {
       if (process.env.EMAIL_API_KEY) logMessage("CC0030", `Sending verification email for new user with ID ${user.id}`);
 
-      await sendVerificationEmail(user.email, url);
+      sendVerificationEmail(user.email, url);
     },
   },
   user: {

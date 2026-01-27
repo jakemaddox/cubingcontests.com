@@ -42,7 +42,7 @@ export const logUserDeletedSF = actionClient
     }),
   )
   .action(async ({ parsedInput: { id } }) => {
-    logMessage("CC0033", `Deleting user with ID ${id}`);
+    logMessage("CC0034", `Deleting user with ID ${id}`);
   });
 
 export const updateUserSF = actionClient
@@ -56,7 +56,7 @@ export const updateUserSF = actionClient
   )
   .action<{ user: typeof auth.$Infer.Session.user; person?: PersonResponse }>(
     async ({ parsedInput: { id, personId, role } }) => {
-      logMessage("CC0032", `Updating user with ID ${id} (new person ID: ${personId}; new role: ${role})`);
+      logMessage("CC0033", `Updating user with ID ${id} (new person ID: ${personId}; new role: ${role})`);
 
       const hdrs = await headers();
 

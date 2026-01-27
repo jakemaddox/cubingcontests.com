@@ -28,7 +28,7 @@ import type { RecordConfigDto } from "~/helpers/validators/RecordConfig.ts";
 import type { RecordConfigResponse } from "~/server/db/schema/record-configs.ts";
 import { createRecordConfigSF, updateRecordConfigSF } from "~/server/serverFunctions/recordConfigServerFunctions.ts";
 
-const recordForOptions: MultiChoiceOption[] = [
+const recordCategoryOptions: MultiChoiceOption[] = [
   {
     value: "competitions",
     label: "Competitions",
@@ -158,7 +158,7 @@ function ConfigureRecordsScreen({ recordConfigs: initRecordConfigs }: Props) {
             <div className="col">
               <FormSelect
                 title="Record Category"
-                options={recordForOptions}
+                options={recordCategoryOptions}
                 selected={category}
                 setSelected={setCategory}
                 disabled={isPending}
@@ -243,7 +243,7 @@ function ConfigureRecordsScreen({ recordConfigs: initRecordConfigs }: Props) {
             {recordConfigs.map((recordConfig, index) => (
               <tr key={recordConfig.id}>
                 <td>{index + 1}</td>
-                <td>{recordForOptions.find((rf) => rf.value === recordConfig.category)?.label}</td>
+                <td>{recordCategoryOptions.find((rf) => rf.value === recordConfig.category)?.label}</td>
                 <td>{recordConfig.recordTypeId}</td>
                 <td>{recordConfig.label}</td>
                 <td>{recordConfig.rank}</td>

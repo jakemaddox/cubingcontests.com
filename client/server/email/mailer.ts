@@ -16,6 +16,7 @@ import type { ResultResponse } from "../db/schema/results.ts";
 // This is needed when running Better Auth DB migrations
 if (process.env.NODE_ENV !== "production") loadEnvConfig(process.cwd(), true);
 
+if (!process.env.PROD_HOSTNAME) console.error("PROD_HOSTNAME environment variable not set!");
 if (!process.env.NEXT_PUBLIC_BASE_URL) console.error("NEXT_PUBLIC_BASE_URL environment variable not set!");
 
 // Mailtrap documentation: https://github.com/mailtrap/mailtrap-nodejs
@@ -25,19 +26,19 @@ const client = new MailtrapClient({
   testInboxId: process.env.NODE_ENV === "production" ? undefined : Number(process.env.EMAIL_TEST_INBOX_ID),
 });
 
-const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? "";
 const from = {
   name: "No Reply",
-  email: `no-reply@${baseUrl.split("://").at(1)}`,
+  email: `no-reply@${process.env.PROD_HOSTNAME}`,
 };
 const contestsEmail = {
   name: "Contests",
-  email: `contests@${baseUrl.split("://").at(1)}`,
+  email: `contests@${process.env.PROD_HOSTNAME}`,
 };
 const resultsEmail = {
   name: "Results",
-  email: `results@${baseUrl.split("://").at(1)}`,
+  email: `results@${process.env.PROD_HOSTNAME}`,
 };
+const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? "";
 
 async function send({
   templateFileName = "default.hbs",
@@ -83,9 +84,8 @@ export function sendEmail(to: string, subject: string, content: string) {
   });
 }
 
-// This is async, because Better Auth requires an async function
-export async function sendVerificationEmail(to: string, url: string) {
-  await send({
+export function sendVerificationEmail(to: string, url: string) {
+  send({
     templateFileName: "email-verification.hbs",
     context: {
       ccUrl: baseUrl,
@@ -102,9 +102,8 @@ export async function sendVerificationEmail(to: string, url: string) {
   });
 }
 
-// This is async, because Better Auth requires an async function
-export async function sendResetPasswordEmail(to: string, url: string) {
-  await send({
+export function sendResetPasswordEmail(to: string, url: string) {
+  send({
     templateFileName: "password-reset-request.hbs",
     context: {
       ccUrl: baseUrl,
@@ -121,25 +120,22 @@ export async function sendResetPasswordEmail(to: string, url: string) {
   });
 }
 
-// async sendPasswordChangedNotification(to: string) {
-//   const contents = await getEmailContents("password-changed.hbs", {
-//     ccUrl: baseUrl,
-//   });
-
-//   try {
-//     await this.transporter.sendMail({
-//       from: this.sender,
-//       to,
-//       subject: "Password changed",
-//       html: contents,
-//     });
-//   } catch (err) {
-//     this.logger.logAndSave(
-//       `Error while sending password changed notification:, ${err}`,
-//       LogType.Error,
-//     );
-//   }
-// }
+export function sendPasswordChangedEmail(to: string) {
+  send({
+    templateFileName: "password-changed.hbs",
+    context: {
+      ccUrl: baseUrl,
+    },
+    callback: async (html) => {
+      await client.send({
+        from,
+        to: [{ email: to }],
+        subject: "Password change successful",
+        html,
+      });
+    },
+  });
+}
 
 export function sendRoleChangedEmail(
   to: string,

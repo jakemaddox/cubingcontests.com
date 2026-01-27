@@ -1,5 +1,5 @@
 import "server-only";
-import { and, eq, gt, lte, ne, sql } from "drizzle-orm";
+import { and, eq, gt, lt, lte, ne, or, sql } from "drizzle-orm";
 import { camelCase } from "lodash";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -153,7 +153,10 @@ export async function getRecordResult(
         eq(resultsTable.recordCategory, recordCategory),
         gt(resultsTable[bestOrAverage], 0),
         bestOrAverage === "average"
-          ? sql`CARDINALITY(${resultsTable.attempts}) = ${getDefaultAverageAttempts(event.defaultRoundFormat)}`
+          ? or(
+              lt(resultsTable.date, new Date(C.cutoffDateForFlexibleAverageRecords)),
+              sql`CARDINALITY(${resultsTable.attempts}) = ${getDefaultAverageAttempts(event.defaultRoundFormat)}`,
+            )
           : undefined,
         superRegion ? eq(resultsTable.superRegionCode, superRegion.code) : undefined,
         regionCode ? eq(resultsTable.regionCode, regionCode) : undefined,
@@ -238,7 +241,12 @@ export async function getRankings(
             AND ${resultsTable.eventId} = ${event.eventId}
             ${recordCategoryCondition}
             AND ${resultsTable[bestOrAverage]} > 0
-            ${bestOrAverage === "best" ? sql`` : sql`AND CARDINALITY(${resultsTable.attempts}) = ${defaultNumberOfAttempts}`}
+            ${
+              bestOrAverage === "best"
+                ? sql``
+                : sql`AND (${resultsTable.date} < ${C.cutoffDateForFlexibleAverageRecords}
+                        OR  CARDINALITY(${resultsTable.attempts}) = ${defaultNumberOfAttempts})`
+            }
             ${regionCondition}
           ORDER BY person_id, ${resultsTable[bestOrAverage]}, ${resultsTable.date}
         ), rankings AS (
@@ -371,7 +379,8 @@ export async function getRankings(
             AND ${resultsTable.eventId} = ${event.eventId}
             ${recordCategoryCondition}
             AND ${resultsTable.average} > 0
-            AND CARDINALITY(${resultsTable.attempts}) = ${defaultNumberOfAttempts}
+            AND (${resultsTable.date} < ${C.cutoffDateForFlexibleAverageRecords}
+              OR CARDINALITY(${resultsTable.attempts}) = ${defaultNumberOfAttempts})
             ${regionCondition}
           ORDER BY ${resultsTable.average}, ${resultsTable.date}
         )

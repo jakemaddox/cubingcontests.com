@@ -20,7 +20,6 @@ read new_version
 
 if [ -z "$1" ] || [ "$1" != '--no-git' ]; then
   echo "Pushing version $new_version to Github..."
-  git push origin main &&
   git tag --force --annotate "$new_version" -m "Version $new_version" &&
   git push --force origin --tags
 fi

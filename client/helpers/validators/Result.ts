@@ -15,7 +15,7 @@ const memo = z
   .optional();
 
 export const AttemptsValidator = z
-  .array(z.strictObject({ result: z.int(), memo }))
+  .array(z.strictObject({ result: z.int().min(-C.maxResult).max(C.maxResult), memo }))
   .min(1)
   .max(5)
   .refine((val) => val.some((a) => a.result !== -2) && val.some((a) => a.result !== 0), {

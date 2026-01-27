@@ -15,7 +15,7 @@ type Props = {
   onCancel?: () => void;
 };
 
-const Form = ({
+function Form({
   children,
   buttonText = "Submit",
   hideToasts,
@@ -25,7 +25,7 @@ const Form = ({
   isLoading,
   onSubmit,
   onCancel,
-}: Props) => {
+}: Props) {
   const showSubmitButton = !hideControls && buttonText;
   if (showSubmitButton && !onSubmit) throw new Error("onSubmit cannot be undefined unless the submit button is hidden");
   if (showCancelButton && !onCancel) throw new Error("onCancel cannot be undefined unless the cancel button is hidden");
@@ -64,6 +64,6 @@ const Form = ({
       )}
     </form>
   );
-};
+}
 
 export default Form;

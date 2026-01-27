@@ -145,7 +145,7 @@ export const ContestValidator = z
   })
   .superRefine((val, ctx) => {
     for (const key of ["competitionId", "name", "shortName"]) {
-      if (/championship/i.test((val as any)[key]) || /national/i.test((val as any)[key])) {
+      if (val.type !== "wca-comp" && (/championship/i.test((val as any)[key]) || /national/i.test((val as any)[key]))) {
         ctx.addIssue({
           code: "custom",
           message: 'The name must not contain "championship" or "national"',

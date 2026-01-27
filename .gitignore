@@ -42,7 +42,6 @@ client/next-env.d.ts
 # Supabase
 volumes/db/data
 volumes/storage
-volumes/nginx/ssl
 
 # Other (TEMPORARY!!!!!!!!!!!!!!!)
 client/dump

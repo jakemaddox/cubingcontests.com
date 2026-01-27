@@ -87,7 +87,7 @@ function ContestForm({
   const { changeErrorMessages, resetMessages } = useContext(MainContext);
 
   const { executeAsync: getPersonById, isPending: isGettingPerson } = useAction(getPersonByIdSF);
-  const { executeAsync: getOrCreateWcaPerson, isPending: isGettingOrCreatingWcaPerson } =
+  const { executeAsync: getOrCreatePersonByWcaId, isPending: isGettingOrCreatingWcaPerson } =
     useAction(getOrCreatePersonByWcaIdSF);
   const { executeAsync: getOrCreatePerson, isPending: isGettingOrCreatingPerson } = useAction(getOrCreatePersonSF);
   const { executeAsync: getTimeZoneFromCoords, isPending: isPendingTimeZone } = useAction(getTimeZoneFromCoordsSF);
@@ -380,7 +380,7 @@ function ContestForm({
         organizersWcaInternalIds.add(org.id);
 
         const res = org.wca_id
-          ? await getOrCreateWcaPerson({ wcaId: org.wca_id })
+          ? await getOrCreatePersonByWcaId({ wcaId: org.wca_id })
           : await getOrCreatePerson({ name: org.name, regionCode: org.country_iso2 });
 
         if (!res.data) notFoundPersonNames.add(org.name);
