@@ -6,10 +6,12 @@ type Props = {
   tooltip?: string;
 };
 
-const FormInputLabel = ({ text, inputId, tooltip }: Props) => {
+function FormInputLabel({ text, inputId, tooltip }: Props) {
   return (
-    <span className="flex-shrink-0 d-flex align-items-start gap-2">
-      <label htmlFor={inputId} className="form-label mb-0">{text}</label>
+    <span className="d-flex flex-shrink-0 gap-2 align-items-start">
+      <label htmlFor={inputId} className="form-label mb-0">
+        {text}
+      </label>
 
       {tooltip && (
         <span className="mt-1">
@@ -18,6 +20,6 @@ const FormInputLabel = ({ text, inputId, tooltip }: Props) => {
       )}
     </span>
   );
-};
+}
 
 export default FormInputLabel;

@@ -1,45 +1,50 @@
 import Competitor from "~/app/components/Competitor.tsx";
-import { IPerson } from "~/helpers/types.ts";
+import type { PersonResponse } from "~/server/db/schema/persons.ts";
 
 type Props = {
-  persons: IPerson[];
+  persons: Pick<PersonResponse, "id" | "name" | "localizedName" | "regionCode" | "wcaId">[];
   noFlag?: boolean;
   vertical?: boolean;
 };
 
-const Competitors = ({
-  persons,
-  noFlag = false,
-  vertical = false,
-}: Props) => {
+function Competitors({ persons, noFlag = false, vertical = false }: Props) {
   if (vertical) {
     return (
       <div className="d-flex flex-column gap-2">
-        {persons.map((person) => <Competitor key={person.personId} person={person} />)}
+        {persons.map((person, index) =>
+          person ? (
+            <Competitor key={person.id} person={person} />
+          ) : (
+            <span key={index} className="text-danger">
+              COMPETITOR NOT FOUND
+            </span>
+          ),
+        )}
       </div>
     );
   }
 
   return (
-    <div className="d-flex flex-wrap align-items-start gap-2">
-      {persons.map((person, index) => (
-        <span key={person.personId} className="d-flex gap-2">
-          <span className="d-none d-md-block">
-            <Competitor
-              key={person.personId}
-              person={person}
-              noFlag={noFlag}
-              showLocalizedName={persons.length === 1}
-            />
+    <div className="d-flex flex-wrap gap-2 align-items-start">
+      {persons.map((person, index) =>
+        person ? (
+          <span key={person.id} className="d-flex gap-2">
+            <span className="d-none d-md-block">
+              <Competitor key={person.id} person={person} noFlag={noFlag} showLocalizedName={persons.length === 1} />
+            </span>
+            <span className="d-md-none">
+              <Competitor key={person.id} person={person} noFlag={noFlag} />
+            </span>
+            {index !== persons.length - 1 && <span>&</span>}
           </span>
-          <span className="d-md-none">
-            <Competitor key={person.personId} person={person} noFlag={noFlag} />
+        ) : (
+          <span key={index} className="text-danger">
+            COMPETITOR NOT FOUND
           </span>
-          {index !== persons.length - 1 && <span>&</span>}
-        </span>
-      ))}
+        ),
+      )}
     </div>
   );
-};
+}
 
 export default Competitors;

@@ -1,6 +1,18 @@
 import "server-only";
-import { drizzle } from "drizzle-orm/postgres-js";
+import type { PgAsyncTransaction } from "drizzle-orm/pg-core";
+import { drizzle, type PostgresJsQueryResultHKT } from "drizzle-orm/postgres-js";
+import { relations } from "./relations.ts";
 
-const db = drizzle(process.env.POSTGRES_URI!);
+export const db = drizzle({
+  connection: {
+    url: process.env.DATABASE_URL!,
+    // TO-DO: MAKE SSL CONNECTION WORK!!!!!!!!!!!!!!!!!!!!!!!!
+    // ssl: "verify-full",
+    // Uncomment this if using Supabase "Transaction" pool mode (see https://orm.drizzle.team/docs/connect-supabase)
+    prepare: false,
+  },
+  casing: "snake_case",
+  relations,
+});
 
-export default db;
+export type DbTransactionType = PgAsyncTransaction<PostgresJsQueryResultHKT, Record<string, never>, typeof relations>;

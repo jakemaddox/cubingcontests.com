@@ -1,126 +1,126 @@
 "use client";
 
-import { useState } from "react";
-import { capitalize } from "lodash";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCaretDown, faCaretRight } from "@fortawesome/free-solid-svg-icons";
-import Country from "~/app/components/Country.tsx";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { useState } from "react";
 import Competitor from "~/app/components/Competitor.tsx";
-import ContestName from "~/app/components/ContestName.tsx";
-import Solves from "~/app/components/Solves.tsx";
-import RankingLinks from "~/app/components/RankingLinks.tsx";
 import Competitors from "~/app/components/Competitors.tsx";
-import type { Event, IPerson, IRanking, ResultRankingType } from "~/helpers/types.ts";
-import { getFormattedTime } from "~/helpers/sharedFunctions.ts";
-import { getFormattedDate } from "~/helpers/utilityFunctions.ts";
-import { ContestType, EventGroup } from "~/helpers/enums";
+import ContestName from "~/app/components/ContestName.tsx";
+import Country from "~/app/components/Country.tsx";
+import RankingLinks from "~/app/components/RankingLinks.tsx";
+import Solves from "~/app/components/Solves.tsx";
+import type { Ranking } from "~/helpers/types/Rankings";
+import { getFormattedDate, getFormattedTime } from "~/helpers/utilityFunctions.ts";
+import type { EventResponse } from "~/server/db/schema/events.ts";
 
-type Props = {
-  isTiedRanking?: boolean;
-  onlyKeepPerson?: boolean;
-  event: Event;
-  ranking: IRanking;
-  person: IPerson; // the person being ranked
+type RankingProps = {
+  type: "single-ranking" | "average-ranking";
+  ranking: Ranking;
+  isTiedRanking: boolean;
+  event: EventResponse;
   showAllTeammates: boolean;
-  showTeamColumn?: boolean;
+  showTeamColumn: boolean;
   showDetailsColumn: boolean;
-  forRecordsTable?: boolean;
+  showOnlyPersonWithId?: never;
 };
 
-const RankingRow = ({
+type RecordProps = {
+  type: "single-record" | "average-record";
+  ranking: Ranking;
+  isTiedRanking?: boolean;
+  event: EventResponse;
+  showAllTeammates?: never;
+  showTeamColumn?: never;
+  showDetailsColumn?: never;
+  showOnlyPersonWithId: undefined | number;
+};
+
+function RankingRow({
+  type,
   isTiedRanking,
-  onlyKeepPerson = false,
   event,
   ranking,
-  person,
-  showAllTeammates,
+  showAllTeammates = false,
   showTeamColumn = false,
-  showDetailsColumn,
-  forRecordsTable = false,
-}: Props) => {
+  showDetailsColumn = false,
+  showOnlyPersonWithId,
+}: RankingProps | RecordProps) {
   const [teamExpanded, setTeamExpanded] = useState(false);
-  const firstColumnValue = ranking.ranking ?? capitalize(ranking.type as ResultRankingType);
-  const personsToDisplay = showAllTeammates ? ranking.persons : [person];
+
+  const isRecordRow = ["single-record", "average-record"].includes(type);
+  const firstColumnValue = !isRecordRow
+    ? ranking.ranking
+    : type === "single-record"
+      ? "Single"
+      : ranking.attempts.length === 3
+        ? "Mean"
+        : "Average";
+  const personsToDisplay = showAllTeammates
+    ? ranking.persons
+    : [
+        ranking.personId
+          ? ranking.persons.find((p) => p.id === ranking.personId)!
+          : ranking.persons[showOnlyPersonWithId ?? 0],
+      ];
 
   /////////////////////////////////////////////////////////////////////////////////////////
   // REMEMBER TO UPDATE THE MOBILE VIEW OF THE RECORDS PAGE IN ACCORDANCE WITH THIS
   /////////////////////////////////////////////////////////////////////////////////////////
 
   return (
-    <tr
-      className={!event.groups.some((g) => [EventGroup.WCA, EventGroup.ExtremeBLD].includes(g)) &&
-          (!ranking.contest || ranking.contest.type === ContestType.Meetup)
-        ? "table-active"
-        : ""}
-    >
+    <tr>
       <td>
-        {!onlyKeepPerson && (
-          <span className={isTiedRanking ? "text-secondary" : ""}>
-            {firstColumnValue}
-          </span>
-        )}
+        {!showOnlyPersonWithId && <span className={isTiedRanking ? "text-secondary" : ""}>{firstColumnValue}</span>}
       </td>
       <td>
         <Competitors persons={personsToDisplay} noFlag={!showAllTeammates} />
       </td>
-      <td>
-        {!onlyKeepPerson &&
-          getFormattedTime(ranking.result, {
-            event,
-            showMultiPoints: !forRecordsTable,
-          })}
-      </td>
+      <td>{!showOnlyPersonWithId && getFormattedTime(ranking.result, { event, showMultiPoints: !isRecordRow })}</td>
       {!showAllTeammates && (
         <td>
-          <Country countryIso2={person.countryIso2} shorten />
+          <Country countryIso2={personsToDisplay[0].regionCode} shorten />
         </td>
       )}
-      <td>{!onlyKeepPerson && getFormattedDate(ranking.date)}</td>
+      <td>{!showOnlyPersonWithId && getFormattedDate(ranking.date)}</td>
       <td>
-        {!onlyKeepPerson &&
+        {!showOnlyPersonWithId &&
           (ranking.contest ? <ContestName contest={ranking.contest} /> : <RankingLinks ranking={ranking} />)}
       </td>
       {showTeamColumn && (
         <td>
-          <div className="d-flex flex-column align-items-start gap-2 fs-6">
+          <div className="d-flex fs-6 flex-column gap-2 align-items-start">
             <span className="text-white">
-              <u
-                style={{ cursor: "pointer" }}
+              <button
+                type="button"
                 onClick={() => setTeamExpanded(!teamExpanded)}
+                className="border-0 bg-transparent p-0 text-decoration-underline"
+                style={{ cursor: "pointer" }}
               >
                 {teamExpanded ? "Close" : "Open"}
-              </u>
-              <span className="ms-2">
+              </button>
+              <span>
                 {teamExpanded ? <FontAwesomeIcon icon={faCaretDown} /> : <FontAwesomeIcon icon={faCaretRight} />}
               </span>
             </span>
 
-            {teamExpanded &&
-              ranking.persons.map((p) => <Competitor key={p.personId} person={p} />)}
+            {teamExpanded && ranking.persons.map((p) => <Competitor key={p.id} person={p} />)}
           </div>
         </td>
       )}
-      {showDetailsColumn && (
+      {(showDetailsColumn || isRecordRow) && (
         <td>
-          {!onlyKeepPerson &&
-            (ranking.attempts
-              ? (
-                <Solves
-                  event={event}
-                  attempts={ranking.attempts}
-                  showMultiPoints={!forRecordsTable}
-                />
-              )
-              : ranking.memo
-              ? getFormattedTime(ranking.memo, {
-                showDecimals: false,
-                alwaysShowMinutes: true,
-              })
-              : "")}
+          {!showOnlyPersonWithId &&
+            (["average-ranking", "average-record"].includes(type) ? (
+              <Solves event={event} attempts={ranking.attempts} showMultiPoints={!isRecordRow} />
+            ) : ranking.memo ? (
+              getFormattedTime(ranking.memo, { showDecimals: false, alwaysShowMinutes: true })
+            ) : (
+              ""
+            ))}
         </td>
       )}
     </tr>
   );
-};
+}
 
 export default RankingRow;

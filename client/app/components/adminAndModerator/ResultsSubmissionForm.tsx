@@ -1,234 +1,169 @@
 "use client";
 
-import { useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
-import { debounce } from "lodash";
-import Markdown from "react-markdown";
-import { useMyFetch } from "~/helpers/customHooks.ts";
-import Loading from "~/app/components/UI/Loading.tsx";
+import debounce from "lodash/debounce";
+import { usePathname, useSearchParams } from "next/navigation";
+import { useAction } from "next-safe-action/hooks";
+import { useCallback, useContext, useEffect, useState } from "react";
+import AttemptInput from "~/app/components/AttemptInput.tsx";
+import BestAndAverage from "~/app/components/adminAndModerator/BestAndAverage.tsx";
+import CreatorDetails from "~/app/components/CreatorDetails.tsx";
 import Form from "~/app/components/form/Form.tsx";
 import FormCheckbox from "~/app/components/form/FormCheckbox.tsx";
 import FormDateInput from "~/app/components/form/FormDateInput.tsx";
+import FormEventSelect from "~/app/components/form/FormEventSelect.tsx";
+import FormPersonInputs from "~/app/components/form/FormPersonInputs.tsx";
+import FormSelect from "~/app/components/form/FormSelect.tsx";
 import FormTextInput from "~/app/components/form/FormTextInput.tsx";
 import Button from "~/app/components/UI/Button.tsx";
-import CreatorDetails from "~/app/components/CreatorDetails.tsx";
-import {
-  type Event,
-  type IAdminResultsSubmissionInfo,
-  type ICreateVideoBasedResultDto,
-  type IEventRecordPairs,
-  type IFeAttempt,
-  type IPerson,
-  type IRecordPair,
-  type IResultsSubmissionInfo,
-  type IRoundFormat,
-  type IUpdateVideoBasedResultDto,
-} from "~/helpers/types.ts";
-import { EventFormat, RoundFormat } from "~/helpers/enums.ts";
-import { roundFormats } from "~/helpers/roundFormats.ts";
+import Loading from "~/app/components/UI/Loading.tsx";
+import { authClient } from "~/helpers/authClient.ts";
 import { C } from "~/helpers/constants.ts";
-import { getBlankCompetitors, getRoundFormatOptions, getUserInfo } from "~/helpers/utilityFunctions.ts";
-import { type InputPerson, UserInfo } from "~/helpers/types.ts";
 import { MainContext } from "~/helpers/contexts.ts";
-import FormEventSelect from "~/app/components/form/FormEventSelect.tsx";
-import FormSelect from "~/app/components/form/FormSelect.tsx";
-import FormPersonInputs from "~/app/components/form/FormPersonInputs.tsx";
-import AttemptInput from "~/app/components/AttemptInput.tsx";
-import BestAndAverage from "~/app/components/adminAndModerator/BestAndAverage.tsx";
-import rules from "./video-based-results-rules.md";
+import { type RoundFormatObject, roundFormats } from "~/helpers/roundFormats.ts";
+import type { Creator, EventWrPair, InputPerson, RoundFormat } from "~/helpers/types.ts";
+import { getActionError, getBlankCompetitors, getIsAdmin, getRoundFormatOptions } from "~/helpers/utilityFunctions.ts";
+import type { VideoBasedResultDto } from "~/helpers/validators/Result.ts";
+import type { EventResponse } from "~/server/db/schema/events.ts";
+import type { PersonResponse } from "~/server/db/schema/persons.ts";
+import type { RecordConfigResponse } from "~/server/db/schema/record-configs.ts";
+import type { Attempt, SelectResult } from "~/server/db/schema/results.ts";
+import { createVideoBasedResultSF, getWrPairUpToDateSF } from "~/server/serverFunctions/resultServerFunctions.ts";
+import Rules from "./video-based-results-rules.mdx";
 
-const userInfo: UserInfo = getUserInfo();
-const allowedRoundFormats: IRoundFormat[] = roundFormats.filter((rf) => rf.value !== RoundFormat.BestOf3);
+const allowedRoundFormats: RoundFormatObject[] = roundFormats.filter((rf) => rf.value !== "3");
 
-/**
- * If resultId is defined, that means this component is for submitting new results.
- * Otherwise it's for editing an existing result (admin-only feature).
- */
 type Props = {
-  resultId?: string;
+  events: EventResponse[];
+  recordConfigs: RecordConfigResponse[];
+  result?: SelectResult; // only defined when editing an existing result
+  competitors?: PersonResponse[];
+  creator?: Creator;
+  creatorPerson?: PersonResponse;
 };
 
-const ResultsSubmissionForm = ({ resultId }: Props) => {
-  if (resultId && !userInfo?.isAdmin) {
-    throw new Error("Only an admin can edit results");
-  }
-
+function ResultsSubmissionForm({
+  events,
+  recordConfigs,
+  result,
+  competitors: initCompetitors,
+  creator,
+  creatorPerson,
+}: Props) {
+  const pathname = usePathname();
   const searchParams = useSearchParams();
-  const myFetch = useMyFetch();
+  const { changeErrorMessages, changeSuccessMessage } = useContext(MainContext);
+  const { data: session } = authClient.useSession();
+
   const {
-    changeErrorMessages,
-    changeSuccessMessage,
-    loadingId,
-    changeLoadingId,
-  } = useContext(MainContext);
-
+    executeAsync: getWrPairUpToDate,
+    isPending: isPendingWrPairs,
+    reset: resetGetEventWrPairsUpToDate,
+  } = useAction(getWrPairUpToDateSF);
+  const { executeAsync: createResult, isPending: isCreating } = useAction(createVideoBasedResultSF);
+  const [eventWrPair, setEventWrPair] = useState<EventWrPair | undefined>();
   const [showRules, setShowRules] = useState(false);
-  const [submissionInfo, setSubmissionInfo] = useState<
-    IResultsSubmissionInfo | IAdminResultsSubmissionInfo
-  >();
-  // TO-DO: make it so that some of the submission info including the event is prefetched server-side and clean this up
-  const [event, setEvent] = useState<Event>({} as Event);
-  const [roundFormat, setRoundFormat] = useState<IRoundFormat>(
-    allowedRoundFormats[0],
+  const [event, setEvent] = useState<EventResponse>(
+    events.find((e) => e.eventId === (result?.eventId ?? searchParams.get("eventId"))) ?? events[0],
   );
-  const [competitors, setCompetitors] = useState<InputPerson[]>([null]);
-  const [personNames, setPersonNames] = useState([""]);
+  const [roundFormat, setRoundFormat] = useState<RoundFormatObject>(
+    result ? allowedRoundFormats.find((rf) => rf.attempts === result.attempts.length)! : allowedRoundFormats[0],
+  );
+  const [competitors, setCompetitors] = useState<InputPerson[]>(initCompetitors ?? [null]);
+  const [personNames, setPersonNames] = useState(initCompetitors?.map((p) => p.name) ?? [""]);
   const [keepCompetitors, setKeepCompetitors] = useState(false);
-  const [attempts, setAttempts] = useState<IFeAttempt[]>([]);
-  const [date, setDate] = useState<Date | null | undefined>(); // null means the date is invalid; undefined means it's empty
-  const [videoLink, setVideoLink] = useState("");
+  const [attempts, setAttempts] = useState<Attempt[]>(result?.attempts ?? []);
+  // null means the date is invalid; undefined means it's empty
+  const [date, setDate] = useState<Date | null | undefined>(result ? new Date(result.date) : undefined);
+  const [videoLink, setVideoLink] = useState(result?.videoLink ?? "");
   const [videoUnavailable, setVideoUnavailable] = useState(false);
-  const [discussionLink, setDiscussionLink] = useState("");
+  const [discussionLink, setDiscussionLink] = useState(result?.discussionLink ?? "");
 
-  const recordPairs = useMemo<IRecordPair[] | undefined>(
-    () =>
-      submissionInfo?.recordPairsByEvent.find((erp: IEventRecordPairs) => erp.eventId === event?.eventId)?.recordPairs,
-    [submissionInfo, event],
-  );
+  const updateWrPair = useCallback(
+    debounce(async (eventId: string, recordsUpTo?: Date) => {
+      const res = await getWrPairUpToDate({
+        recordCategory: "video-based-results",
+        eventId,
+        recordsUpTo,
+        excludeResultId: result?.id,
+      });
 
-  const updateRecordPairs = useCallback(
-    debounce(async (date: Date) => {
-      const eventsStr = (submissionInfo as IResultsSubmissionInfo).events.map((
-        e: Event,
-      ) => e.eventId).join(",");
-      const queryParams = resultId ? `?excludeResultId=${resultId}` : "";
-
-      const res = await myFetch.get(
-        `/results/record-pairs/${date}/${eventsStr}${queryParams}`,
-        { authorize: true, loadingId: null },
-      );
-
-      if (res.success) {
-        setSubmissionInfo(
-          {
-            ...submissionInfo,
-            recordPairsByEvent: res.data,
-          } as IResultsSubmissionInfo,
-        );
-      }
-      changeLoadingId("");
+      if (res.serverError || res.validationErrors) changeErrorMessages([getActionError(res)]);
+      else setEventWrPair(res.data!);
     }, C.fetchDebounceTimeout),
-    [submissionInfo],
+    [],
   );
 
-  const isDateDisabled = !!resultId && (submissionInfo as any)?.result &&
-    !(submissionInfo as any).result.unapproved;
+  const isAdmin = getIsAdmin(session?.user.role);
+  const isPending = isCreating || isPendingWrPairs;
 
   useEffect(() => {
-    // If submitting results
-    if (!resultId) {
-      myFetch
-        .get<IResultsSubmissionInfo>(`/results/submission-info/${new Date()}`, {
-          authorize: true,
-        })
-        .then(
-          (res) => {
-            if (res.success && res.data) {
-              setSubmissionInfo(res.data);
-
-              const event = res.data.events.find((el: Event) => el.eventId === searchParams.get("eventId")) ??
-                res.data.events[0];
-              setEvent(event);
-              resetCompetitors(event.participants);
-              resetAttempts();
-              document.getElementById("Competitor_1")?.focus();
-            }
-          },
-        );
-    } // If editing a result
-    else {
-      myFetch.get(`/results/editing-info/${resultId}`, { authorize: true })
-        .then((res) => {
-          if (res.success && res.data) {
-            setSubmissionInfo(res.data);
-            const { result, persons, events } = res
-              .data as IAdminResultsSubmissionInfo;
-
-            setEvent(events[0]);
-            setRoundFormat(
-              allowedRoundFormats.find((rf) => rf.attempts === result.attempts.length) as IRoundFormat,
-            );
-            setAttempts(result.attempts);
-            setDate(new Date(result.date));
-            setCompetitors(persons);
-            setPersonNames(persons.map((p: IPerson) => p.name));
-            setVideoLink(result.videoLink);
-            if (result.discussionLink) setDiscussionLink(result.discussionLink);
-          }
-        });
+    if (!result) {
+      resetCompetitors((events.find((e) => e.eventId === searchParams.get("eventId")) ?? events[0]).participants);
+      resetAttempts();
     }
   }, []);
 
-  //////////////////////////////////////////////////////////////////////////////
-  // FUNCTIONS
-  //////////////////////////////////////////////////////////////////////////////
-
+  // biome-ignore lint/correctness/noUnusedFunctionParameters: this is temporary
   const submitResult = async (approve = false) => {
     if (competitors.some((p: InputPerson) => !p)) {
       changeErrorMessages(["Invalid person(s)"]);
       return;
     }
 
-    const newResult: ICreateVideoBasedResultDto = {
+    const newResultDto: VideoBasedResultDto = {
       eventId: event.eventId,
-      date: date as Date,
-      personIds: competitors.map((p: InputPerson) => (p as IPerson).personId),
+      date: date!,
+      personIds: competitors.map((p) => p!.id),
       attempts,
       videoLink: videoUnavailable ? "" : videoLink,
-      discussionLink: discussionLink || undefined,
+      discussionLink: discussionLink || null,
     };
 
-    const loadingId = approve ? "approve_button" : "submit_button";
+    if (!result) {
+      const res = await createResult({ newResultDto });
 
-    if (!resultId) {
-      const res = await myFetch.post("/results", newResult, { loadingId });
-
-      if (res.success) {
+      if (res.serverError || res.validationErrors) {
+        changeErrorMessages([getActionError(res)]);
+      } else {
         changeSuccessMessage("Result successfully submitted");
         setDate(undefined);
         setVideoLink("");
         setDiscussionLink("");
-        resetCompetitors();
         resetAttempts();
-        if (!keepCompetitors) document.getElementById("Competitor_1")?.focus();
+        if (!keepCompetitors) {
+          resetCompetitors();
+          document.getElementById("Competitor_1")?.focus();
+        }
       }
     } else {
-      const updateResultDto: IUpdateVideoBasedResultDto = {
-        date: newResult.date,
-        personIds: newResult.personIds,
-        attempts: newResult.attempts,
-        videoLink: newResult.videoLink,
-        discussionLink: newResult.discussionLink,
-      };
-      if (!approve) {
-        updateResultDto.unapproved = (submissionInfo as IAdminResultsSubmissionInfo).result.unapproved;
-      }
+      throw new Error("NOT IMPLEMENTED!");
+      // const updateResultDto: IUpdateVideoBasedResultDto = {
+      //   date: newResult.date,
+      //   personIds: newResult.personIds,
+      //   attempts: newResult.attempts,
+      //   videoLink: newResult.videoLink,
+      //   discussionLink: newResult.discussionLink,
+      // };
+      // if (!approve) {
+      //   updateResultDto.unapproved = (submissionInfo as IAdminResultsSubmissionInfo).result.unapproved;
+      // }
 
-      const res = await myFetch.patch(
-        `/results/video-based/${resultId}`,
-        updateResultDto,
-        {
-          loadingId,
-          keepLoadingOnSuccess: true,
-        },
-      );
+      // const res = await myFetch.patch(
+      //   `/results/video-based/${resultId}`,
+      //   updateResultDto,
+      //   { loadingId, keepLoadingOnSuccess: true },
+      // );
 
-      if (res.success) {
-        changeSuccessMessage(
-          approve ? "Result successfully approved" : "Result successfully updated",
-        );
+      // if (res.success) {
+      //   changeSuccessMessage(approve ? "Result successfully approved" : "Result successfully updated");
 
-        setTimeout(() => {
-          window.location.href = "/admin/results";
-        }, 1000);
-      }
+      //   setTimeout(() => { window.location.href = "/admin/results" }, 1000);
+      // }
     }
   };
 
   const changeEvent = (newEventId: string) => {
-    const newEvent = (submissionInfo as IResultsSubmissionInfo).events.find((
-      e: Event,
-    ) => e.eventId === newEventId) as Event;
+    const newEvent = events.find((e) => e.eventId === newEventId)!;
     setEvent(newEvent);
     resetAttempts();
 
@@ -242,7 +177,7 @@ const ResultsSubmissionForm = ({ resultId }: Props) => {
   };
 
   const changeRoundFormat = (newFormat: RoundFormat) => {
-    const newRoundFormat = allowedRoundFormats.find((rf) => rf.value === newFormat) as IRoundFormat;
+    const newRoundFormat = allowedRoundFormats.find((rf) => rf.value === newFormat) as RoundFormatObject;
     setRoundFormat(newRoundFormat);
     resetAttempts(newRoundFormat.attempts);
   };
@@ -251,24 +186,18 @@ const ResultsSubmissionForm = ({ resultId }: Props) => {
     setAttempts(new Array(numberOfAttempts).fill({ result: 0 }));
   };
 
-  const changeAttempt = (index: number, newAttempt: IFeAttempt) => {
-    setAttempts(
-      attempts.map((
-        a: IFeAttempt,
-        i: number,
-      ) => (i !== index ? a : newAttempt)),
-    );
+  const changeAttempt = (index: number, newAttempt: Attempt) => {
+    setAttempts(attempts.map((a: Attempt, i: number) => (i !== index ? a : newAttempt)));
   };
 
   const changeDate = (newDate: Date | null | undefined) => {
     setDate(newDate);
 
     if (newDate) {
-      updateRecordPairs(newDate);
-      changeLoadingId("RECORD_PAIRS");
+      updateWrPair(event.eventId, newDate);
     } else {
-      updateRecordPairs.cancel();
-      changeLoadingId("");
+      updateWrPair.cancel();
+      resetGetEventWrPairsUpToDate();
     }
   };
 
@@ -287,66 +216,55 @@ const ResultsSubmissionForm = ({ resultId }: Props) => {
     setVideoLink(newVideoLink);
   };
 
-  if (!submissionInfo) return <Loading />;
-
   return (
-    <div>
-      <h2 className="text-center">
-        {resultId ? "Edit Result" : "Submit Result"}
-      </h2>
+    <>
+      <h2 className="text-center">{result ? "Edit Result" : "Submit Result"}</h2>
 
-      <div className="mt-3 mx-auto px-3 fs-6" style={{ maxWidth: "900px" }}>
-        {resultId
-          ? (
+      <div className="fs-6 mx-auto mt-3 px-3" style={{ maxWidth: "900px" }}>
+        {result ? (
+          <p>
+            Once you submit the attempt, the backend will remove future records that would have been cancelled by it.
+          </p>
+        ) : (
+          <>
             <p>
-              Once you submit the attempt, the backend will remove future records that would have been cancelled by it.
+              Here you can submit results for events that allow submissions. You may submit other people's results too.
+              New results will be included in the rankings after an admin approves them. A result can only be accepted
+              if it has video evidence of the <b>ENTIRE</b> solve (including memorization, if applicable). The video
+              date is used as proof of when the solve was done, an earlier date cannot be used. Make sure that you can
+              be identified from the provided video; if your channel name is not your real name, please include your
+              full name or WCA ID in the description of the video. If you do not have a WCA ID, please contact the
+              admins to have a competitor profile created for you. If you have any questions or suggestions, feel free
+              to send an email to {C.contactEmail}.
             </p>
-          )
-          : (
-            <>
-              <p>
-                Here you can submit results for events that allow submissions. You may submit other people's results
-                too. New results will be included in the rankings after an admin approves them. A result can only be
-                accepted if it has video evidence of the <b>ENTIRE</b>{" "}
-                solve (including memorization, if applicable). The video date is used as proof of when the solve was
-                done, an earlier date cannot be used. Make sure that you can be identified from the provided video; if
-                your channel name is not your real name, please include your full name or WCA ID in the description of
-                the video. If you do not have a WCA ID, please contact the admins to have a competitor profile created
-                for you. If you have any questions or suggestions, feel free to send an email to {C.contactEmail}.
-              </p>
-              <div className="alert alert-warning mb-4" role="alert">
-                Rule 6 has been added
+            <button type="button" className="btn btn-success btn-sm" onClick={() => setShowRules(!showRules)}>
+              {showRules ? "Hide rules" : "Show rules"}
+            </button>
+            {showRules && (
+              <div className="lh-lg mt-4">
+                <Rules />
               </div>
-              <button
-                type="button"
-                className="btn btn-success btn-sm"
-                onClick={() => setShowRules(!showRules)}
-              >
-                {showRules ? "Hide rules" : "Show rules"}
-              </button>
-              {showRules && <Markdown className="mt-4 lh-lg">{rules}</Markdown>}
-            </>
-          )}
+            )}
+          </>
+        )}
       </div>
 
-      <Form hideButton>
-        {resultId && (
-          <CreatorDetails
-            creator={(submissionInfo as IAdminResultsSubmissionInfo).creator}
-          />
+      <Form hideControls>
+        {result && (
+          <CreatorDetails creator={creator} person={creatorPerson} createdExternally={!!result.createdExternally} />
         )}
         <FormEventSelect
-          events={submissionInfo.events}
+          events={events}
           eventId={event.eventId}
           setEventId={(val) => changeEvent(val)}
-          disabled={resultId !== undefined}
+          disabled={!!result}
         />
         <FormSelect
           title="Format"
           options={getRoundFormatOptions(allowedRoundFormats)}
           selected={roundFormat.value}
           setSelected={(val: RoundFormat) => changeRoundFormat(val)}
-          disabled={resultId !== undefined}
+          disabled={!!result}
           className="mb-3"
         />
         <FormPersonInputs
@@ -355,36 +273,32 @@ const ResultsSubmissionForm = ({ resultId }: Props) => {
           setPersonNames={setPersonNames}
           persons={competitors}
           setPersons={setCompetitors}
-          nextFocusTargetId={event.format !== EventFormat.Multi ? "attempt_1" : "attempt_1_solved"}
-          redirectToOnAddPerson={window.location.pathname}
+          nextFocusTargetId={event.format !== "multi" ? "attempt_1" : "attempt_1_solved"}
+          redirectToOnAddPerson={pathname}
+          addNewPersonMode={isAdmin ? "default" : "disabled"}
         />
-        <FormCheckbox
-          title="Don't clear competitors"
-          selected={keepCompetitors}
-          setSelected={setKeepCompetitors}
-        />
-        {attempts.map((attempt: IFeAttempt, i: number) => (
+        <FormCheckbox title="Don't clear competitors" selected={keepCompetitors} setSelected={setKeepCompetitors} />
+        {attempts.map((attempt: Attempt, i: number) => (
           <AttemptInput
             key={i}
             attNumber={i + 1}
             attempt={attempt}
-            setAttempt={(val: IFeAttempt) => changeAttempt(i, val)}
+            setAttempt={(val: Attempt) => changeAttempt(i, val)}
             event={event}
             memoInputForBld
-            allowUnknownTime={userInfo?.isAdmin &&
-              [RoundFormat.BestOf1, RoundFormat.BestOf2].includes(
-                roundFormat.value,
-              )}
-            nextFocusTargetId={i + 1 === attempts.length ? isDateDisabled ? "video_link" : "date" : undefined}
+            allowUnknownTime={isAdmin && ["1", "2"].includes(roundFormat.value)}
+            nextFocusTargetId={i + 1 === attempts.length ? (result?.approved ? "video_link" : "date") : undefined}
           />
         ))}
-        {loadingId === "RECORD_PAIRS" ? <Loading small dontCenter /> : (
+        {isPendingWrPairs ? (
+          <Loading small dontCenter />
+        ) : (
           <BestAndAverage
             event={event}
             roundFormat={roundFormat.value}
             attempts={attempts}
-            recordPairs={recordPairs}
-            recordTypes={submissionInfo.activeRecordTypes}
+            eventWrPair={eventWrPair}
+            recordConfigs={recordConfigs}
           />
         )}
         <FormDateInput
@@ -392,7 +306,7 @@ const ResultsSubmissionForm = ({ resultId }: Props) => {
           title="Date (dd.mm.yyyy)"
           value={date}
           setValue={changeDate}
-          disabled={isDateDisabled}
+          disabled={result?.approved}
           nextFocusTargetId={videoUnavailable ? "discussion_link" : "video_link"}
           className="my-3"
         />
@@ -406,7 +320,7 @@ const ResultsSubmissionForm = ({ resultId }: Props) => {
           disabled={videoUnavailable}
           className="mb-3"
         />
-        {userInfo?.isAdmin && (
+        {isAdmin && (
           <FormCheckbox
             title={C.videoNoLongerAvailableMsg}
             selected={videoUnavailable}
@@ -435,25 +349,26 @@ const ResultsSubmissionForm = ({ resultId }: Props) => {
         <Button
           id="submit_button"
           onClick={() => submitResult()}
-          loadingId={loadingId}
+          disabled={isPending}
+          isLoading={isCreating}
           className="mt-3"
         >
           Submit
         </Button>
-        {resultId &&
-          (submissionInfo as IAdminResultsSubmissionInfo).result.unapproved && (
+        {result && !result.approved && (
           <Button
             id="approve_button"
             onClick={() => submitResult(true)}
-            loadingId={loadingId}
-            className="btn-success mt-3 ms-3"
+            disabled={isPending}
+            // isLoading={isApproving}
+            className="btn-success ms-3 mt-3"
           >
             Submit and approve
           </Button>
         )}
       </Form>
-    </div>
+    </>
   );
-};
+}
 
 export default ResultsSubmissionForm;

@@ -2,7 +2,11 @@ import Link from "next/link";
 import "./moderator-instructions.css";
 import { C } from "~/helpers/constants.ts";
 
-const ModeratorInstructions = ({ children }: { children: React.ReactNode }) => {
+type Props = {
+  children: React.ReactNode;
+};
+
+function ModeratorInstructions({ children }: Props) {
   return (
     <div className="px-3 pb-4">
       <h3 className="mb-4 text-center">How to hold a contest</h3>
@@ -14,8 +18,11 @@ const ModeratorInstructions = ({ children }: { children: React.ReactNode }) => {
         </p>
         <div style={{ height: "1rem" }} />
         <p>
-          1. <Link href="/register">Create an account</Link> and send an email to {C.contactEmail}{" "}
-          with the following information (exception: for WCA competitions,{" "}
+          1.{" "}
+          <Link href="/register" prefetch={false}>
+            Create an account
+          </Link>{" "}
+          and send an email to {C.contactEmail} with the following information (exception: for WCA competitions,{" "}
           <b>you must first wait until the competition has been announced</b> on the WCA website):
         </p>
         <p>1.1. Username</p>
@@ -31,6 +38,6 @@ const ModeratorInstructions = ({ children }: { children: React.ReactNode }) => {
       {children}
     </div>
   );
-};
+}
 
 export default ModeratorInstructions;

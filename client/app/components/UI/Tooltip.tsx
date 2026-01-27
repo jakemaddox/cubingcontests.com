@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faQuestionCircle } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { useEffect, useState } from "react";
 
 const tooltipWidth = 200;
 const horizontalPadding = 10;
@@ -42,7 +42,7 @@ const Tooltip = ({ id, text }: { id: string; text: string }) => {
     if (optimalLeftEdge < 0) newPosition -= optimalLeftEdge;
     else if (optimalRightEdge > window.innerWidth) newPosition -= optimalRightEdge - window.innerWidth;
 
-    tooltipDiv.style.left = newPosition + "px";
+    tooltipDiv.style.left = `${newPosition}px`;
 
     updateIsBelowTarget(tooltipDiv);
   };
@@ -63,10 +63,7 @@ const Tooltip = ({ id, text }: { id: string; text: string }) => {
   };
 
   return (
-    <div
-      className="cc-tooltip position-relative d-flex align-items-center"
-      style={{ cursor: "default" }}
-    >
+    <div className="cc-tooltip position-relative d-flex align-items-center" style={{ cursor: "default" }}>
       <div
         className="cc-tooltip-text position-absolute d-flex flex-column align-items-center"
         style={{ height: 0, width: "100%" }}
@@ -85,7 +82,7 @@ const Tooltip = ({ id, text }: { id: string; text: string }) => {
           {/* Tooltip */}
           <div
             id={id}
-            className="position-absolute z-3 p-3 rounded bg-black text-white fs-6"
+            className="position-absolute fs-6 z-3 rounded bg-black p-3 text-white"
             style={{
               width: `${tooltipWidth}px`,
               left: `${-tooltipWidth / 2}px`,
@@ -98,7 +95,7 @@ const Tooltip = ({ id, text }: { id: string; text: string }) => {
         </div>
       </div>
 
-      <FontAwesomeIcon icon={faQuestionCircle} className="m-1 fs-6 text-secondary-emphasis" />
+      <FontAwesomeIcon icon={faQuestionCircle} className="fs-6 m-1 text-secondary-emphasis" />
     </div>
   );
 };

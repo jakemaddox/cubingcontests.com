@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { C } from "~/helpers/constants";
+import { C } from "~/helpers/constants.ts";
 
 function PartialHomePageDetails() {
   return (
@@ -7,13 +7,13 @@ function PartialHomePageDetails() {
       <h3 className="cc-basic-heading">Supporting the project</h3>
       <p>
         Cubing Contests is an{" "}
-        <a href={C.sourceCodeLink} target="_blank">
+        <a href={C.sourceCodeLink} target="_blank" rel="noopener noreferrer">
           open source project
         </a>{" "}
         created for the benefit of the speedcubing community. Community donations help with the ongoing development and
         maintenance of the project.
       </p>
-      <Link href="/donate" className="btn btn-success mt-2">
+      <Link href="/donate" prefetch={false} className="btn btn-success mt-2">
         Donate
       </Link>
 

@@ -3,58 +3,77 @@
 import { faClock, faCopy, faPencil } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import Link from "next/link";
-import { useState } from "react";
-import Button from "~/app/components/UI/Button";
-import { useMyFetch } from "~/helpers/customHooks";
-import { ContestState, ContestType } from "~/helpers/enums";
-import { IContest } from "~/helpers/types";
+import { useRouter } from "next/navigation";
+import { useAction } from "next-safe-action/hooks";
+import { useContext } from "react";
+import Button from "~/app/components/UI/Button.tsx";
+import { MainContext } from "~/helpers/contexts.ts";
+import type { ContestState } from "~/helpers/types";
+import { getActionError } from "~/helpers/utilityFunctions";
+import type { ContestResponse } from "~/server/db/schema/contests.ts";
+import { approveContestSF, finishContestSF, publishContestSF } from "~/server/serverFunctions/contestServerFunctions";
 
-type Props = {
-  contest: IContest;
-  updateContest?: (newContest: IContest) => void;
-  isAdmin?: boolean;
-  smallButtons?: boolean;
+type ModDashboardProps = {
+  forPage: "mod-dashboard";
+  onUpdateContestState: (competitionId: string, newState: ContestState) => void;
 };
 
-function ContestControls({ contest, updateContest, isAdmin = false, smallButtons }: Props) {
-  const myFetch = useMyFetch();
+type ContestDetailsProps = {
+  forPage: "contest-details";
+  onUpdateContestState?: never;
+};
 
-  const [loadingId, setLoadingId] = useState("");
+type Props = {
+  contest: ContestResponse;
+  isAdmin: boolean;
+} & (ModDashboardProps | ContestDetailsProps);
 
-  const showApproveButton = contest.state === ContestState.Created && isAdmin &&
-    (contest.meetupDetails || contest.compDetails);
+function ContestControls({ contest, isAdmin = false, forPage, onUpdateContestState }: Props) {
+  const router = useRouter();
+  const { changeErrorMessages } = useContext(MainContext);
 
-  const changeState = async (newState: ContestState) => {
-    const verb = newState === ContestState.Approved
-      ? "approve"
-      : newState === ContestState.Finished
-      ? "finish"
-      : newState === ContestState.Published
-      ? "publish"
-      : "ERROR";
+  const { executeAsync: approveContest, isPending: isApproving } = useAction(approveContestSF);
+  const { executeAsync: finishContest, isPending: isFinishing } = useAction(finishContestSF);
+  const { executeAsync: publishContest, isPending: isPublishing } = useAction(publishContestSF);
 
-    if (confirm(`Are you sure you would like to ${verb} ${contest.name}?`)) {
-      setLoadingId(`set_state_${newState}_${contest.competitionId}_button`);
-      const res = await myFetch.patch(`/competitions/set-state/${contest.competitionId}`, { newState });
+  const isPending = isApproving || isFinishing || isPublishing;
+  const smallButtons = forPage === "mod-dashboard";
 
-      if (res.success) {
-        if (updateContest) {
-          updateContest(res.data);
-          setLoadingId("");
-        } else {
-          window.location.reload();
-        }
-      } else {
-        setLoadingId("");
-      }
+  const onApproveContest = async () => {
+    if (confirm(`Are you sure you would like to approve ${contest.name}?`)) {
+      const res = await approveContest({ competitionId: contest.competitionId });
+
+      if (res.serverError || res.validationErrors) changeErrorMessages([getActionError(res)]);
+      else if (forPage === "mod-dashboard") onUpdateContestState(contest.competitionId, "approved");
+      else router.refresh();
+    }
+  };
+
+  const onFinishContest = async () => {
+    if (confirm(`Are you sure you would like to finish ${contest.name}?`)) {
+      const res = await finishContest({ competitionId: contest.competitionId });
+
+      if (res.serverError || res.validationErrors) changeErrorMessages([getActionError(res)]);
+      else if (forPage === "mod-dashboard") onUpdateContestState(contest.competitionId, "finished");
+      else router.refresh();
+    }
+  };
+
+  const onPublishContest = async () => {
+    if (confirm(`Are you sure you would like to publish ${contest.name}?`)) {
+      const res = await publishContest({ competitionId: contest.competitionId });
+
+      if (res.serverError || res.validationErrors) changeErrorMessages([getActionError(res)]);
+      else if (forPage === "mod-dashboard") onUpdateContestState(contest.competitionId, "published");
+      else router.refresh();
     }
   };
 
   return (
     <div className="d-flex gap-2">
-      {(contest.state < ContestState.Finished || isAdmin) && (
+      {(["created", "approved", "ongoing"].includes(contest.state) || isAdmin) && (
         <Link
-          href={`/mod/competition?edit_id=${contest.competitionId}`}
+          href={`/mod/competition?editId=${contest.competitionId}`}
           prefetch={false}
           className={`btn btn-primary ${smallButtons ? "btn-xs" : ""}`}
           title="Edit"
@@ -63,9 +82,9 @@ function ContestControls({ contest, updateContest, isAdmin = false, smallButtons
           <FontAwesomeIcon icon={faPencil} />
         </Link>
       )}
-      {contest.type !== ContestType.WcaComp && (
+      {contest.type !== "wca-comp" && (
         <Link
-          href={`/mod/competition?copy_id=${contest?.competitionId}`}
+          href={`/mod/competition?copyId=${contest?.competitionId}`}
           prefetch={false}
           className={`btn btn-primary ${smallButtons ? "btn-xs" : ""}`}
           title="Clone"
@@ -74,9 +93,7 @@ function ContestControls({ contest, updateContest, isAdmin = false, smallButtons
           <FontAwesomeIcon icon={faCopy} />
         </Link>
       )}
-      {(contest.state >= ContestState.Approved &&
-        contest.state < ContestState.Published &&
-        (contest.state < ContestState.Finished || isAdmin)) && (
+      {(["approved", "ongoing"].includes(contest.state) || (isAdmin && contest.state === "finished")) && (
         <Link
           href={`/mod/competition/${contest.competitionId}`}
           prefetch={false}
@@ -85,49 +102,47 @@ function ContestControls({ contest, updateContest, isAdmin = false, smallButtons
           Results
         </Link>
       )}
-      {showApproveButton && (
+      {contest.state === "created" && isAdmin && (
         <Button
-          id={`set_state_${ContestState.Approved}_${contest.competitionId}_button`}
           type="button"
-          onClick={() => changeState(ContestState.Approved)}
-          loadingId={loadingId}
-          className={`btn btn-warning ${smallButtons ? "btn-xs" : ""}`}
+          onClick={() => onApproveContest()}
+          isLoading={isApproving}
+          disabled={isPending}
+          className={`btn-warning ${smallButtons ? "btn-xs" : ""}`}
         >
           Approve
         </Button>
       )}
-      {contest.state === ContestState.Ongoing && (
+      {contest.state === "ongoing" && (
         <Button
-          id={`set_state_${ContestState.Finished}_${contest.competitionId}_button`}
           type="button"
-          onClick={() => changeState(ContestState.Finished)}
-          loadingId={loadingId}
-          className={`btn btn-warning ${smallButtons ? "btn-xs" : ""}`}
+          onClick={() => onFinishContest()}
+          isLoading={isFinishing}
+          disabled={isPending}
+          className={`btn-warning ${smallButtons ? "btn-xs" : ""}`}
         >
           Finish
         </Button>
       )}
-      {contest.state === ContestState.Finished &&
-        (isAdmin
-          ? (
-            <Button
-              id={`set_state_${ContestState.Published}_${contest.competitionId}_button`}
-              type="button"
-              onClick={() => changeState(ContestState.Published)}
-              loadingId={loadingId}
-              className={`btn btn-warning ${smallButtons ? "btn-xs" : ""}`}
-            >
-              Publish
-            </Button>
-          )
-          : (
-            <FontAwesomeIcon
-              icon={faClock}
-              title="Contest pending review"
-              aria-label="Contest pending review"
-              className="my-1 fs-5"
-            />
-          ))}
+      {contest.state === "finished" &&
+        (isAdmin ? (
+          <Button
+            type="button"
+            onClick={() => onPublishContest()}
+            isLoading={isPublishing}
+            disabled={isPending}
+            className={`btn-warning ${smallButtons ? "btn-xs" : ""}`}
+          >
+            Publish
+          </Button>
+        ) : (
+          <FontAwesomeIcon
+            icon={faClock}
+            title="Contest pending review"
+            aria-label="Contest pending review"
+            className="fs-5 my-1"
+          />
+        ))}
     </div>
   );
 }

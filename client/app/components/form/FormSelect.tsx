@@ -1,33 +1,23 @@
-import { MultiChoiceOption } from "~/helpers/types.ts";
+import type { MultiChoiceOption, OptionValueType } from "~/helpers/types/MultiChoiceOption.ts";
 import FormInputLabel from "./FormInputLabel.tsx";
 
 type Props = {
   title?: string;
   options: MultiChoiceOption[];
-  selected: string | number;
+  selected: OptionValueType;
   setSelected: (val: any) => void;
   disabled?: boolean;
   oneLine?: boolean;
-};
+} & React.HTMLAttributes<HTMLElement>;
 
-const FormSelect = ({
-  id,
-  title,
-  options,
-  selected,
-  setSelected,
-  disabled,
-  oneLine,
-  className = "",
-  style,
-}: Props & React.HTMLAttributes<HTMLElement>) => {
+function FormSelect({ id, title, options, selected, setSelected, disabled, oneLine, className = "", style }: Props) {
   let inputId = "select";
 
   if (id) inputId = id;
   else if (title) inputId = `${title.toLowerCase().replaceAll(" ", "_")}_select`;
 
   return (
-    <div className={`fs-5 ${oneLine ? "d-flex align-items-center gap-3" : ""} ${className}`} style={style}>
+    <div className={`fs-5 ${oneLine ? "d-flex gap-3 align-items-center" : ""} ${className}`} style={style}>
       {title && <FormInputLabel text={title} inputId={inputId} />}
 
       <select
@@ -35,14 +25,16 @@ const FormSelect = ({
         value={selected}
         onChange={(e) => setSelected(typeof selected === "string" ? e.target.value : Number(e.target.value))}
         disabled={disabled}
-        className={`form-select ${oneLine ? "" : "mt-2"}`}
+        className={`form-select ${oneLine || !title ? "" : "mt-2"}`}
       >
         {options.map((option: MultiChoiceOption) => (
-          <option key={option.value} value={option.value}>{option.label}</option>
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
         ))}
       </select>
     </div>
   );
-};
+}
 
 export default FormSelect;

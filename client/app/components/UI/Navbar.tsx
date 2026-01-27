@@ -1,28 +1,41 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { usePathname } from "next/navigation";
-import Link from "next/link";
-import Image from "next/image";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faBars } from "@fortawesome/free-solid-svg-icons";
-import { getUserInfo, logOutUser } from "~/helpers/utilityFunctions.ts";
-import { UserInfo } from "~/helpers/types.ts";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import Image from "next/image";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { authClient } from "~/helpers/authClient.ts";
 
-const NavbarItems = () => {
+type Props = {
+  initSession: typeof authClient.$Infer.Session | null;
+};
+
+function NavbarItems({ initSession }: Props) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { data: session, isPending } = authClient.useSession();
 
-  const [userInfo, setUserInfo] = useState<UserInfo>();
   const [expanded, setExpanded] = useState(false);
   const [resultsExpanded, setResultsExpanded] = useState(false);
   const [userExpanded, setUserExpanded] = useState(false);
+  const [canAccessModDashboard, setCanAccessModDashboard] = useState(false);
 
-  // This is done to avoid the hydration error on SSR pages
-  useEffect(() => setUserInfo(getUserInfo()), [getUserInfo]);
+  const user = isPending ? initSession?.user : session?.user;
 
-  const logOut = () => {
+  useEffect(() => {
+    if (user) {
+      authClient.admin.hasPermission({ permissions: { modDashboard: ["view"] } }).then(({ data }) => {
+        if (data) setCanAccessModDashboard(data.success);
+      });
+    }
+  }, [user]);
+
+  const logOut = async () => {
     collapseAll();
-    logOutUser();
+    await authClient.signOut();
+    router.push("/");
   };
 
   const toggleDropdown = (dropdown: "results" | "user", newValue = !resultsExpanded) => {
@@ -44,7 +57,7 @@ const NavbarItems = () => {
   return (
     <nav className="navbar navbar-expand-lg bg-body-tertiary">
       <div className="container-md position-relative">
-        <Link className="navbar-brand" href="/">
+        <Link className="navbar-brand" href="/" prefetch={false}>
           <Image src="/favicon.png" height={45} width={45} alt="Home" />
         </Link>
         <button
@@ -56,11 +69,11 @@ const NavbarItems = () => {
         >
           <FontAwesomeIcon icon={faBars} />
         </button>
-        <div className={"navbar-collapse justify-content-end" + (expanded ? "" : " collapse")}>
-          <ul className="navbar-nav align-items-start align-items-lg-end gap-lg-4 mt-3 mt-lg-0 mx-2 fs-5">
+        <div className={`navbar-collapse justify-content-end ${expanded ? "" : "collapse"}`}>
+          <ul className="navbar-nav fs-5 mx-2 mt-3 mt-lg-0 gap-lg-4 align-items-lg-end align-items-start">
             <li className="nav-item">
               <Link
-                className={`nav-link ${pathname === "/competitions" ? " active" : ""}`}
+                className={`nav-link ${pathname === "/competitions" ? "active" : ""}`}
                 prefetch={false}
                 href="/competitions"
                 onClick={collapseAll}
@@ -80,10 +93,10 @@ const NavbarItems = () => {
               >
                 Results
               </button>
-              <ul className={`dropdown-menu py-0 px-3 px-lg-2 ${resultsExpanded ? "show" : ""}`}>
+              <ul className={`dropdown-menu px-3 px-lg-2 py-0 ${resultsExpanded ? "show" : ""}`}>
                 <li>
                   <Link
-                    className={`nav-link ${/^\/records\//.test(pathname) ? " active" : ""}`}
+                    className={`nav-link ${/^\/records\//.test(pathname) ? "active" : ""}`}
                     href="/records"
                     prefetch={false}
                     onClick={collapseAll}
@@ -93,7 +106,7 @@ const NavbarItems = () => {
                 </li>
                 <li>
                   <Link
-                    className={`nav-link ${/^\/rankings\//.test(pathname) ? " active" : ""}`}
+                    className={`nav-link ${/^\/rankings\//.test(pathname) ? "active" : ""}`}
                     href="/rankings"
                     prefetch={false}
                     onClick={collapseAll}
@@ -105,8 +118,9 @@ const NavbarItems = () => {
             </li>
             <li className="nav-item">
               <Link
-                className={`nav-link ${pathname === "/rules" ? " active" : ""}`}
+                className={`nav-link ${pathname === "/rules" ? "active" : ""}`}
                 href="/rules"
+                prefetch={false}
                 onClick={collapseAll}
               >
                 Rules
@@ -114,7 +128,7 @@ const NavbarItems = () => {
             </li>
             <li className="nav-item">
               <Link
-                className={`nav-link ${pathname === "/about" ? " active" : ""}`}
+                className={`nav-link ${pathname === "/about" ? "active" : ""}`}
                 prefetch={false}
                 href="/about"
                 onClick={collapseAll}
@@ -122,52 +136,52 @@ const NavbarItems = () => {
                 About
               </Link>
             </li>
-            {!userInfo
-              ? (
-                <li className="nav-item">
-                  <Link className="nav-link" href="/login" onClick={collapseAll}>Log In</Link>
-                </li>
-              )
-              : (
-                <li
-                  className="nav-item dropdown"
-                  onMouseEnter={() => toggleDropdown("user", true)}
-                  onMouseLeave={() => toggleDropdown("user", false)}
-                >
-                  <button type="button" onClick={() => toggleDropdown("user")} className="nav-link dropdown-toggle">
-                    {userInfo.username}
-                  </button>
-                  <ul
-                    className={`dropdown-menu end-0 py-0 px-3 px-lg-2 ${userExpanded ? "show" : ""}`}
-                  >
-                    {userInfo.isMod && (
-                      <li>
-                        <Link
-                          className="nav-link"
-                          href="/mod"
-                          onClick={collapseAll}
-                        >
-                          Mod Dashboard
-                        </Link>
-                      </li>
-                    )}
+            {!user ? (
+              <li className="nav-item">
+                <Link className="nav-link" href="/login" prefetch={false} onClick={collapseAll}>
+                  Log In
+                </Link>
+              </li>
+            ) : (
+              <li
+                className="nav-item dropdown"
+                onMouseEnter={() => toggleDropdown("user", true)}
+                onMouseLeave={() => toggleDropdown("user", false)}
+              >
+                <button type="button" onClick={() => toggleDropdown("user")} className="nav-link dropdown-toggle">
+                  {user.username}
+                </button>
+                <ul className={`dropdown-menu end-0 px-3 px-lg-2 py-0 ${userExpanded ? "show" : ""}`}>
+                  {canAccessModDashboard && (
                     <li>
-                      <Link className="nav-link" href="/user/submit-results" onClick={collapseAll}>Submit Results</Link>
+                      <Link className="nav-link" href="/mod" prefetch={false} onClick={collapseAll}>
+                        Mod Dashboard
+                      </Link>
                     </li>
-                    <li>
-                      <Link className="nav-link" href="/user/settings" onClick={collapseAll}>Settings</Link>
-                    </li>
-                    <li>
-                      <button type="button" onClick={logOut} className="nav-link">Log Out</button>
-                    </li>
-                  </ul>
-                </li>
-              )}
+                  )}
+                  <li>
+                    <Link className="nav-link" href="/user/submit-results" prefetch={false} onClick={collapseAll}>
+                      Submit Results
+                    </Link>
+                  </li>
+                  <li>
+                    <Link className="nav-link" href="/user/settings" prefetch={false} onClick={collapseAll}>
+                      Settings
+                    </Link>
+                  </li>
+                  <li>
+                    <button type="button" onClick={logOut} className="nav-link">
+                      Log Out
+                    </button>
+                  </li>
+                </ul>
+              </li>
+            )}
           </ul>
         </div>
       </div>
     </nav>
   );
-};
+}
 
 export default NavbarItems;

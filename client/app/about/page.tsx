@@ -1,8 +1,15 @@
 import PartialHomePageDetails from "~/app/components/PartialHomePageDetails.tsx";
+import { db } from "~/server/db/provider";
 
-function AboutPage() {
+async function AboutPage() {
+  const adminUsers = await db.query.users.findMany({ columns: { personId: true }, where: { role: "admin" } });
+  const adminPersons = await db.query.persons.findMany({
+    columns: { id: true, name: true },
+    where: { id: { in: adminUsers.map((u) => u.personId!) } },
+  });
+
   return (
-    <section className="px-3 pb-4 lh-lg">
+    <section className="lh-lg px-3 pb-4">
       <h2 className="mb-4 text-center">About</h2>
 
       {/* Largely copied from the home page */}
@@ -21,7 +28,7 @@ function AboutPage() {
         Our mission is to provide the go-to place for unofficial speedcubing results and to give the community the tools
         it needs to host speedcubing events. We aim to serve the interests of the community alongside the World Cube
         Association, and we follow the{" "}
-        <a href="https://www.worldcubeassociation.org/about" target="_blank">
+        <a href="https://www.worldcubeassociation.org/about" target="_blank" rel="noopener">
           WCA Spirit
         </a>
         .
@@ -34,12 +41,9 @@ function AboutPage() {
         team consists of the following members:
       </p>
       <ul>
-        <li>Deni Mintsaev</li>
-        <li>Ben Streeter</li>
-        <li>Lucas Garron</li>
-        <li>Chandler Pike</li>
-        <li>Lars Johan Folde</li>
-        <li>Aedan Bryant</li>
+        {adminPersons.map((p) => (
+          <li key={p.id}>{p.name}</li>
+        ))}
       </ul>
 
       <PartialHomePageDetails />

@@ -1,37 +1,36 @@
 "use client";
 
-import { useMemo, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { Event } from "~/helpers/types.ts";
-import { eventCategories } from "~/helpers/eventCategories.ts";
+import { useMemo, useState } from "react";
 import EventIcon from "~/app/components/EventIcon.tsx";
-import { EventGroup } from "~/helpers/enums";
+import { eventCategories } from "~/helpers/eventCategories.ts";
+import type { EventResponse } from "~/server/db/schema/events.ts";
+
+const filteredCategories = eventCategories.filter((ec) => ec.value !== "removed");
 
 type Props = {
   eventId: string | undefined;
-  events: Event[];
+  events: EventResponse[];
   forPage: "results" | "rankings" | "competitions" | "data-entry";
 };
 
-const EventButtons = ({ eventId, events, forPage }: Props) => {
+function EventButtons({ eventId, events, forPage }: Props) {
   const router = useRouter();
   const { id, singleOrAvg } = useParams();
   const searchParams = useSearchParams();
 
-  const filteredCategories = eventCategories.filter((ec) => ec.value !== "removed");
-
   const [selectedCat, setSelectedCat] = useState(
-    filteredCategories.find((el) => events.find((e) => e.eventId === eventId)?.groups.includes(el.group)) ??
-      filteredCategories[0],
+    filteredCategories.find((ec) => events.find((e) => e.eventId === eventId)?.category === ec.value) ??
+      filteredCategories.at(0)!,
   );
 
   // If hideCategories = true, just show all events that were passed in
-  const filteredEvents = useMemo<Event[]>(
+  const filteredEvents = useMemo<EventResponse[]>(
     () =>
       !["rankings", "competitions"].includes(forPage)
         ? events
-        : events.filter((e) => !e.groups.includes(EventGroup.Hidden) && e.groups.includes(selectedCat.group)),
-    [events, selectedCat],
+        : events.filter((e) => !e.hidden && e.category === selectedCat.value),
+    [events, selectedCat, forPage],
   );
 
   const handleEventClick = (newEventId: string) => {
@@ -44,13 +43,12 @@ const EventButtons = ({ eventId, events, forPage }: Props) => {
       });
       router.push(`/rankings/${newEventId}/${singleOrAvg}${queryString}`);
     } else if (forPage === "competitions") {
-      if (searchParams.get("eventId") === newEventId) {
-        router.replace("/competitions");
-      } else {
-        router.replace(`/competitions?eventId=${newEventId}`);
-      }
-    } else {
+      if (searchParams.get("eventId") === newEventId) router.replace("/competitions");
+      else router.replace(`/competitions?eventId=${newEventId}`);
+    } else if (forPage === "data-entry") {
       router.replace(`/mod/competition/${id}?eventId=${newEventId}`);
+    } else {
+      throw new Error(`Unrecognized page type: ${forPage}`);
     }
   };
 
@@ -59,12 +57,13 @@ const EventButtons = ({ eventId, events, forPage }: Props) => {
       {/* Event categories */}
       {["rankings", "competitions"].includes(forPage) && (
         <>
+          {/* biome-ignore lint/a11y/useSemanticElements: this is the most suitable way to make a button group */}
           <div className="btn-group btn-group-sm mt-2 mb-3" role="group">
             {filteredCategories.map((cat) => (
               <button
                 key={cat.value}
                 type="button"
-                className={"btn btn-primary" + (cat === selectedCat ? " active" : "")}
+                className={`btn btn-primary ${cat === selectedCat ? "active" : ""}`}
                 onClick={() => setSelectedCat(cat)}
               >
                 <span className="d-none d-md-inline">{cat.title}</span>
@@ -77,8 +76,8 @@ const EventButtons = ({ eventId, events, forPage }: Props) => {
         </>
       )}
 
-      <div className="d-flex flex-wrap mb-3 fs-3">
-        {filteredEvents.map((event: Event) => (
+      <div className="d-flex fs-3 mb-3 flex-wrap">
+        {filteredEvents.map((event) => (
           <EventIcon
             key={event.eventId}
             event={event}
@@ -89,6 +88,6 @@ const EventButtons = ({ eventId, events, forPage }: Props) => {
       </div>
     </div>
   );
-};
+}
 
 export default EventButtons;

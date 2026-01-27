@@ -1,38 +1,35 @@
-import { Event, IRecordType, IResult, type IVideoBasedResult } from "~/helpers/types.ts";
-import { getBSClassFromColor } from "~/helpers/utilityFunctions.ts";
-import { getFormattedTime } from "~/helpers/sharedFunctions.ts";
+import { C } from "~/helpers/constants.ts";
+import { getFormattedTime } from "~/helpers/utilityFunctions.ts";
+import type { EventResponse } from "~/server/db/schema/events.ts";
+import type { RecordConfigResponse } from "~/server/db/schema/record-configs.ts";
+import type { ResultResponse } from "~/server/db/schema/results.ts";
 
 type Props = {
-  result: IResult | IVideoBasedResult;
-  event: Event;
-  recordTypes: IRecordType[];
+  result: ResultResponse;
+  event: EventResponse;
+  recordConfigs: RecordConfigResponse[];
   average?: boolean;
 };
 
-const Time = ({ result, event, recordTypes, average }: Props) => {
-  const recordType = recordTypes.find(
-    (rt) =>
-      (average ? result.regionalAverageRecord : result.regionalSingleRecord) ===
-        rt.wcaEquivalent,
-  ) as IRecordType;
+function Time({ result, event, recordConfigs, average }: Props) {
+  const recordConfig = recordConfigs.find(
+    (rc) => (average ? result.regionalAverageRecord : result.regionalSingleRecord) === rc.recordTypeId,
+  )!;
 
   return (
-    <div className="d-inline-flex align-items-center gap-2">
-      {getFormattedTime(average ? result.average : result.best, {
-        event,
-        showMultiPoints: true,
-      })}
+    <div className="d-inline-flex gap-2 align-items-center">
+      {getFormattedTime(average ? result.average : result.best, { event, showMultiPoints: true })}
 
-      {recordType && (
+      {recordConfig && (
         <span
-          className={`badge bg-${getBSClassFromColor(recordType.color)}`}
-          style={{ fontSize: "0.7rem" }}
+          className={`badge ${recordConfig.color === C.color.warning ? "text-black" : ""}`}
+          style={{ fontSize: "0.7rem", backgroundColor: recordConfig.color }}
         >
-          {recordType.label}
+          {recordConfig.label}
         </span>
       )}
     </div>
   );
-};
+}
 
 export default Time;

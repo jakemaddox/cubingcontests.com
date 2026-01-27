@@ -1,12 +1,22 @@
+import { faExclamationTriangle } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { ne } from "drizzle-orm";
 import Link from "next/link";
 import CollectiveCubing from "~/app/components/CollectiveCubing.tsx";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faExclamationTriangle } from "@fortawesome/free-solid-svg-icons";
-import { ssrFetch } from "~/helpers/fetchUtils";
-import PartialHomePageDetails from "./components/PartialHomePageDetails";
+import { C } from "~/helpers/constants.ts";
+import { db } from "~/server/db/provider.ts";
+import {
+  collectiveSolutionsPublicCols,
+  collectiveSolutionsTable as csTable,
+} from "../server/db/schema/collective-solutions.ts";
+import PartialHomePageDetails from "./components/PartialHomePageDetails.tsx";
 
 async function HomePage() {
-  const collectiveSolutionResponse = await ssrFetch("/collective-solution");
+  const [collectiveSolution] = await db
+    .select(collectiveSolutionsPublicCols)
+    .from(csTable)
+    .where(ne(csTable.state, "archived"))
+    .limit(1);
 
   return (
     <div className="px-3">
@@ -14,14 +24,17 @@ async function HomePage() {
 
       <div className="alert alert-light mb-4" role="alert">
         Join the Cubing Contests{" "}
-        <a href="https://discord.gg/7rRMQA8jnU" target="_blank">
+        <a href={C.discordServerLink} target="_blank" rel="noopener noreferrer">
           Discord server
-        </a>!
+        </a>
+        !
       </div>
 
       <p>
         This is a place for hosting unofficial Rubik's Cube competitions, unofficial events held at{" "}
-        <a href="https://www.worldcubeassociation.org/" target="_blank">WCA</a>{" "}
+        <a href="https://www.worldcubeassociation.org/" target="_blank" rel="noopener">
+          WCA
+        </a>{" "}
         competitions, speedcuber meetups, and other unofficial events.
       </p>
       <p>
@@ -30,30 +43,18 @@ async function HomePage() {
         with video evidence. Some other events also allow submitted results.
       </p>
 
-      <div className="my-4 d-flex flex-column flex-md-row justify-content-center align-items-center gap-3 gap-lg-4 fs-5">
-        <Link href="/about" className="cc-homepage-link btn btn-primary">
-          About us
+      <div className="d-flex justify-content-center fs-5 my-4 flex-column flex-md-row gap-3 gap-lg-4 align-items-center">
+        <Link href="/about" prefetch={false} className="cc-homepage-link btn btn-primary">
+          About Us
         </Link>
-        <Link
-          href="/competitions"
-          prefetch={false}
-          className="cc-homepage-link btn btn-primary"
-        >
-          See all contests
+        <Link href="/competitions" prefetch={false} className="cc-homepage-link btn btn-primary">
+          See All Contests
         </Link>
-        <Link
-          href="/records"
-          prefetch={false}
-          className="cc-homepage-link btn btn-primary"
-        >
-          See current records
+        <Link href="/records" prefetch={false} className="cc-homepage-link btn btn-primary">
+          See Current Records
         </Link>
-        <Link
-          href="/rankings"
-          prefetch={false}
-          className="cc-homepage-link btn btn-primary"
-        >
-          See rankings
+        <Link href="/rankings" prefetch={false} className="cc-homepage-link btn btn-primary">
+          See Rankings
         </Link>
       </div>
 
@@ -64,23 +65,26 @@ async function HomePage() {
         at a WCA competition or create an unofficial competition or meetup, you must first read the moderator
         instructions.
       </p>
-      <div className="mt-4 mx-3 p-3 border rounded-3 fw-bold">
+      <div className="fw-bold mx-3 mt-4 rounded-3 border p-3">
         <FontAwesomeIcon icon={faExclamationTriangle} className="me-2" />
         Please note that an unofficial competition can only be hosted on Cubing Contests if it's infeasible for it to be
-        held as an official <a href="https://www.worldcubeassociation.org/" target="_blank">WCA</a> competition.
+        held as an official{" "}
+        <a href="https://www.worldcubeassociation.org/" target="_blank" rel="noopener">
+          WCA
+        </a>{" "}
+        competition.
       </div>
-      <Link href="/moderator-instructions" className="btn btn-secondary mt-4">
-        Moderator instructions
+      <Link href="/moderator-instructions" prefetch={false} className="btn btn-secondary mt-4">
+        Moderator Instructions
       </Link>
 
       <PartialHomePageDetails />
-      
+
       <h3 className="cc-basic-heading">Collective Cubing</h3>
-      <CollectiveCubing
-        collectiveSolution={collectiveSolutionResponse.success ? collectiveSolutionResponse.data : null}
-      />
+
+      <CollectiveCubing initCollectiveSolution={collectiveSolution ?? null} />
     </div>
   );
-};
+}
 
 export default HomePage;

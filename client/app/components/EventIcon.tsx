@@ -1,20 +1,18 @@
 import "@cubing/icons";
 import { CubingIcons } from "@cubing/icons/js";
-import { Event } from "~/helpers/types.ts";
-import { EventGroup } from "~/helpers/enums.ts";
 import { shortenEventName } from "~/helpers/utilityFunctions.ts";
+import type { EventResponse } from "~/server/db/schema/events.ts";
 
 type Props = {
-  event: Event;
+  event: EventResponse;
   onClick?: () => void;
   isActive?: boolean;
 };
 
-const EventIcon = ({ event, onClick, isActive }: Props) => {
-  const isOrWasWCAEvent = event.groups.includes(EventGroup.WCA) ||
-    event.groups.includes(EventGroup.RemovedWCA);
+function EventIcon({ event, onClick, isActive }: Props) {
+  const isOrWasWCAEvent = event.category === "wca" || event.removedWca;
   const availableIcons = Object.values(CubingIcons).map((iconId) =>
-    (iconId as string).replace("event-", "").replace("unofficial-", "")
+    (iconId as string).replace("event-", "").replace("unofficial-", ""),
   );
   const iconExists = isOrWasWCAEvent || availableIcons.includes(event.eventId);
 
@@ -22,34 +20,23 @@ const EventIcon = ({ event, onClick, isActive }: Props) => {
     if (!onClick) return undefined;
 
     return (
-      <button
-        type="button"
-        onClick={onClick}
-        className={"btn btn-lightdark btn-sm m-1" + (isActive ? " active" : "")}
-      >
+      <button type="button" onClick={onClick} className={`btn btn-lightdark btn-sm m-1 ${isActive ? "active" : ""}`}>
         {shortenEventName(event.name)}
       </button>
     );
   }
 
   const iconElement = (
-    <span
-      className={`cubing-icon ${isOrWasWCAEvent ? "event" : "unofficial"}-${event.eventId}`}
-      title={event.name}
-    />
+    <span className={`cubing-icon ${isOrWasWCAEvent ? "event" : "unofficial"}-${event.eventId}`} title={event.name} />
   );
 
   if (!onClick) return iconElement;
 
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={"cc-icon-button" + (isActive ? " cc-icon-button--active" : "")}
-    >
+    <button type="button" onClick={onClick} className={`cc-icon-button ${isActive ? "cc-icon-button--active" : ""}`}>
       {iconElement}
     </button>
   );
-};
+}
 
 export default EventIcon;

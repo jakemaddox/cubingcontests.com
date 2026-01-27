@@ -1,7 +1,12 @@
-import { NextConfig } from "next";
+import createMDX from "@next/mdx";
+import type { NextConfig } from "next";
 
-const nextConfig: NextConfig = {
-  serverExternalPackages: ["geo-tz"],
+const withMDX = createMDX({});
+
+const nextConfig: NextConfig = withMDX({
+  output: "standalone",
+  serverExternalPackages: ["cubing", "geo-tz", "pino", "pino-logflare"],
+  pageExtensions: ["md", "mdx", "tsx", "ts", "jsx", "js", "mjs", "json"],
   redirects() {
     return Promise.resolve([
       {
@@ -21,15 +26,20 @@ const nextConfig: NextConfig = {
       },
     ]);
   },
-  webpack: (config) => {
-    config.module.rules.push(
+  // Enables streaming (https://nextjs.org/docs/app/guides/self-hosting#streaming-and-suspense)
+  async headers() {
+    return [
       {
-        test: /\.md$/,
-        type: "asset/source",
+        source: "/:path*{/}?",
+        headers: [
+          {
+            key: "X-Accel-Buffering",
+            value: "no",
+          },
+        ],
       },
-    );
-    return config;
+    ];
   },
-};
+});
 
 export default nextConfig;

@@ -17,6 +17,12 @@ export const nxnMoves = [
   "R2",
   "B2",
   "D2",
+  "x",
+  "x'",
+  "y",
+  "y'",
+  "z",
+  "z'",
 ] as const;
 
 export type NxNMove = (typeof nxnMoves)[number];

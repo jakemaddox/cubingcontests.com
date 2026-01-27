@@ -1,0 +1,52 @@
+name: cubingcontests
+
+services:
+  caddy:
+    container_name: cc-caddy
+    image: caddy:2.11-alpine
+    networks:
+      - shared
+    ports:
+      - 80:80
+      - 443:443
+      - 443:443/udp
+    volumes:
+      - ./volumes/caddy/:/etc/caddy/:ro
+      - ./down-for-maintenance-page.html:/srv/down-for-maintenance-page.html:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    environment:
+      KONG_HTTP_PORT: ${KONG_HTTP_PORT}
+      PROD_HOSTNAME: ${PROD_HOSTNAME}
+    restart: unless-stopped
+
+  nextjs:
+    container_name: cc-nextjs
+    image: ${DOCKER_IMAGE_NAME}
+    networks:
+      - shared
+    ports:
+      - 127.0.0.1:${NEXTJS_PORT}:3000 # the Caddyfile assumes the Next JS port used internally in the container is 3000
+    volumes:
+      # THIS IS TEMPORARY!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      - ./client/dump/:/app/dump/:ro
+    environment:
+      # Mostly the same as DATABASE_URL in .env.development
+      DATABASE_URL: postgresql://${CC_DB_USERNAME}.${POOLER_TENANT_ID}:${CC_DB_PASSWORD}@supabase-pooler:${POOLER_PROXY_PORT_TRANSACTION}/${POSTGRES_DB}
+      CC_DB_SCHEMA: ${CC_DB_SCHEMA}
+      PROD_HOSTNAME: ${PROD_HOSTNAME}
+      EMAIL_API_KEY: ${EMAIL_API_KEY}
+      BETTER_AUTH_URL: ${BETTER_AUTH_URL}
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
+      LOGFLARE_API_BASE_URL: ${LOGFLARE_API_BASE_URL}
+      LOGFLARE_PUBLIC_ACCESS_TOKEN: ${LOGFLARE_PUBLIC_ACCESS_TOKEN}
+      MIGRATE_DB: ${MIGRATE_DB} # THIS IS TEMPORARY!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    restart: always
+
+networks:
+  shared:
+    name: cubingcontests_shared
+    external: true # configured in the Supabase Docker Compose file
+volumes:
+  caddy_data:
+  caddy_config:

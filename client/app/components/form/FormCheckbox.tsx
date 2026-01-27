@@ -1,12 +1,4 @@
-const FormCheckbox = ({
-  id,
-  title,
-  selected,
-  setSelected,
-  disabled = false,
-  noMargin = false,
-  small = false,
-}: {
+type Props = {
   id?: string;
   title?: string;
   selected: boolean;
@@ -14,13 +6,15 @@ const FormCheckbox = ({
   disabled?: boolean;
   noMargin?: boolean;
   small?: boolean;
-}) => {
+};
+
+function FormCheckbox({ id, title, selected, setSelected, disabled = false, noMargin = false, small = false }: Props) {
   if (!id && !title) throw new Error("Neither title nor id are set in FormCheckbox!");
 
   const inputId = `${id || title}_checkbox`;
 
   return (
-    <div className={`form-check ${noMargin ? "" : " mb-3"}`}>
+    <div className={`form-check ${noMargin ? "" : "mb-3"}`}>
       <input
         className="form-check-input"
         id={inputId}
@@ -39,6 +33,6 @@ const FormCheckbox = ({
       )}
     </div>
   );
-};
+}
 
 export default FormCheckbox;

@@ -39,5 +39,10 @@ client/next-env.d.ts
 !.vscode/extensions.json
 !.vscode/*.code-snippets
 
-# Other
+# Supabase
+volumes/db/data
+volumes/storage
+
+# Other (TEMPORARY!!!!!!!!!!!!!!!)
 client/dump
+client/new_records

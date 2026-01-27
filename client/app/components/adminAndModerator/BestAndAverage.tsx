@@ -2,65 +2,58 @@
 
 import { useMemo } from "react";
 import Time from "~/app/components/Time.tsx";
-import type { Event, ICutoff, IFeAttempt, IRecordPair, IRecordType, IResult } from "~/helpers/types.ts";
-import { getBestAndAverage, setResultRecords } from "~/helpers/sharedFunctions.ts";
-import type { RoundFormat } from "~/helpers/enums.ts";
+import type { EventWrPair, RoundFormat } from "~/helpers/types.ts";
+import { getBestAndAverage, setResultWorldRecords } from "~/helpers/utilityFunctions.ts";
+import type { EventResponse } from "~/server/db/schema/events.ts";
+import type { RecordConfigResponse } from "~/server/db/schema/record-configs.ts";
+import type { Attempt, ResultResponse } from "~/server/db/schema/results.ts";
 
 type Props = {
-  event: Event;
+  event: EventResponse;
   roundFormat: RoundFormat;
-  attempts: IFeAttempt[];
-  recordPairs: IRecordPair[] | undefined;
-  recordTypes: IRecordType[];
-  cutoff?: ICutoff;
+  attempts: Attempt[];
+  eventWrPair: EventWrPair | undefined;
+  recordConfigs: RecordConfigResponse[];
+  cutoffAttemptResult?: number | null;
+  cutoffNumberOfAttempts?: number | null;
 };
 
-const BestAndAverage = (
-  { event, roundFormat, attempts, recordPairs, recordTypes, cutoff }: Props,
-) => {
-  const pseudoResult = useMemo<IResult>(() => {
-    const { best, average } = getBestAndAverage(attempts, event, roundFormat, {
-      cutoff,
-    });
-    let tempResult = {
-      best,
-      average,
+function BestAndAverage({
+  event,
+  roundFormat,
+  attempts,
+  eventWrPair,
+  recordConfigs,
+  cutoffAttemptResult,
+  cutoffNumberOfAttempts,
+}: Props) {
+  const pseudoResult = useMemo<ResultResponse>(() => {
+    const { best, average } = getBestAndAverage(
       attempts,
-      eventId: event.eventId,
-    } as IResult;
-    if (recordPairs) {
-      tempResult = setResultRecords(
-        tempResult,
-        event,
-        recordPairs,
-        true,
-      ) as IResult;
-    }
+      event.format,
+      roundFormat,
+      cutoffAttemptResult,
+      cutoffNumberOfAttempts,
+    );
+    let tempResult = { best, average, attempts, eventId: event.eventId } as ResultResponse;
+    if (eventWrPair) tempResult = setResultWorldRecords(tempResult, event, eventWrPair);
     return tempResult;
-  }, [attempts, event, roundFormat, recordPairs, cutoff]);
+  }, [attempts, event, roundFormat, eventWrPair, cutoffAttemptResult, cutoffNumberOfAttempts]);
 
   return (
     <div>
       <div>
-        Best:&nbsp;<Time
-          result={pseudoResult}
-          event={event}
-          recordTypes={recordTypes}
-        />
+        Best:&nbsp;
+        <Time result={pseudoResult} event={event} recordConfigs={recordConfigs} />
       </div>
       {attempts.length >= 3 && (
         <div className="mt-2">
           {attempts.length === 5 ? "Average:" : "Mean:"}&nbsp;
-          <Time
-            result={pseudoResult}
-            event={event}
-            recordTypes={recordTypes}
-            average
-          />
+          <Time result={pseudoResult} event={event} recordConfigs={recordConfigs} average />
         </div>
       )}
     </div>
   );
-};
+}
 
 export default BestAndAverage;

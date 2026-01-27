@@ -1,23 +1,22 @@
 import Markdown from "react-markdown";
-import EventTitle from "~/app/components/EventTitle";
-import { RoundFormat } from "~/helpers/enums";
-import { roundFormats } from "~/helpers/roundFormats";
-import { FeEvent } from "~/helpers/types";
+import EventTitle from "~/app/components/EventTitle.tsx";
+import { roundFormats } from "~/helpers/roundFormats.ts";
+import type { SelectEvent } from "~/server/db/schema/events.ts";
 
 type Props = {
-  event: FeEvent;
+  event: SelectEvent;
 };
 
 function EventInformation({ event }: Props) {
   const roundFormat = roundFormats.find((rf) => rf.value === event.defaultRoundFormat)!;
-  const rankedFormat = roundFormat.value === RoundFormat.Average ? roundFormat : roundFormats[3];
+  const rankedFormat = roundFormat.value === "a" ? roundFormat : roundFormats[3];
 
   return (
     <div key={event.eventId} className="mt-4">
       <EventTitle event={event} fontSize="4" showIcon linkToRankings />
-      {event.ruleText && (
+      {event.rule && (
         <div style={{ overflowX: "auto" }}>
-          <Markdown>{event.ruleText}</Markdown>
+          <Markdown>{event.rule}</Markdown>
         </div>
       )}
       {event.description && (

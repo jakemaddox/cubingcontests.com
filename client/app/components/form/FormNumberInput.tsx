@@ -1,11 +1,26 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import FormInputLabel from "./FormInputLabel.tsx";
 import { genericOnKeyDown } from "~/helpers/utilityFunctions.ts";
-import { NumberInputValue } from "~/helpers/types.ts";
+import FormInputLabel from "./FormInputLabel.tsx";
 
-const FormNumberInput = ({
+type Props = {
+  id?: string;
+  title?: string;
+  placeholder?: string;
+  tooltip?: string;
+  value: number | undefined;
+  setValue: (val: number | undefined) => void;
+  onKeyDown?: (e: any) => void;
+  nextFocusTargetId?: string;
+  disabled?: boolean;
+  integer?: boolean;
+  min?: number;
+  max?: number;
+  invalid?: boolean;
+} & React.HTMLAttributes<HTMLElement>;
+
+function FormNumberInput({
   id,
   title,
   placeholder,
@@ -20,24 +35,8 @@ const FormNumberInput = ({
   max = Infinity,
   invalid = false,
   className = "",
-}: {
-  id?: string;
-  title?: string;
-  placeholder?: string;
-  tooltip?: string;
-  value: NumberInputValue;
-  setValue: (val: NumberInputValue) => void;
-  onKeyDown?: (e: any) => void;
-  nextFocusTargetId?: string;
-  disabled?: boolean;
-  integer?: boolean;
-  min?: number;
-  max?: number;
-  invalid?: boolean;
-} & React.HTMLAttributes<HTMLElement>) => {
-  if (!id && !title) {
-    throw new Error("Neither title nor id are set in FormNumberInput");
-  }
+}: Props) {
+  if (!id && !title) throw new Error("Neither title nor id are set in FormNumberInput");
 
   const [displayValue, setDisplayValue] = useState(value?.toString() || "");
 
@@ -45,7 +44,7 @@ const FormNumberInput = ({
 
   useEffect(() => {
     if (value === undefined) setDisplayValue("");
-    else if (value !== null) setDisplayValue(value.toString());
+    else if (!Number.isNaN(value)) setDisplayValue(value.toString());
   }, [value]);
 
   // The min or max changing could make the value no longer valid, hence this effect
@@ -62,14 +61,14 @@ const FormNumberInput = ({
     if (
       newValue !== "" &&
       !/[^0-9.-]/.test(newValue) &&
-      !isNaN(numberValue) &&
+      !Number.isNaN(numberValue) &&
       (!integer || !newValue.includes(".")) &&
       numberValue >= min &&
       numberValue <= max
     ) {
       if (value !== numberValue) setValue(numberValue);
     } else if (newValue) {
-      setValue(null);
+      setValue(NaN);
     } else {
       setValue(undefined);
     }
@@ -77,9 +76,7 @@ const FormNumberInput = ({
 
   return (
     <div className={`fs-5 ${className}`}>
-      {title && (
-        <FormInputLabel text={title} inputId={inputId} tooltip={tooltip} />
-      )}
+      {title && <FormInputLabel text={title} inputId={inputId} tooltip={tooltip} />}
 
       <input
         type="text"
@@ -87,15 +84,12 @@ const FormNumberInput = ({
         value={displayValue}
         placeholder={placeholder}
         onChange={(e: any) => validateAndChange(e.target.value)}
-        onKeyDown={(e: any) =>
-          genericOnKeyDown(e, { nextFocusTargetId, onKeyDown })}
+        onKeyDown={(e: any) => genericOnKeyDown(e, { nextFocusTargetId, onKeyDown })}
         disabled={disabled}
-        className={`form-control mt-2 ${
-          value === null || invalid ? "is-invalid" : ""
-        }`}
+        className={`form-control mt-2 ${Number.isNaN(value) || invalid ? "is-invalid" : ""}`}
       />
     </div>
   );
-};
+}
 
 export default FormNumberInput;

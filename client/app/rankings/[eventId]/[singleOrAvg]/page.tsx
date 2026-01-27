@@ -1,14 +1,47 @@
+import { and, eq, ne } from "drizzle-orm";
+import omitBy from "lodash/omitBy";
 import Link from "next/link";
-import { ssrFetch } from "~/helpers/fetchUtils.ts";
-import RankingsTable from "~/app/components/RankingsTable.tsx";
+import AffiliateLink from "~/app/components/AffiliateLink.tsx";
 import EventButtons from "~/app/components/EventButtons.tsx";
 import EventTitle from "~/app/components/EventTitle.tsx";
-import { type Event, type IEventRankings } from "~/helpers/types.ts";
-import { EventGroup, RoundFormat } from "~/helpers/enums.ts";
-import { C } from "~/helpers/constants.ts";
-import RegionSelect from "~/app/rankings/[eventId]/[singleOrAvg]/RegionSelect";
-import omitBy from "lodash/omitBy";
-import AffiliateLink from "~/app/components/AffiliateLink";
+import RankingRow from "~/app/components/RankingRow";
+import Tooltip from "~/app/components/UI/Tooltip";
+import RegionSelect from "~/app/rankings/[eventId]/[singleOrAvg]/RegionSelect.tsx";
+import type { RecordCategory } from "~/helpers/types";
+import { db } from "~/server/db/provider";
+import { eventsPublicCols, eventsTable as table } from "~/server/db/schema/events";
+import { getRankings } from "~/server/serverUtilityFunctions";
+
+const eventsWith3x3 = [
+  "333",
+  "333oh",
+  "333bf",
+  "333bf_oh",
+  "333fm",
+  "333mbf",
+  "333_team_bld",
+  "333_team_bld_old",
+  "333_linear_fm",
+  "333_speed_bld",
+  "333mts",
+  "333ft",
+  "333mbo",
+  "333_team_factory",
+  "333_one_move_team_factory",
+  "333_inspectionless",
+  "333_scrambling",
+  "333oh_x2",
+  "333_oven_mitts",
+  "333_doubles",
+  "333_one_side",
+  "333_supersolve",
+  "333_cube_mile",
+  "333bf_2_person_relay",
+  "333bf_3_person_relay",
+  "333bf_4_person_relay",
+  "333bf_8_person_relay",
+  "333_oh_bld_team_relay",
+];
 
 // SEO
 export const metadata = {
@@ -18,79 +51,70 @@ export const metadata = {
     "rankings rubik's rubiks cube contest contests competition competitions meetup meetups speedcubing speed cubing puzzle",
   icons: { icon: "/favicon.png" },
   metadataBase: new URL("https://cubingcontests.com"),
-  openGraph: { images: ["/api2/static/cubing_contests_4.jpg"] },
+  openGraph: { images: ["/banners/cubing_contests_4.jpg"] },
 };
 
 type Props = {
-  params: Promise<{ eventId: string; singleOrAvg: "single" | "average" }>;
-  searchParams: Promise<{ show: "results"; contestType: "all"; region: string; topN: string }>;
+  params: Promise<{
+    eventId: string;
+    singleOrAvg: "single" | "average";
+  }>;
+  searchParams: Promise<{
+    show?: "results";
+    category?: RecordCategory | "all";
+    region?: string;
+    topN?: string;
+  }>;
 };
 
-const RankingsPage = async ({ params, searchParams }: Props) => {
+async function RankingsPage({ params, searchParams }: Props) {
   const { eventId, singleOrAvg } = await params;
-  const { show, contestType, region, topN } = await searchParams;
+  const { show, category, region, topN } = await searchParams;
 
-  const urlSearchParams = new URLSearchParams(omitBy({ show, contestType, region, topN }, (val) => !val));
-  const urlSearchParamsWithoutShow = new URLSearchParams(omitBy({ contestType, region, topN }, (val) => !val));
-  const urlSearchParamsWithoutContestType = new URLSearchParams(omitBy({ show, region, topN }, (val) => !val));
-  const urlSearchParamsWithoutTopN = new URLSearchParams(omitBy({ show, contestType, region }, (val) => !val));
+  const urlSearchParams = new URLSearchParams(omitBy({ show, category, region, topN } as any, (val) => !val));
+  const urlSearchParamsWithoutShow = new URLSearchParams(omitBy({ category, region, topN } as any, (val) => !val));
+  const urlSearchParamsWithoutCategory = new URLSearchParams(omitBy({ show, region, topN } as any, (val) => !val));
+  const urlSearchParamsWithoutTopN = new URLSearchParams(omitBy({ show, category, region } as any, (val) => !val));
 
-  // Refreshes rankings every 5 minutes
-  const eventRankingsResponse = await ssrFetch<IEventRankings>(
-    `/results/rankings/${eventId}/${singleOrAvg}?${urlSearchParams}`,
-    { revalidate: C.rankingsRev },
-  );
-  const eventsResponse = await ssrFetch<Event[]>("/events", { revalidate: C.rankingsRev });
+  const events = await db
+    .select(eventsPublicCols)
+    .from(table)
+    .where(and(ne(table.category, "removed"), eq(table.hidden, false)))
+    .orderBy(table.rank);
 
-  const currEvent = eventsResponse.success ? eventsResponse.data.find((e) => e.eventId === eventId) : undefined;
+  const event = events.find((e) => e.eventId === eventId);
+  if (!event) return <p className="fs-4 mt-5 text-center">Event not found</p>;
+  const recordCategory =
+    category ??
+    (event.category === "extreme-bld" || (event.category !== "unofficial" && event.submissionsAllowed)
+      ? "video-based-results"
+      : "competitions");
 
-  if (!eventRankingsResponse.success) {
-    return <p className="mt-5 text-center fs-4">Error while loading rankings</p>;
-  }
+  const rankings = await getRankings(event, singleOrAvg === "single" ? "best" : "average", recordCategory, {
+    show,
+    region,
+    topN: topN ? parseInt(topN, 10) : undefined,
+  });
 
-  if (!eventsResponse.success || !currEvent) {
-    return <p className="mt-5 text-center fs-4">Event not found</p>;
-  }
+  const affiliateLinkType = eventsWith3x3.includes(eventId)
+    ? "3x3"
+    : ["222", "222bf", "222fm", "222oh"].includes(eventId)
+      ? "2x2"
+      : event.category === "wca"
+        ? "wca"
+        : ["fto", "fto_bld", "fto_mbld", "mfto", "baby_fto"].includes(eventId)
+          ? "fto"
+          : ["333_mirror_blocks", "333_mirror_blocks_bld", "222_mirror_blocks"].includes(eventId)
+            ? "mirror"
+            : eventId === "kilominx"
+              ? "kilominx"
+              : "other";
 
-  const affiliateLinkType =
-    /^333bf_[0-9]*_person_relay$/.test(currEvent.eventId) ||
-    [
-      "333",
-      "333oh",
-      "333bf",
-      "333fm",
-      "333mbf",
-      "333_oh_bld_team_relay",
-      "333_team_bld",
-      "333_team_bld_old",
-      "333_linear_fm",
-      "333_speed_bld",
-      "333mts",
-      "333ft",
-      "333mbo",
-      "333_team_factory",
-      "333_one_move_team_factory",
-      "333_inspectionless",
-      "333_scrambling",
-      "333oh_x2",
-      "333_oven_mitts",
-      "333_doubles",
-      "333_one_side",
-      "333_supersolve",
-      "333_cube_mile",
-    ].includes(currEvent.eventId)
-      ? "3x3"
-      : ["222", "222bf", "222fm", "222oh"].includes(currEvent.eventId)
-        ? "2x2"
-        : currEvent.groups.includes(EventGroup.WCA)
-          ? "wca"
-          : ["fto", "fto_bld", "fto_mbld", "mfto", "baby_fto"].includes(currEvent.eventId)
-            ? "fto"
-            : ["333_mirror_blocks", "333_mirror_blocks_bld", "222_mirror_blocks"].includes(currEvent.eventId)
-              ? "mirror"
-              : currEvent.eventId === "kilominx"
-                ? "kilominx"
-                : "other";
+  const hasComp = rankings.some((r) => r.contest);
+  const hasLink = rankings.some((r) => r.videoLink || r.discussionLink);
+  const showAllTeammates = event && event.participants > 1 && show === "results";
+  const showTeamColumn = event && event.participants > 1 && !showAllTeammates;
+  const showDetailsColumn = singleOrAvg === "average" || rankings.some((e) => e.memo);
 
   return (
     <div>
@@ -100,39 +124,50 @@ const RankingsPage = async ({ params, searchParams }: Props) => {
 
       <div className="mb-3 px-2">
         <h4>Event</h4>
-        <EventButtons eventId={eventId} events={eventsResponse.data} forPage="rankings" />
+        <EventButtons eventId={eventId} events={events} forPage="rankings" />
 
-        <div className="d-flex flex-wrap gap-3 mb-4">
+        {/* Similar code to the records page */}
+        <div className="d-flex mb-4 flex-wrap gap-3">
           <RegionSelect />
 
           <div className="d-flex flex-wrap gap-3">
             <div>
-              <h5>Type</h5>
+              <h5 className="d-flex gap-1">
+                Type
+                {singleOrAvg === "average" && (
+                  <Tooltip
+                    id="type_tooltip"
+                    text="For results from 01.01.2023 onwards this only includes averages that have the ranked average format"
+                  />
+                )}
+              </h5>
+              {/* biome-ignore lint/a11y/useSemanticElements: this is the most suitable way to make a button group */}
               <div className="btn-group btn-group-sm mt-2" role="group" aria-label="Type">
                 <Link
                   href={`/rankings/${eventId}/single?${urlSearchParams}`}
                   prefetch={false}
-                  className={"btn btn-primary" + (singleOrAvg === "single" ? " active" : "")}
+                  className={`btn btn-primary ${singleOrAvg === "single" ? "active" : ""}`}
                 >
                   Single
                 </Link>
                 <Link
                   href={`/rankings/${eventId}/average?${urlSearchParams}`}
                   prefetch={false}
-                  className={"btn btn-primary" + (singleOrAvg === "average" ? " active" : "")}
+                  className={`btn btn-primary ${singleOrAvg === "average" ? "active" : ""}`}
                 >
-                  {currEvent.defaultRoundFormat === RoundFormat.Average ? "Average" : "Mean"}
+                  {event.defaultRoundFormat === "a" ? "Average" : "Mean"}
                 </Link>
               </div>
             </div>
 
             <div>
               <h5>Show</h5>
+              {/* biome-ignore lint/a11y/useSemanticElements: this is the most suitable way to make a button group */}
               <div className="btn-group btn-group-sm mt-2" role="group" aria-label="Show">
                 <Link
                   href={`/rankings/${eventId}/${singleOrAvg}?${urlSearchParamsWithoutShow}`}
                   prefetch={false}
-                  className={"btn btn-primary" + (!show ? " active" : "")}
+                  className={`btn btn-primary ${!show ? "active" : ""}`}
                 >
                   Top Persons
                 </Link>
@@ -141,7 +176,7 @@ const RankingsPage = async ({ params, searchParams }: Props) => {
                     urlSearchParamsWithoutShow.toString() ? `${urlSearchParamsWithoutShow}&` : ""
                   }show=results`}
                   prefetch={false}
-                  className={"btn btn-primary" + (show ? " active" : "")}
+                  className={`btn btn-primary ${show ? "active" : ""}`}
                 >
                   Top Results
                 </Link>
@@ -150,11 +185,12 @@ const RankingsPage = async ({ params, searchParams }: Props) => {
 
             <div>
               <h5>Top</h5>
+              {/* biome-ignore lint/a11y/useSemanticElements: this is the most suitable way to make a button group */}
               <div className="btn-group btn-group-sm mt-2" role="group" aria-label="Top">
                 <Link
                   href={`/rankings/${eventId}/${singleOrAvg}?${urlSearchParamsWithoutTopN}`}
                   prefetch={false}
-                  className={"btn btn-primary" + (!topN || topN === "100" ? " active" : "")}
+                  className={`btn btn-primary ${!topN || topN === "100" ? "active" : ""}`}
                 >
                   100
                 </Link>
@@ -163,7 +199,7 @@ const RankingsPage = async ({ params, searchParams }: Props) => {
                     urlSearchParamsWithoutTopN.toString() ? `${urlSearchParamsWithoutTopN}&` : ""
                   }topN=1000`}
                   prefetch={false}
-                  className={"btn btn-primary" + (topN === "1000" ? " active" : "")}
+                  className={`btn btn-primary ${topN === "1000" ? "active" : ""}`}
                 >
                   1000
                 </Link>
@@ -172,55 +208,107 @@ const RankingsPage = async ({ params, searchParams }: Props) => {
                     urlSearchParamsWithoutTopN.toString() ? `${urlSearchParamsWithoutTopN}&` : ""
                   }topN=10000`}
                   prefetch={false}
-                  className={"btn btn-primary" + (topN === "10000" ? " active" : "")}
+                  className={`btn btn-primary ${topN === "10000" ? "active" : ""}`}
                 >
                   10000
                 </Link>
               </div>
             </div>
 
-            {!currEvent.groups.some((g) => [EventGroup.WCA, EventGroup.ExtremeBLD].includes(g)) && (
-              <div>
-                <h5>Contest Type</h5>
-                <div className="btn-group btn-group-sm mt-2" role="group" aria-label="Contest Type">
-                  <Link
-                    href={`/rankings/${eventId}/${singleOrAvg}?${urlSearchParamsWithoutContestType}`}
-                    prefetch={false}
-                    className={"btn btn-primary" + (!contestType ? " active" : "")}
-                  >
-                    Competitions
-                  </Link>
-                  <Link
-                    href={`/rankings/${eventId}/${singleOrAvg}?${
-                      urlSearchParamsWithoutContestType.toString() ? `${urlSearchParamsWithoutContestType}&` : ""
-                    }contestType=all`}
-                    prefetch={false}
-                    className={"btn btn-primary" + (contestType ? " active" : "")}
-                  >
-                    All
-                  </Link>
-                </div>
+            <div>
+              <h5>Category</h5>
+              {/* biome-ignore lint/a11y/useSemanticElements: this is the most suitable way to make a button group */}
+              <div className="btn-group btn-group-sm mt-2" role="group" aria-label="Contest Type">
+                <Link
+                  href={`/rankings/${eventId}/${singleOrAvg}?${
+                    urlSearchParamsWithoutCategory.toString() ? `${urlSearchParamsWithoutCategory}&` : ""
+                  }category=competitions`}
+                  prefetch={false}
+                  className={`btn btn-primary ${recordCategory === "competitions" ? "active" : ""}`}
+                >
+                  Competitions
+                </Link>
+                <Link
+                  href={`/rankings/${eventId}/${singleOrAvg}?${
+                    urlSearchParamsWithoutCategory.toString() ? `${urlSearchParamsWithoutCategory}&` : ""
+                  }category=meetups`}
+                  prefetch={false}
+                  className={`btn btn-primary ${recordCategory === "meetups" ? "active" : ""}`}
+                >
+                  Meetups
+                </Link>
+                <Link
+                  href={`/rankings/${eventId}/${singleOrAvg}?${
+                    urlSearchParamsWithoutCategory.toString() ? `${urlSearchParamsWithoutCategory}&` : ""
+                  }category=video-based-results`}
+                  prefetch={false}
+                  className={`btn btn-primary ${recordCategory === "video-based-results" ? "active" : ""}`}
+                >
+                  Video-based
+                </Link>
+                <Link
+                  href={`/rankings/${eventId}/${singleOrAvg}?${
+                    urlSearchParamsWithoutCategory.toString() ? `${urlSearchParamsWithoutCategory}&` : ""
+                  }category=all`}
+                  prefetch={false}
+                  className={`btn btn-primary ${recordCategory === "all" ? "active" : ""}`}
+                >
+                  All
+                </Link>
               </div>
-            )}
+            </div>
           </div>
         </div>
 
-        {currEvent.groups.some((g) => [EventGroup.SubmissionsAllowed, EventGroup.ExtremeBLD].includes(g)) && (
-          <Link href={`/user/submit-results?eventId=${eventId}`} className="btn btn-success btn-sm">
+        {(event.category === "extreme-bld" || event.submissionsAllowed) && (
+          <Link href={`/user/submit-results?eventId=${eventId}`} prefetch={false} className="btn btn-success btn-sm">
             Submit a result
           </Link>
         )}
       </div>
 
-      <EventTitle event={currEvent} showDescription />
+      <EventTitle event={event} showDescription />
 
-      <RankingsTable
-        rankings={eventRankingsResponse.data.rankings}
-        event={eventRankingsResponse.data.event}
-        topResultsRankings={show === "results"}
-      />
+      <div className="table-responsive flex-grow-1">
+        <table className="table-hover table-responsive table text-nowrap">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>{!showAllTeammates ? "Name" : "Team"}</th>
+              <th>Result</th>
+              {!showAllTeammates && <th>Representing</th>}
+              <th>Date</th>
+              <th>
+                {hasComp ? "Contest" : ""}
+                {hasComp && hasLink ? " / " : ""}
+                {hasLink ? "Links" : ""}
+              </th>
+              {showTeamColumn && <th>Team</th>}
+              {showDetailsColumn && <th>{singleOrAvg === "average" ? "Solves" : "Memorization time"}</th>}
+            </tr>
+          </thead>
+          <tbody>
+            {rankings.length === 0 ? (
+              <p className="fs-5 mx-2 mt-4">No rankings found matching the requested parameters</p>
+            ) : (
+              rankings.map((ranking, i) => (
+                <RankingRow
+                  key={ranking.rankingId}
+                  type={singleOrAvg === "single" ? "single-ranking" : "average-ranking"}
+                  ranking={ranking}
+                  isTiedRanking={ranking.ranking !== i + 1}
+                  event={event}
+                  showAllTeammates={showAllTeammates}
+                  showTeamColumn={showTeamColumn}
+                  showDetailsColumn={showDetailsColumn}
+                />
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
-};
+}
 
 export default RankingsPage;

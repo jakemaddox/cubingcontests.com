@@ -1,18 +1,23 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import Navbar from "~/app/components/UI/Navbar.tsx";
+import { useEffect, useState } from "react";
 import Footer from "~/app/components/UI/Footer.tsx";
-import { MainContext, Theme } from "~/helpers/contexts.ts";
+import Navbar from "~/app/components/UI/Navbar.tsx";
+import type { authClient } from "~/helpers/authClient.ts";
+import { MainContext, type Theme } from "~/helpers/contexts.ts";
 
-const MainLayout = ({ children }: { children: React.ReactNode }) => {
+type Props = {
+  children: React.ReactNode;
+  initSession: typeof authClient.$Infer.Session | null;
+};
+
+function MainLayout({ children, initSession }: Props) {
   const pathname = usePathname();
 
   const [theme, setTheme] = useState<Theme>("dark");
   const [errorMessages, setErrorMessages] = useState<string[]>([]);
   const [successMessage, setSuccessMessage] = useState("");
-  const [loadingId, setLoadingId] = useState("");
 
   useEffect(() => {
     const storedTheme = localStorage.getItem("theme");
@@ -25,7 +30,7 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   useEffect(() => {
-    resetMessagesAndLoadingId();
+    resetMessages();
   }, [pathname]);
 
   const changeTheme = (newTheme: Theme) => {
@@ -39,25 +44,11 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
     // Don't change error messages from [] to [], cause that would trigger an unnecessary rerender
     if (errorMessages.length > 0 || newErrorMessages.length > 0) setErrorMessages(newErrorMessages);
     setSuccessMessage("");
-    setLoadingId("");
   };
 
   const changeSuccessMessage = (newSuccessMessage: string) => {
     setSuccessMessage(newSuccessMessage);
     if (errorMessages.length > 0) setErrorMessages([]);
-    setLoadingId("");
-  };
-
-  const changeLoadingId = (newLoadingId: string) => {
-    setLoadingId(newLoadingId);
-    if (errorMessages.length > 0) setErrorMessages([]);
-    setSuccessMessage("");
-  };
-
-  const resetMessagesAndLoadingId = () => {
-    if (errorMessages.length > 0) setErrorMessages([]);
-    setSuccessMessage("");
-    setLoadingId("");
   };
 
   const resetMessages = () => {
@@ -79,18 +70,15 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
           changeErrorMessages,
           successMessage,
           changeSuccessMessage,
-          loadingId,
-          changeLoadingId,
-          resetMessagesAndLoadingId,
           resetMessages,
         }}
       >
-        <Navbar />
-        <main className="container-md d-flex flex-column pt-4 px-0 pb-2 flex-grow-1">{children}</main>
+        <Navbar initSession={initSession} />
+        <main className="container-md d-flex flex-column flex-grow-1 px-0 pt-4 pb-2">{children}</main>
         <Footer />
       </MainContext.Provider>
     </body>
   );
-};
+}
 
 export default MainLayout;

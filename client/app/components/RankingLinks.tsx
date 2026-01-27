@@ -1,13 +1,27 @@
-import { IRanking } from "~/helpers/types.ts";
 import { C } from "~/helpers/constants.ts";
+import type { Ranking } from "~/helpers/types/Rankings";
 
-const RankingLinks = ({ ranking }: { ranking: IRanking }) => {
+type Props = {
+  ranking: Ranking;
+};
+
+function RankingLinks({ ranking }: Props) {
   return (
     <div className="d-flex gap-2">
-      {ranking.videoLink ? <a href={ranking.videoLink} target="_blank">Video</a> : C.videoNoLongerAvailableMsg}
-      {ranking.discussionLink && <a href={ranking.discussionLink} target="_blank">Discussion</a>}
+      {ranking.videoLink ? (
+        <a href={ranking.videoLink} target="_blank" rel="noopener noreferrer">
+          Video
+        </a>
+      ) : (
+        C.videoNoLongerAvailableMsg
+      )}
+      {ranking.discussionLink && (
+        <a href={ranking.discussionLink} target="_blank" rel="noopener noreferrer">
+          Discussion
+        </a>
+      )}
     </div>
   );
-};
+}
 
 export default RankingLinks;

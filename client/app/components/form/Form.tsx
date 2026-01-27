@@ -1,41 +1,41 @@
 "use client";
 
-import { useContext } from "react";
-import { MainContext } from "~/helpers/contexts.ts";
-import ToastMessages from "~/app/components/UI/ToastMessages.tsx";
 import Button from "~/app/components/UI/Button.tsx";
+import ToastMessages from "~/app/components/UI/ToastMessages.tsx";
 
 type Props = {
   children: React.ReactNode;
   buttonText?: string;
   hideToasts?: boolean;
-  hideButton?: boolean;
-  disableButton?: boolean;
+  hideControls?: boolean;
+  disableControls?: boolean;
   showCancelButton?: boolean;
+  isLoading?: boolean;
   onSubmit?: () => void;
   onCancel?: () => void;
 };
 
-const Form = ({
+function Form({
   children,
   buttonText = "Submit",
   hideToasts,
-  hideButton,
-  disableButton,
+  hideControls,
+  disableControls,
   showCancelButton,
+  isLoading,
   onSubmit,
   onCancel,
-}: Props) => {
-  const showSubmitButton = !hideButton && buttonText;
+}: Props) {
+  const showSubmitButton = !hideControls && buttonText;
   if (showSubmitButton && !onSubmit) throw new Error("onSubmit cannot be undefined unless the submit button is hidden");
   if (showCancelButton && !onCancel) throw new Error("onCancel cannot be undefined unless the cancel button is hidden");
 
-  const { loadingId } = useContext(MainContext);
+  const controlsDisabled = disableControls || isLoading;
 
   return (
     <form
-      className="container my-4 mx-auto px-3 fs-5"
-      style={{ maxWidth: "768px" }}
+      className="fs-5 container mx-auto my-4 px-3"
+      style={{ maxWidth: "var(--cc-md-width)" }}
       onSubmit={(e) => e.preventDefault()}
     >
       {!hideToasts && <ToastMessages />}
@@ -43,26 +43,20 @@ const Form = ({
       {children}
 
       {(showSubmitButton || showCancelButton) && (
-        <div className="d-flex gap-3 mt-4">
+        <div className="d-flex mt-4 gap-3">
           {showSubmitButton && (
             <Button
               id="form_submit_button"
               type="submit"
               onClick={onSubmit}
-              loadingId={loadingId}
-              disabled={disableButton}
+              disabled={controlsDisabled}
+              isLoading={isLoading}
             >
               {buttonText}
             </Button>
           )}
           {showCancelButton && (
-            <Button
-              id="form_cancel_button"
-              onClick={onCancel}
-              loadingId={loadingId}
-              disabled={disableButton}
-              className="btn-danger"
-            >
+            <Button id="form_cancel_button" onClick={onCancel} disabled={controlsDisabled} className="btn-danger">
               Cancel
             </Button>
           )}
@@ -70,6 +64,6 @@ const Form = ({
       )}
     </form>
   );
-};
+}
 
 export default Form;
