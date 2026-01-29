@@ -11,7 +11,7 @@ if [ "$(pwd | tail -c 5)" == "/bin" ]; then
   exit 1
 fi
 
-sudo source .env
+source .env
 sudo docker pull "$DOCKER_IMAGE_NAME"
 
 if [ "$1" != "--restart" ] && [ "$1" != "-r" ]; then
