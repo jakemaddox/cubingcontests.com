@@ -20,12 +20,13 @@ import {
 } from "~/helpers/utilityFunctions.ts";
 import { AttemptsValidator, ResultValidator, VideoBasedResultValidator } from "~/helpers/validators/Result.ts";
 import { contestsTable, type SelectContest } from "~/server/db/schema/contests.ts";
-import type { RoundResponse } from "~/server/db/schema/rounds.ts";
+import type { RoundResponse, SelectRound } from "~/server/db/schema/rounds.ts";
 import { type DbTransactionType, db } from "../db/provider.ts";
 import type { EventResponse, SelectEvent } from "../db/schema/events.ts";
 import type { SelectPerson } from "../db/schema/persons.ts";
 import type { RecordConfigResponse } from "../db/schema/record-configs.ts";
 import {
+  type Attempt,
   type InsertResult,
   type ResultResponse,
   resultsPublicCols,
@@ -139,59 +140,8 @@ export const createContestResultSF = actionClient
       }
 
       const roundFormat = roundFormats.find((rf) => rf.value === round.format)!;
-      let expectedNumberOfAttempts = roundFormat.attempts;
 
-      // Time limit validation
-      if (round.timeLimitCentiseconds) {
-        if (newResultDto.attempts.some((a) => a.result > round.timeLimitCentiseconds!))
-          throw new CcActionError(`This round has a time limit of ${getFormattedTime(round.timeLimitCentiseconds)}`);
-
-        if (round.timeLimitCumulativeRoundIds) {
-          // Add up all attempt times from the new result and results from other rounds included in the cumulative time limit
-          const cumulativeRoundsResults = await db.query.results.findMany({
-            where: {
-              roundId: { in: round.timeLimitCumulativeRoundIds },
-              RAW: (t) => sql`CARDINALITY(${t.personIds}) = ${newResultDto.personIds.length}`,
-              personIds: { arrayContains: newResultDto.personIds },
-            },
-          });
-          let total = 0;
-          for (const res of [newResultDto as any, ...cumulativeRoundsResults])
-            for (const attempt of res.attempts) total += attempt.result;
-
-          if (total >= round.timeLimitCentiseconds) {
-            throw new CcActionError(
-              `This round has a cumulative time limit of ${getFormattedTime(round.timeLimitCentiseconds)}${
-                round.timeLimitCumulativeRoundIds.length > 0
-                  ? ` for these rounds: ${round.id}, ${round.timeLimitCumulativeRoundIds.join(", ")}`
-                  : ""
-              }`,
-            );
-          }
-        }
-
-        // Cutoff validation
-        if (
-          round.cutoffAttemptResult &&
-          round.cutoffNumberOfAttempts &&
-          !getMakesCutoff(newResultDto.attempts, round.cutoffAttemptResult, round.cutoffNumberOfAttempts)
-        ) {
-          if (newResultDto.attempts.length > round.cutoffNumberOfAttempts!) {
-            const attemptsPastCutoffNumberOfAttempts = newResultDto.attempts.slice(round.cutoffNumberOfAttempts);
-            if (attemptsPastCutoffNumberOfAttempts.some((a) => a.result !== 0))
-              throw new CcActionError(`This round has a cutoff of ${getFormattedTime(round.cutoffAttemptResult)}`);
-            else newResultDto.attempts = newResultDto.attempts.slice(0, round.cutoffNumberOfAttempts);
-          }
-
-          expectedNumberOfAttempts = round.cutoffNumberOfAttempts;
-        }
-      }
-
-      if (newResultDto.attempts.length !== expectedNumberOfAttempts) {
-        throw new CcActionError(
-          `The number of attempts should be ${expectedNumberOfAttempts}; received: ${newResultDto.attempts.length}`,
-        );
-      }
+      await validateTimeLimitAndCutoff(newResultDto.attempts, newResultDto.personIds, round, roundFormat.attempts);
 
       const recordConfigs = await getRecordConfigs(contest.type === "meetup" ? "meetups" : "competitions");
       const { best, average } = getBestAndAverage(newResultDto.attempts, event.format, roundFormat.value);
@@ -283,6 +233,9 @@ export const updateContestResultSF = actionClient
 
       const recordConfigs = await getRecordConfigs(contest.type === "meetup" ? "meetups" : "competitions");
       const roundFormat = roundFormats.find((rf) => rf.value === round.format)!;
+
+      await validateTimeLimitAndCutoff(newAttempts, result.personIds, round, roundFormat.attempts);
+
       const { best, average } = getBestAndAverage(newAttempts, event.format, roundFormat.value);
       const newResult: SelectResult = {
         ...result,
@@ -910,4 +863,67 @@ async function setRankingAndProceedsValues(tx: DbTransactionType, results: Resul
     if (ranking !== sortedResults[i].ranking || proceeds !== sortedResults[i].proceeds)
       await tx.update(table).set({ ranking, proceeds }).where(eq(table.id, sortedResults[i].id));
   }
+}
+
+async function validateTimeLimitAndCutoff(
+  attempts: Attempt[],
+  personIds: number[],
+  round: SelectRound,
+  expectedNumberOfAttempts: number,
+): Promise<Attempt[]> {
+  let outputAttempts = attempts;
+
+  // Time limit validation
+  if (round.timeLimitCentiseconds) {
+    if (attempts.some((a) => a.result > round.timeLimitCentiseconds!))
+      throw new CcActionError(`This round has a time limit of ${getFormattedTime(round.timeLimitCentiseconds)}`);
+
+    if (round.timeLimitCumulativeRoundIds) {
+      // Add up all attempt times from the new result and results from other rounds included in the cumulative time limit
+      const cumulativeRoundsResults = await db.query.results.findMany({
+        where: {
+          roundId: { in: round.timeLimitCumulativeRoundIds },
+          RAW: (t) => sql`CARDINALITY(${t.personIds}) = ${personIds.length}`,
+          personIds: { arrayContains: personIds },
+        },
+      });
+      let total = 0;
+      for (const res of [{ attempts } as any, ...cumulativeRoundsResults])
+        for (const attempt of res.attempts) total += attempt.result;
+
+      if (total >= round.timeLimitCentiseconds) {
+        throw new CcActionError(
+          `This round has a cumulative time limit of ${getFormattedTime(round.timeLimitCentiseconds)}${
+            round.timeLimitCumulativeRoundIds.length > 0
+              ? ` for these rounds: ${round.id}, ${round.timeLimitCumulativeRoundIds.join(", ")}`
+              : ""
+          }`,
+        );
+      }
+    }
+
+    // Cutoff validation
+    if (
+      round.cutoffAttemptResult &&
+      round.cutoffNumberOfAttempts &&
+      !getMakesCutoff(attempts, round.cutoffAttemptResult, round.cutoffNumberOfAttempts)
+    ) {
+      if (attempts.length > round.cutoffNumberOfAttempts!) {
+        const attemptsPastCutoffNumberOfAttempts = attempts.slice(round.cutoffNumberOfAttempts);
+        if (attemptsPastCutoffNumberOfAttempts.some((a) => a.result !== 0))
+          throw new CcActionError(`This round has a cutoff of ${getFormattedTime(round.cutoffAttemptResult)}`);
+        else outputAttempts = attempts.slice(0, round.cutoffNumberOfAttempts);
+      }
+
+      expectedNumberOfAttempts = round.cutoffNumberOfAttempts;
+    }
+  }
+
+  if (attempts.length !== expectedNumberOfAttempts) {
+    throw new CcActionError(
+      `The number of attempts should be ${expectedNumberOfAttempts}; received: ${attempts.length}`,
+    );
+  }
+
+  return outputAttempts;
 }

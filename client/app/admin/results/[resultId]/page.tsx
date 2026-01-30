@@ -10,7 +10,7 @@ type Props = {
 };
 
 async function EditResultPage({ params }: Props) {
-  await authorizeUser({ permissions: { videoBasedResults: ["update"] } });
+  await authorizeUser({ permissions: { videoBasedResults: ["update", "approve"] } });
   const { resultId } = await params;
 
   const events = await getVideoBasedEvents();

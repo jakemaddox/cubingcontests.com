@@ -19,6 +19,8 @@ import {
   testCompJan2023_333_oh_bld_team_relay_r1,
   testCompJan2028_333_oh_bld_team_relay_r1,
   testCompJan2028_333_oh_bld_team_relay_r2,
+  testMeetupFeb2023_333bf_2_person_relay_r1,
+  testMeetupMar2023_333bf_2_person_relay_r1,
 } from "~/__mocks__/stubs/roundsStub.ts";
 import { getFormattedTime } from "~/helpers/utilityFunctions.ts";
 import { db } from "~/server/db/provider.ts";
@@ -27,6 +29,7 @@ import {
   createVideoBasedResultSF,
   deleteContestResultSF,
   getWrPairUpToDateSF,
+  updateContestResultSF,
 } from "~/server/serverFunctions/resultServerFunctions.ts";
 
 const date = new Date(2026, 0, 1);
@@ -623,6 +626,71 @@ describe("createContestResultSF", () => {
         expect(wrChangedToCr2?.regionalSingleRecord).toBe("ER");
         expect(wrChangedToCr2?.regionalAverageRecord).toBe("ER");
       });
+    });
+  });
+});
+
+describe("updateContestResultSF", () => {
+  it("updates non-record result", async () => {
+    const res = await updateContestResultSF({
+      id: 4,
+      newAttempts: [{ result: 8801 }, { result: 8901 }, { result: 9001 }],
+    });
+
+    expect(res.serverError).toBeUndefined();
+    expect(res.validationErrors).toBeUndefined();
+    expect(res.data?.length).toBe(2);
+    expect(res.data![0]).toBeDefined();
+    expect(res.data![0].regionCode).toBeNull();
+    expect(res.data![0].superRegionCode).toBeNull();
+    expect(res.data![0].best).toBe(8801);
+    expect(res.data![0].average).toBe(8901);
+    expect(res.data![0].regionalSingleRecord).toBeNull();
+    expect(res.data![0].regionalAverageRecord).toBeNull();
+  });
+
+  describe("server errors", async () => {
+    it("throws error for result having too few attempts", async () => {
+      const res = await updateContestResultSF({ id: 4, newAttempts: [{ result: 10000 }] });
+
+      expect(res.serverError?.message).toBe("The number of attempts should be 3; received: 1");
+      expect(res.data).toBeUndefined();
+    });
+
+    it("throws error for result not meeting the time limit", async () => {
+      const { timeLimitCentiseconds: timeLimit } = testMeetupMar2023_333bf_2_person_relay_r1;
+      const res = await updateContestResultSF({
+        id: 4,
+        newAttempts: [{ result: timeLimit! + 1 }, { result: 1234 }, { result: 1234 }],
+      });
+
+      expect(res.serverError?.message).toBe(`This round has a time limit of ${getFormattedTime(timeLimit!)}`);
+      expect(res.data).toBeUndefined();
+    });
+
+    it("throws error for result not meeting the cumulative time limit", async () => {
+      const { timeLimitCentiseconds: timeLimit } = testMeetupMar2023_333bf_2_person_relay_r1;
+      const res = await updateContestResultSF({
+        id: 4,
+        // First result just barely passes the time limit, but the second one pushes it over the cumulative limit
+        newAttempts: [{ result: timeLimit! }, { result: 1234 }, { result: 1234 }],
+      });
+
+      expect(res.serverError?.message).toBe(
+        `This round has a cumulative time limit of ${getFormattedTime(timeLimit!)}`,
+      );
+      expect(res.data).toBeUndefined();
+    });
+
+    it("throws error for result that doesn't meet cutoff having too many attempts", async () => {
+      const { cutoffAttemptResult } = testMeetupFeb2023_333bf_2_person_relay_r1;
+      const res = await updateContestResultSF({
+        id: 3,
+        newAttempts: [{ result: cutoffAttemptResult! + 1 }, { result: 1234 }, { result: 1234 }],
+      });
+
+      expect(res.serverError?.message).toBe(`This round has a cutoff of ${getFormattedTime(cutoffAttemptResult!)}`);
+      expect(res.data).toBeUndefined();
     });
   });
 });

@@ -9,7 +9,9 @@ type Props = {
 };
 
 async function PostResultsPage({ params, searchParams }: Props) {
-  const { user } = await authorizeUser({ permissions: { competitions: ["create", "update"] } });
+  const { user } = await authorizeUser({
+    permissions: { competitions: ["create", "update"], meetups: ["create", "update"] },
+  });
   const { id } = await params;
   const { eventId } = await searchParams;
 

@@ -23,8 +23,11 @@ async function HomePage() {
       <h1 className="mb-4 text-center">Cubing Contests</h1>
 
       <div className="alert alert-warning mb-4" role="alert">
-        The website just received a major update! Read our <Link href="/posts/the-big-update">blog post</Link> to learn
-        more.
+        The website just received a major update! Read our{" "}
+        <Link href="/posts/the-big-update" prefetch={false}>
+          blog post
+        </Link>{" "}
+        to learn more.
       </div>
 
       <div className="alert alert-light mb-4" role="alert">

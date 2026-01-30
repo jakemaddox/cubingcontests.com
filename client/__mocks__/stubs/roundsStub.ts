@@ -37,6 +37,8 @@ export const roundsStub: (InsertRound & { id: number })[] = [
     roundTypeId: "f" as RoundType,
     format: "3" as RoundFormat,
     timeLimitCentiseconds: 10 * 60 * 100,
+    cutoffAttemptResult: 8 * 60 * 100,
+    cutoffNumberOfAttempts: 1,
   },
   {
     competitionId: "TestCompFeb2023",
@@ -54,6 +56,7 @@ export const roundsStub: (InsertRound & { id: number })[] = [
     roundTypeId: "f" as RoundType,
     format: "3" as RoundFormat,
     timeLimitCentiseconds: 10 * 60 * 100,
+    timeLimitCumulativeRoundIds: [],
   },
   {
     competitionId: "TestCompMar2023",

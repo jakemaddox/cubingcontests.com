@@ -119,8 +119,11 @@ async function RankingsPage({ params, searchParams }: Props) {
 
       <div className="mb-3 px-2">
         <div className="alert alert-warning mb-4" role="alert">
-          The website just received a major update! Read our <Link href="/posts/the-big-update">blog post</Link> to
-          learn more.
+          The website just received a major update! Read our{" "}
+          <Link href="/posts/the-big-update" prefetch={false}>
+            blog post
+          </Link>{" "}
+          to learn more.
         </div>
 
         <h4>Event</h4>

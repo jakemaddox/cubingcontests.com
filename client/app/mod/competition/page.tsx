@@ -20,7 +20,9 @@ type Props = {
 };
 
 async function CreateEditContestPage({ searchParams }: Props) {
-  const session = await authorizeUser({ permissions: { competitions: ["create", "update"] } });
+  const session = await authorizeUser({
+    permissions: { competitions: ["create", "update"], meetups: ["create", "update"] },
+  });
   const { editId, copyId } = await searchParams;
 
   const isAdmin = getIsAdmin(session.user.role);

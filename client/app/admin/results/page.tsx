@@ -6,7 +6,7 @@ import { authorizeUser, getRecordConfigs } from "~/server/serverUtilityFunctions
 import ManageResultsScreen from "./ManageResultsScreen.tsx";
 
 async function ManageResultsPage() {
-  await authorizeUser({ permissions: { videoBasedResults: ["approve"] } });
+  await authorizeUser({ permissions: { videoBasedResults: ["update", "approve"] } });
 
   const recordConfigs = await getRecordConfigs("video-based-results");
   const results = (await db.query.results.findMany({
