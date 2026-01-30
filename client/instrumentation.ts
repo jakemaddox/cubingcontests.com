@@ -69,7 +69,7 @@ export async function register() {
     const { auth }: { auth: typeof authType } = await import("~/server/auth.ts");
 
     if (process.env.NODE_ENV !== "production") {
-      const unoffEventIdConverter = {
+      const _unoffEventIdConverter = {
         "666": "666",
         "777": "777",
         rainb: "rainbow_cube",
@@ -95,7 +95,7 @@ export async function register() {
         // magccc: "",
       };
 
-      const eeEventIdConverter = {
+      const _eeEventIdConverter = {
         "113sia": "333_siamese",
         "1mguild": "miniguild",
         "222oh": "222oh",

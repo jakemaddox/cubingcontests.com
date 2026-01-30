@@ -84,4 +84,5 @@ export type LogCode =
   | "CC0034" // delete user
 
   // Error codes
+  | "CC5000" // error
   | "CC5001"; // send email error

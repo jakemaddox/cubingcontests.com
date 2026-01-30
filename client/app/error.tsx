@@ -1,6 +1,20 @@
 "use client";
 
-function ErrorPage() {
+import { useAction } from "next-safe-action/hooks";
+import { useEffect } from "react";
+import { logErrorSF } from "~/server/serverFunctions/serverFunctions";
+
+type Props = {
+  error: Error & { digest?: string };
+};
+
+function ErrorPage({ error }: Props) {
+  const { execute: logError } = useAction(logErrorSF);
+
+  useEffect(() => {
+    logError({ message: error.message });
+  }, [error]);
+
   return (
     <section>
       <h4 className="mt-4 text-center">Error</h4>

@@ -34,6 +34,17 @@ export const logAffiliateLinkClickSF = actionClient
     logMessage("CC0004", message);
   });
 
+export const logErrorSF = actionClient
+  .metadata({})
+  .inputSchema(
+    z.strictObject({
+      message: z.string().nonempty(),
+    }),
+  )
+  .action(async ({ parsedInput: { message } }) => {
+    logMessage("CC5000", message);
+  });
+
 export const logUserDeletedSF = actionClient
   .metadata({ permissions: null })
   .inputSchema(
