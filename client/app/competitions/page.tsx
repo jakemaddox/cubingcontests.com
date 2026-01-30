@@ -1,7 +1,9 @@
 import { and, eq, ne } from "drizzle-orm";
 import Link from "next/link";
+import { Suspense } from "react";
 import ContestsTable from "~/app/components/ContestsTable.tsx";
 import EventButtons from "~/app/components/EventButtons.tsx";
+import Loading from "~/app/components/UI/Loading.tsx";
 import { Continents, Countries } from "~/helpers/Countries.ts";
 import { db } from "~/server/db/provider.ts";
 import { eventsPublicCols, eventsTable } from "~/server/db/schema/events.ts";
@@ -33,6 +35,12 @@ async function ContestsPage({ searchParams }: Props) {
 
   const filterBySuperRegion = !!region && Continents.some((c) => region === c.code);
   const regionCodes = filterBySuperRegion && Countries.filter((c) => c.superRegionCode === region).map((c) => c.code);
+  const events = await db
+    .select(eventsPublicCols)
+    .from(eventsTable)
+    .where(and(ne(eventsTable.category, "removed"), eq(eventsTable.hidden, false)))
+    .orderBy(eventsTable.rank);
+
   const contestsPromise = db.query.contests.findMany({
     columns: {
       competitionId: true,
@@ -52,13 +60,6 @@ async function ContestsPage({ searchParams }: Props) {
     },
     orderBy: { startDate: "desc" },
   });
-  const eventsPromise = db
-    .select(eventsPublicCols)
-    .from(eventsTable)
-    .where(and(ne(eventsTable.category, "removed"), eq(eventsTable.hidden, false)))
-    .orderBy(eventsTable.rank);
-
-  const [contests, events] = await Promise.all([contestsPromise, eventsPromise]);
 
   return (
     <div>
@@ -85,11 +86,9 @@ async function ContestsPage({ searchParams }: Props) {
             </div>
           </div>
 
-          {contests.length === 0 ? (
-            <p className="fs-5 mx-3">No contests have been held yet</p>
-          ) : (
-            <ContestsTable contests={contests} />
-          )}
+          <Suspense fallback={<Loading />}>
+            <ContestsTable contestsPromise={contestsPromise} />
+          </Suspense>
         </>
       )}
     </div>

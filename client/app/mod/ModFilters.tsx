@@ -18,7 +18,7 @@ type Props = {
   disabled: boolean;
 };
 
-const ModFilters = ({ onSelectPerson, onResetFilters, disabled }: Props) => {
+function ModFilters({ onSelectPerson, onResetFilters, disabled }: Props) {
   const searchParams = useSearchParams();
   const { changeErrorMessages } = useContext(MainContext);
 
@@ -68,6 +68,6 @@ const ModFilters = ({ onSelectPerson, onResetFilters, disabled }: Props) => {
       )}
     </FiltersContainer>
   );
-};
+}
 
 export default ModFilters;

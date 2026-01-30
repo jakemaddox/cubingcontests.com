@@ -5,10 +5,11 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAction } from "next-safe-action/hooks";
-import { useContext, useState } from "react";
+import { use, useContext, useState } from "react";
 import ContestTypeBadge from "~/app/components/ContestTypeBadge.tsx";
 import Country from "~/app/components/Country.tsx";
 import Loading from "~/app/components/UI/Loading.tsx";
+import LoadingError from "~/app/components/UI/LoadingError.tsx";
 import ToastMessages from "~/app/components/UI/ToastMessages.tsx";
 import ModFilters from "~/app/mod/ModFilters.tsx";
 import type { authClient } from "~/helpers/authClient.ts";
@@ -22,16 +23,19 @@ import { getModContestsSF } from "~/server/serverFunctions/contestServerFunction
 import ContestControls from "./ContestControls.tsx";
 
 type Props = {
-  contests: ContestResponse[];
+  modContestsPromise: ReturnType<typeof getModContestsSF>;
   session: typeof authClient.$Infer.Session;
 };
 
-function ModDashboardScreen({ contests: initContests, session }: Props) {
+function ModDashboardScreen({ modContestsPromise, session }: Props) {
+  const res = use(modContestsPromise);
+  if (!res.data) return <LoadingError loadingEntity="contests" />;
+
   const router = useRouter();
   const { changeErrorMessages } = useContext(MainContext);
 
   const { executeAsync: getModContests, isPending: isPendingContests } = useAction(getModContestsSF);
-  const [contests, setContests] = useState<ContestResponse[]>(initContests);
+  const [contests, setContests] = useState<ContestResponse[]>(res.data);
 
   const isAdmin = getIsAdmin(session.user.role);
   const pendingContests = contests.filter((c) => ["created", "ongoing", "finished"].includes(c.state)).length;
@@ -61,6 +65,14 @@ function ModDashboardScreen({ contests: initContests, session }: Props) {
     <>
       <div className="px-2">
         <ToastMessages />
+
+        <div className="alert alert-warning mb-4" role="alert">
+          The website just received a major update! Read our{" "}
+          <Link href="/posts/the-big-update" prefetch={false}>
+            blog post
+          </Link>{" "}
+          to learn more.
+        </div>
 
         <div className="alert alert-light mb-4" role="alert">
           We have a Cubing Contests Discord server!{" "}
@@ -123,14 +135,6 @@ function ModDashboardScreen({ contests: initContests, session }: Props) {
       </div>
 
       <ModFilters onSelectPerson={selectPerson} onResetFilters={resetFilters} disabled={isPendingContests} />
-
-      <div className="alert alert-warning mb-4" role="alert">
-        The website just received a major update! Read our{" "}
-        <Link href="/posts/the-big-update" prefetch={false}>
-          blog post
-        </Link>{" "}
-        to learn more.
-      </div>
 
       {isPendingContests ? (
         <Loading />

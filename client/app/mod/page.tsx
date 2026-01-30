@@ -1,6 +1,7 @@
+import { Suspense } from "react";
+import Loading from "~/app/components/UI/Loading.tsx";
 import { getModContestsSF } from "~/server/serverFunctions/contestServerFunctions.ts";
 import { authorizeUser } from "~/server/serverUtilityFunctions.ts";
-import LoadingError from "../components/UI/LoadingError.tsx";
 import ModDashboardScreen from "./ModDashboardScreen.tsx";
 
 type Props = {
@@ -11,15 +12,17 @@ async function ModeratorDashboardPage({ searchParams }: Props) {
   const session = await authorizeUser({ permissions: { modDashboard: ["view"] } });
   const { organizerPersonId } = await searchParams;
 
-  const res = await getModContestsSF({ organizerPersonId: organizerPersonId ? Number(organizerPersonId) : undefined });
-
-  if (!res.data) return <LoadingError loadingEntity="contests" />;
+  const modContestsPromise = getModContestsSF({
+    organizerPersonId: organizerPersonId ? Number(organizerPersonId) : undefined,
+  });
 
   return (
     <section>
-      <h2 className="mb-4 text-center">Moderator Dashboard</h2>
+      <h2 className="mx-2 mb-4 text-center">Moderator Dashboard</h2>
 
-      <ModDashboardScreen contests={res.data} session={session} />
+      <Suspense fallback={<Loading />}>
+        <ModDashboardScreen modContestsPromise={modContestsPromise} session={session} />
+      </Suspense>
     </section>
   );
 }

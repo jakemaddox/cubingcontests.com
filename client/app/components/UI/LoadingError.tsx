@@ -6,7 +6,7 @@ type Props = {
 function LoadingError({ loadingEntity = "data", reason }: Props) {
   return (
     <section>
-      <h4 className="mt-4 text-center">Error while loading {loadingEntity}</h4>
+      <h4 className="mt-5 text-center">Error while loading {loadingEntity}</h4>
 
       {reason && <p className="mt-4 text-center">(reason: {reason})</p>}
     </section>

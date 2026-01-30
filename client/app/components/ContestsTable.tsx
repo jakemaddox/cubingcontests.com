@@ -1,6 +1,9 @@
+"use client";
+
 import { faCircle, faDiamond, faSquare, faUserGroup } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import Link from "next/link";
+import { use } from "react";
 import ContestTypeBadge from "~/app/components/ContestTypeBadge.tsx";
 import Country from "~/app/components/Country.tsx";
 import { contestTypeOptions } from "~/helpers/multipleChoiceOptions.ts";
@@ -9,14 +12,20 @@ import { getFormattedDate } from "~/helpers/utilityFunctions.ts";
 import type { ContestResponse } from "~/server/db/schema/contests.ts";
 
 type Props = {
-  contests: Pick<
-    ContestResponse,
-    "competitionId" | "shortName" | "type" | "city" | "regionCode" | "startDate" | "endDate" | "participants"
-  >[];
+  contestsPromise: Promise<
+    Pick<
+      ContestResponse,
+      "competitionId" | "shortName" | "type" | "city" | "regionCode" | "startDate" | "endDate" | "participants"
+    >[]
+  >;
 };
 
-function ContestsTable({ contests }: Props) {
+function ContestsTable({ contestsPromise }: Props) {
+  const contests = use(contestsPromise);
+
   const getShapeIcon = (type: ContestType) => (type === "comp" ? faSquare : type === "meetup" ? faDiamond : faCircle);
+
+  if (contests.length === 0) return <p className="fs-5 mx-3">No contests have been held yet</p>;
 
   return (
     <>
