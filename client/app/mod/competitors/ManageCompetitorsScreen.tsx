@@ -24,6 +24,12 @@ import type { PersonResponse, SelectPerson } from "~/server/db/schema/persons.ts
 import { approvePersonSF, deletePersonSF } from "~/server/serverFunctions/personServerFunctions.ts";
 import PersonForm from "./PersonForm.tsx";
 
+const approvedFilterOptions: MultiChoiceOption[] = [
+  { label: "Any", value: "" },
+  { label: "Approved", value: "approved" },
+  { label: "Not approved", value: "unapproved" },
+];
+
 type Props = {
   persons: (SelectPerson | PersonResponse)[];
   users?: Creator[]; // only returned to admins
@@ -71,11 +77,6 @@ function ManageCompetitorsScreen({ persons: initPersons, users }: Props) {
 
   const isAdmin = users !== undefined;
   const buttonsDisabled = mode !== "view" || isDeleting || isApproving;
-  const approvedFilterOptions: MultiChoiceOption[] = [
-    { label: "Any", value: "" },
-    { label: "Approved", value: "approved" },
-    { label: "Not approved", value: "unapproved" },
-  ];
 
   const rowVirtualizer = useVirtualizer({
     count: filteredPersons.length,

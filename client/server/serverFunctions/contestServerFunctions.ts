@@ -46,6 +46,11 @@ import {
 } from "../db/schema/contests.ts";
 import { actionClient, CcActionError } from "../safeAction.ts";
 
+const RoundsListValidator = z
+  .array(RoundValidator)
+  .nonempty({ error: "Please select at least one event" })
+  .max(C.maxTotalRounds, { error: "You may not hold more than 30 rounds in total" });
+
 export const getContestSF = actionClient
   .metadata({})
   .inputSchema(
@@ -185,10 +190,7 @@ export const createContestSF = actionClient
   .inputSchema(
     z.strictObject({
       newContestDto: ContestValidator,
-      rounds: z
-        .array(RoundValidator)
-        .nonempty({ error: "Please select at least one event" })
-        .max(C.maxTotalRounds, { error: "You may not hold more than 30 rounds in total" }),
+      rounds: RoundsListValidator,
     }),
   )
   .action(
@@ -521,7 +523,7 @@ export const updateContestSF = actionClient
     z.strictObject({
       originalCompetitionId: z.string().nonempty(),
       newContestDto: ContestValidator,
-      rounds: z.array(RoundValidator).nonempty({ error: "Please select at least one event" }),
+      rounds: RoundsListValidator,
     }),
   )
   .action(

@@ -200,19 +200,14 @@ function ContestEvents({
   };
 
   const changeRoundProceed = (
-    eventId: string,
-    roundNumber: number,
-    proceedType: RoundProceed,
-    newVal?: number | undefined,
+    round: RoundDto,
+    { proceedType, proceedValue }: { proceedType: RoundProceed; proceedValue: number | undefined },
   ) => {
     setRounds(
       rounds.map((r) =>
-        r.eventId === eventId && r.roundNumber === roundNumber
-          ? {
-              ...r,
-              proceedType,
-              proceedValue: newVal ?? r.proceedValue,
-            }
+        r.eventId === round.eventId && r.roundNumber === round.roundNumber
+          ? // We want to allow proceedValue: undefined for when the user clears the input (this would be caught in the validator if submitted)
+            { ...r, proceedType, proceedValue: proceedValue as any }
           : r,
       ),
     );
@@ -331,7 +326,7 @@ function ContestEvents({
                       setAttempt={(val: Attempt) => changeRoundCutoff(round.eventId, round.roundNumber, val)}
                       event={ce.event}
                       maxTime={C.maxTimeLimit}
-                      disabled={!round.cutoffAttemptResult || totalRoundResults > 0}
+                      disabled={round.cutoffAttemptResult === null || totalRoundResults > 0}
                     />
                   </div>
 
@@ -349,14 +344,16 @@ function ContestEvents({
                     />
                   </div>
                 </div>
-                {round.proceedType && round.proceedValue && (
+                {round.proceedType && round.proceedValue !== null && (
                   <div className="d-flex justify-content-between mt-3 flex-wrap gap-3 align-items-center">
                     <FormRadio
                       id={`${round.eventId}_r${round.roundNumber}_proceed_type`}
                       title="Proceed to next round:"
                       options={roundProceedOptions}
                       selected={round.proceedType}
-                      setSelected={(val) => changeRoundProceed(round.eventId, round.roundNumber, val)}
+                      setSelected={(val) =>
+                        changeRoundProceed(round, { proceedType: val, proceedValue: round.proceedValue! })
+                      }
                       oneLine
                       small
                     />
@@ -365,7 +362,7 @@ function ContestEvents({
                         id="round_proceed_value"
                         value={round.proceedValue}
                         setValue={(val) =>
-                          changeRoundProceed(round.eventId, round.roundNumber, round.proceedType!, val)
+                          changeRoundProceed(round, { proceedType: round.proceedType!, proceedValue: val })
                         }
                         integer
                         min={round.proceedType === "percentage" ? 1 : C.minProceedNumber}

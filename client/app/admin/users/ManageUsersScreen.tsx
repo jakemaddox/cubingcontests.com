@@ -21,6 +21,12 @@ import type { PersonResponse } from "~/server/db/schema/persons.ts";
 import type { Role, Roles } from "~/server/permissions.ts";
 import { updateUserSF } from "~/server/serverFunctions/serverFunctions.ts";
 
+const roleOptions: MultiChoiceOption[] = [
+  { label: "User", value: "user" },
+  { label: "Mod", value: "mod" },
+  { label: "Admin", value: "admin" },
+];
+
 type Props = {
   users: (typeof authClient.$Infer.Session.user)[];
   userPersons: PersonResponse[];
@@ -49,12 +55,6 @@ function ManageUsersScreen({ users: initUsers, userPersons: initUserPersons }: P
         getSimplifiedString(userPersons.find((p) => p.id === u.personId)?.name ?? "").includes(simplifiedSearch),
     );
   }, [search, users, userPersons]);
-
-  const roleOptions: MultiChoiceOption[] = [
-    { label: "User", value: "user" },
-    { label: "Mod", value: "mod" },
-    { label: "Admin", value: "admin" },
-  ];
 
   const handleSubmit = async () => {
     if (persons[0] === null && personNames[0].trim() !== "") {
