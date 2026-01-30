@@ -1,7 +1,7 @@
 import Loading from "~/app/components/UI/Loading.tsx";
 
-const LoadingPage = () => {
+function LoadingPage() {
   return <Loading />;
-};
+}
 
 export default LoadingPage;
