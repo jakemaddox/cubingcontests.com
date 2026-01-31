@@ -198,7 +198,9 @@ function DataEntryScreen({
 
   const onSelectPerson = (person: PersonResponse) => {
     if (selectedPersons.every((p) => p === null)) {
-      const existingResultForSelectedPerson = results.find((r) => r.personIds.includes(person.id));
+      const existingResultForSelectedPerson = results.find(
+        (r) => r.roundId === round.id && r.personIds.includes(person.id),
+      );
       if (existingResultForSelectedPerson) onEditResult(existingResultForSelectedPerson);
     }
   };
@@ -256,23 +258,25 @@ function DataEntryScreen({
 
   const submitMockResult = async () => {
     let firstUnusedPersonId =
-      persons.length === 0
-        ? 1
-        : persons.reduce((acc: PersonResponse, person: PersonResponse) => (!acc || person.id > acc.id ? person : acc))
-            .id + 1;
+      persons.length === 0 ? 1 : persons.reduce((acc, person) => (!acc || person.id > acc.id ? person : acc)).id + 1;
     const resultPersons: PersonResponse[] = [];
     for (let i = 0; i < currEvent.participants; i++) {
       while (resultPersons.length === i) {
+        if (firstUnusedPersonId > 25) throw new Error("Unable to find an unused person ID");
         const res = await getPersonById({ id: firstUnusedPersonId });
         if (res.serverError || res.validationErrors) firstUnusedPersonId++;
         else resultPersons.push(res.data!);
       }
       firstUnusedPersonId++;
     }
+    const attempts: Attempt[] = [];
+    for (let i = 0; i < (round.cutoffNumberOfAttempts ?? roundFormat.attempts); i++)
+      attempts.push({ result: Math.round(Math.random() * 30_00) + 60_00 });
+
     const newResultDto: ResultDto = {
       eventId,
       personIds: resultPersons.map((p) => p.id),
-      attempts: new Array(round.cutoffNumberOfAttempts ?? roundFormat.attempts).fill({ result: -1 }),
+      attempts,
       competitionId: contest.competitionId,
       roundId: round.id,
     };
@@ -426,7 +430,7 @@ function DataEntryScreen({
                   </p>
                 </>
               ) : (
-                <p className="fst-italic text-center">This round cannot be opened yet</p>
+                <p className="fst-italic text-center text-warning">This round cannot be opened yet</p>
               )}
             </div>
           )}

@@ -61,6 +61,7 @@ function FormPersonInputs({
   const getMatchedPersons = useCallback(
     debounce(async (value: string) => {
       if (!C.wcaIdRegexLoose.test(value)) {
+        resetMessages();
         const res = await getPersonsByName({ name: value });
 
         if (res.serverError || res.validationErrors) {

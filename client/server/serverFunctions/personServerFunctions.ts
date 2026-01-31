@@ -47,7 +47,7 @@ export const getPersonsByNameSF = actionClient
       .split(" ")
       .map((part) => `%${part}%`);
     const nameQuery = and(...simplifiedParts.map((part) => sql`UNACCENT(${table.name}) ILIKE ${part}`));
-    const locNameQuery = and(...simplifiedParts.map((part) => ilike(table.localizedName, `%${part}%`)));
+    const locNameQuery = and(...simplifiedParts.map((part) => ilike(table.localizedName, part)));
 
     return await db.select(personsPublicCols).from(table).where(or(nameQuery, locNameQuery)).limit(C.maxPersonMatches);
   });

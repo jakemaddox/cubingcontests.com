@@ -52,7 +52,7 @@ function RoundResultsTable({
     return {};
   };
 
-  if (results.length === 0) return <p className="px-2">There are no results from this round yet</p>;
+  if (results.length === 0) return <p className="mx-2 mt-5 text-center">There are no results from this round yet</p>;
 
   return (
     <div className="table-responsive flex-grow-1">

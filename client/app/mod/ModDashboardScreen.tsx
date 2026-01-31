@@ -139,7 +139,9 @@ function ModDashboardScreen({ modContestsPromise, session }: Props) {
       {isPendingContests ? (
         <Loading />
       ) : contests.length === 0 ? (
-        <p className="fs-5 px-2">You haven't created any contests yet</p>
+        <p className="fs-5 px-2">
+          {isAdmin ? "No contests have been held yet" : "You haven't created any contests yet"}
+        </p>
       ) : (
         <div className="table-responsive mb-5">
           <table className="table-hover table text-nowrap">

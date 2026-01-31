@@ -1,6 +1,7 @@
 import type fsType from "node:fs";
-// import type { writeFile as writeFileType } from "node:fs/promises";
+import type { writeFile as writeFileType } from "node:fs/promises";
 import { eq, inArray, sql } from "drizzle-orm";
+import { eventsStub } from "~/__mocks__/stubs/eventsStub.ts";
 import { getDefaultAverageAttempts, getFormattedTime, getNameAndLocalizedName } from "~/helpers/utilityFunctions.ts";
 import { WcaCompetitionValidator } from "~/helpers/validators/wca/WcaCompetition.ts";
 import type { auth as authType } from "~/server/auth.ts";
@@ -10,8 +11,8 @@ import { Continents, Countries } from "./helpers/Countries.ts";
 import { C } from "./helpers/constants.ts";
 import { RecordTypeValues } from "./helpers/types.ts";
 import type { InsertContest } from "./server/db/schema/contests.ts";
-import type { SelectEvent } from "./server/db/schema/events.ts";
-import type { PersonResponse } from "./server/db/schema/persons.ts";
+import { eventsTable, type SelectEvent } from "./server/db/schema/events.ts";
+import { type PersonResponse, personsTable } from "./server/db/schema/persons.ts";
 import { recordConfigsTable } from "./server/db/schema/record-configs.ts";
 import { resultsTable, type SelectResult } from "./server/db/schema/results.ts";
 
@@ -273,6 +274,23 @@ export async function register() {
         console.log("Archive migration done");
       }
 
+      if ((await db.select().from(personsTable)).length === 0) {
+        console.log("Seeding test persons...");
+
+        await db.insert(personsTable).values([
+          { name: "Test Admin", regionCode: "CH", approved: true },
+          { name: "Test Moderator", localizedName: "Localized Name", regionCode: "NR", approved: true },
+          { name: "Test User", regionCode: "SG", approved: true },
+          { name: "Test New User", regionCode: "UY", approved: true },
+          { name: "Test Person 5", regionCode: "SE" },
+          { name: "Test Person 6", regionCode: "GB" },
+          { name: "Test Person 7", regionCode: "US" },
+          { name: "Test Person 8", regionCode: "CA" },
+          { name: "Test Person 9", regionCode: "CN" },
+          { name: "Test Person 10", regionCode: "GB" },
+        ]);
+      }
+
       for (const testUser of testUsers) {
         const userExists =
           (await db.select().from(usersTable).where(eq(usersTable.email, testUser.email)).limit(1)).length > 0;
@@ -302,7 +320,13 @@ export async function register() {
           console.log(`Seeded test user: ${testUser.username}`);
         }
       }
-    }
+
+      if ((await db.select().from(eventsTable)).length === 0) {
+        console.log("Seeding test events...");
+
+        await db.insert(eventsTable).values(eventsStub);
+      }
+    } // END OF if (process.env.NODE_ENV !== "production")
 
     if ((await db.select({ id: recordConfigsTable.id }).from(recordConfigsTable).limit(1)).length === 0) {
       console.log("Seeding record configs...");
