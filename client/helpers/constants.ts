@@ -22,6 +22,7 @@ export const C = {
   maxTotalRounds: 30,
   maxPersonMatches: 6,
   maxRankings: 100_000,
+  maxUsers: 5000,
   duePerCompetitor: 0.1,
   wcaApiBaseUrl: "https://api.worldcubeassociation.org",
   wcaV0ApiBaseUrl: "https://www.worldcubeassociation.org/api/v0",

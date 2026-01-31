@@ -96,7 +96,7 @@ competitor did not make cutoff.
 
 ## Deployment
 
-Please contact us at cubing-contests-admin@googlegroups.com if you want to set
+Please contact us at <MAKE THIS REFER TO CONTACT PAGE!> if you want to set
 up your own instance of Cubing Contests. Please do **NOT** try to deploy your
 own instance until this project is ready for that (you will find instructions in
 this section).

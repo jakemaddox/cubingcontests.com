@@ -1,6 +1,7 @@
 import { inArray } from "drizzle-orm";
 import { headers } from "next/headers";
 import LoadingError from "~/app/components/UI/LoadingError.tsx";
+import { C } from "~/helpers/constants.ts";
 import { auth } from "~/server/auth.ts";
 import { db } from "~/server/db/provider.ts";
 import { personsPublicCols, personsTable } from "~/server/db/schema/persons.ts";
@@ -11,7 +12,7 @@ async function ManageUsersPage() {
   await authorizeUser({ permissions: { user: ["list"] } });
 
   const res = await auth.api.listUsers({
-    query: { filterField: "emailVerified", filterValue: true, sortBy: "createdAt" },
+    query: { filterField: "emailVerified", filterValue: true, sortBy: "createdAt", limit: C.maxUsers },
     headers: await headers(),
   });
 

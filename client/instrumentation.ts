@@ -90,9 +90,9 @@ export async function register() {
         sq1bf: "sq1_bld",
         mirbbf: "333_mirror_blocks_bld",
         "234": "234relay",
-        // magicc: "",
-        // magicb: "",
-        // magccc: "",
+        magicc: "magic_chess",
+        magicb: "magic_balls",
+        magccc: "magic_create_cube",
       };
 
       const _eeEventIdConverter = {

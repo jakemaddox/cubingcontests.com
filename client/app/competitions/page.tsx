@@ -52,7 +52,7 @@ async function ContestsPage({ searchParams }: Props) {
       endDate: true,
       participants: true,
     },
-    with: { rounds: { columns: { eventId: true } } },
+    with: eventId ? { rounds: { columns: { eventId: true } } } : undefined,
     where: {
       state: { notIn: ["created", "removed"] },
       rounds: eventId ? { eventId } : undefined,

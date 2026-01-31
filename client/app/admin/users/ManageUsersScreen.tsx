@@ -13,6 +13,7 @@ import FormTextInput from "~/app/components/form/FormTextInput.tsx";
 import Button from "~/app/components/UI/Button.tsx";
 import ToastMessages from "~/app/components/UI/ToastMessages.tsx";
 import type { authClient } from "~/helpers/authClient.ts";
+import { C } from "~/helpers/constants.ts";
 import { MainContext } from "~/helpers/contexts.ts";
 import type { MultiChoiceOption } from "~/helpers/types/MultiChoiceOption.ts";
 import type { InputPerson } from "~/helpers/types.ts";
@@ -137,6 +138,7 @@ function ManageUsersScreen({ users: initUsers, userPersons: initUserPersons }: P
 
       <p className="mb-2 px-3">
         Number of users:&nbsp;<b>{filteredUsers.length}</b>
+        {filteredUsers.length === C.maxUsers ? " (reached limit; please contact the development team)" : ""}
       </p>
 
       <div className="table-responsive mt-3">

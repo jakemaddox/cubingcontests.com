@@ -12,16 +12,18 @@ type Props = {
 async function RulesLayout({ children }: Props) {
   const baseFilters = [eq(table.hidden, false), ne(table.category, "removed")];
 
-  const eventsWithRules = await db
+  const eventsPromise1 = db
     .select()
     .from(table)
     .where(and(...baseFilters, isNotNull(table.rule)))
     .orderBy(table.rank);
-  const eventsOnlyWithDescriptions = await db
+  const eventsPromise2 = db
     .select()
     .from(table)
     .where(and(...baseFilters, isNull(table.rule), isNotNull(table.description)))
     .orderBy(table.rank);
+
+  const [eventsWithRules, eventsOnlyWithDescriptions] = await Promise.all([eventsPromise1, eventsPromise2]);
 
   return (
     <div>
