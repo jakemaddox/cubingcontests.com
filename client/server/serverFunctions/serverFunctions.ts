@@ -6,7 +6,6 @@ import { randomScrambleForEvent } from "cubing/scramble";
 import { and, eq, ne } from "drizzle-orm";
 import { headers } from "next/headers";
 import { z } from "zod";
-import { C } from "~/helpers/constants.ts";
 import { nxnMoves } from "~/helpers/types/NxNMove.ts";
 import { getIsAdmin } from "~/helpers/utilityFunctions.ts";
 import { auth } from "~/server/auth.ts";
@@ -102,7 +101,7 @@ export const updateUserSF = actionClient
 
         if (getIsAdmin(role)) {
           sendEmail(
-            C.contactEmail,
+            process.env.NEXT_PUBLIC_CONTACT_EMAIL!,
             "Important: New admin user",
             `User ${user.username}${person ? ` (${person.name})` : ""} has been given the admin role.`,
           );

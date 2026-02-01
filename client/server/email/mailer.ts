@@ -181,9 +181,9 @@ export function sendContestSubmittedNotification(recipients: string[], contest: 
     callback: async (html) => {
       await client.send({
         from,
-        reply_to: { email: C.contactEmail },
+        reply_to: { email: process.env.NEXT_PUBLIC_CONTACT_EMAIL! },
         to: recipients.map((r) => ({ email: r })),
-        bcc: [{ email: C.contactEmail }],
+        bcc: [{ email: process.env.NEXT_PUBLIC_CONTACT_EMAIL! }],
         subject: `${urgent ? "Urgent: " : ""}Contest submitted: ${contest.shortName}`,
         html,
         // priority: urgent ? "high" : "normal",
@@ -233,9 +233,9 @@ export function sendContestFinishedNotification(
     callback: async (html) => {
       await client.send({
         from: contestsEmail,
-        reply_to: { email: C.contactEmail },
+        reply_to: { email: process.env.NEXT_PUBLIC_CONTACT_EMAIL! },
         to: recipients.map((r) => ({ email: r })),
-        bcc: [{ email: C.contactEmail }],
+        bcc: [{ email: process.env.NEXT_PUBLIC_CONTACT_EMAIL! }],
         subject: `Contest finished: ${contest.shortName}`,
         html,
       });
@@ -291,9 +291,9 @@ export function sendVideoBasedResultSubmittedNotification(
     callback: async (html) => {
       await client.send({
         from: resultsEmail,
-        reply_to: { email: C.contactEmail },
+        reply_to: { email: process.env.NEXT_PUBLIC_CONTACT_EMAIL! },
         to: [{ email: to }],
-        bcc: [{ email: C.contactEmail }],
+        bcc: [{ email: process.env.NEXT_PUBLIC_CONTACT_EMAIL! }],
         subject: `Result submitted: ${event.name}`,
         html,
       });

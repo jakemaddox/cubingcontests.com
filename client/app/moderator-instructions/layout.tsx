@@ -1,6 +1,5 @@
 import Link from "next/link";
 import "./moderator-instructions.css";
-import { C } from "~/helpers/constants.ts";
 
 type Props = {
   children: React.ReactNode;
@@ -22,8 +21,8 @@ function ModeratorInstructions({ children }: Props) {
           <Link href="/register" prefetch={false}>
             Create an account
           </Link>{" "}
-          and send an email to {C.contactEmail} with the following information (exception: for WCA competitions,{" "}
-          <b>you must first wait until the competition has been announced</b> on the WCA website):
+          and send an email to {process.env.NEXT_PUBLIC_CONTACT_EMAIL} with the following information (exception: for
+          WCA competitions, <b>you must first wait until the competition has been announced</b> on the WCA website):
         </p>
         <p>1.1. Username</p>
         <p>1.2. WCA ID</p>

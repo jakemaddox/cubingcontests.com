@@ -235,7 +235,7 @@ function ResultsSubmissionForm({
               be identified from the provided video; if your channel name is not your real name, please include your
               full name or WCA ID in the description of the video. If you do not have a WCA ID, please contact the
               admins to have a competitor profile created for you. If you have any questions or suggestions, feel free
-              to send an email to {C.contactEmail}.
+              to send an email to {process.env.NEXT_PUBLIC_CONTACT_EMAIL}.
             </p>
             <button type="button" className="btn btn-success btn-sm" onClick={() => setShowRules(!showRules)}>
               {showRules ? "Hide rules" : "Show rules"}

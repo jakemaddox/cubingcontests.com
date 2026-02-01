@@ -69,7 +69,7 @@ describe("updateUserSF", () => {
     expect(res.validationErrors).toBeUndefined();
     expect(sendRoleChangedEmailSpy).toHaveBeenCalledWith(user.email, role, { canAccessModDashboard: true });
     expect(sendEmailSpy).toHaveBeenCalledWith(
-      C.contactEmail,
+      process.env.NEXT_PUBLIC_CONTACT_EMAIL,
       "Important: New admin user",
       `User ${user.username} (${person.name}) has been given the admin role.`,
     );

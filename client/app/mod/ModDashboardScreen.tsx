@@ -79,8 +79,8 @@ function ModDashboardScreen({ modContestsPromise, session }: Props) {
           <a href={C.discordServerLink} target="_blank" rel="noopener noreferrer">
             Click here to join
           </a>
-          , then send your CC username and your Discord username in an email to {C.contactEmail} so you can be given the
-          moderator role on the server.
+          , then send your CC username and your Discord username in an email to {process.env.NEXT_PUBLIC_CONTACT_EMAIL}{" "}
+          so you can be given the moderator role on the server.
         </div>
 
         <div className="d-flex fs-5 my-4 flex-wrap gap-3">

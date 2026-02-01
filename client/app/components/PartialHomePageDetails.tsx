@@ -18,7 +18,7 @@ function PartialHomePageDetails() {
       </Link>
 
       <h3 className="cc-basic-heading">Contact</h3>
-      <p>For general inquiries, send an email to {C.contactEmail}.</p>
+      <p>For general inquiries, send an email to {process.env.NEXT_PUBLIC_CONTACT_EMAIL}.</p>
     </>
   );
 }

@@ -7,7 +7,6 @@ import Competitor from "~/app/components/Competitor.tsx";
 import Button from "~/app/components/UI/Button.tsx";
 import ToastMessages from "~/app/components/UI/ToastMessages.tsx";
 import { authClient } from "~/helpers/authClient.ts";
-import { C } from "~/helpers/constants.ts";
 import { MainContext } from "~/helpers/contexts.ts";
 import type { PersonResponse } from "~/server/db/schema/persons.ts";
 import { logUserDeletedSF } from "~/server/serverFunctions/serverFunctions";
@@ -52,8 +51,8 @@ function UserSettingsScreen({ person }: Props) {
             Email address: <b>{session.user.email}</b>
           </p>
           <p className="mb-4" style={{ fontSize: "0.85rem" }}>
-            Changing your email address is currently not supported. Please send an email to {C.contactEmail} if you
-            would like to change your email.
+            Changing your email address is currently not supported. Please send an email to{" "}
+            {process.env.NEXT_PUBLIC_CONTACT_EMAIL} if you would like to change your email.
           </p>
           {session.user.personId ? (
             <p className="d-flex flex-wrap gap-2">

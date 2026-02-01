@@ -1,5 +1,4 @@
 export const C = {
-  contactEmail: "cubing-contests-admin@googlegroups.com",
   sourceCodeLink: "https://github.com/mintydev789/cubingcontests.com",
   discordServerLink: "https://discord.gg/7rRMQA8jnU", // this is hardcoded in .mdx
   fetchDebounceTimeout: 600, // the timeout in ms between doing repetitive fetch requests that need to be limited
