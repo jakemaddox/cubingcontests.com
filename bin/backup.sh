@@ -20,7 +20,7 @@ sudo rsync --checksum --delete --archive --xattrs volumes/db/data volumes/storag
 sudo chown -R $USER:$USER $backup_name &&
 
 echo -e "${cyan}Restarting Supabase containers...${nc}\n" &&
-docker compose -f docker-compose.supabase.yml up -d &&
+sudo docker compose -f docker-compose.supabase.yml up -d &&
 
 echo -e "\n${cyan}Creating encrypted archive...${nc}" &&
 tar -czf "$backup_name.tar.gz" $backup_name &&

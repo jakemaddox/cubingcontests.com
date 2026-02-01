@@ -28,6 +28,7 @@ else
   # ./bin/dump-db.sh /dump
 
   sudo docker stop rr-nextjs &&
+  sudo docker exec -w /etc/caddy caddy caddy reload &&
 
   cd client &&
   pnpm run db:migrate &&
