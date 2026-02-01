@@ -919,7 +919,7 @@ async function validateTimeLimitAndCutoff(
     }
   }
 
-  if (attempts.length !== expectedNumberOfAttempts) {
+  if (outputAttempts.length !== expectedNumberOfAttempts) {
     throw new RrActionError(
       `The number of attempts should be ${expectedNumberOfAttempts}; received: ${attempts.length}`,
     );

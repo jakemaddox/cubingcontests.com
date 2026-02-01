@@ -1,5 +1,5 @@
 import { addYears } from "date-fns";
-import { describe, expect, it, vi } from "vitest";
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   caPersonJoshCalhoun,
   dePersonHansBauer,
@@ -31,10 +31,13 @@ import {
   getWrPairUpToDateSF,
   updateContestResultSF,
 } from "~/server/serverFunctions/resultServerFunctions.ts";
+import { reseedTestData } from "~/vitest-setup";
 
 const date = new Date(2026, 0, 1);
 
 describe("getWrPairUpToDateSF", () => {
+  beforeAll(reseedTestData);
+
   it("gets WR pair up to date", async () => {
     const res = await getWrPairUpToDateSF({
       eventId: "444bf",
@@ -107,6 +110,8 @@ describe("getWrPairUpToDateSF", () => {
 });
 
 describe("createContestResultSF", () => {
+  beforeEach(reseedTestData);
+
   it("creates non-record result", async () => {
     const res = await createContestResultSF({
       newResultDto: {
@@ -129,6 +134,26 @@ describe("createContestResultSF", () => {
     expect(res.data![0].date.getTime()).toBe(new Date(2026, 0, 1).getTime());
     expect(res.data![0].regionalSingleRecord).toBeNull();
     expect(res.data![0].regionalAverageRecord).toBeNull();
+  });
+
+  it("creates non-record result that doesn't make cutoff", async () => {
+    const { id: roundId, cutoffAttemptResult } = testComp2026_333_oh_bld_team_relay_r1;
+    const firstAttempt = cutoffAttemptResult! + 1;
+    const res = await createContestResultSF({
+      newResultDto: {
+        eventId: "333_oh_bld_team_relay",
+        personIds: [gbPersonTomDillon.id, gbPersonSamMarsh.id, gbPersonJamesStone.id],
+        attempts: [{ result: firstAttempt }, { result: 0 }, { result: 0 }],
+        competitionId: "TestComp2026",
+        roundId,
+      },
+    });
+
+    expect(res.serverError).toBeUndefined();
+    expect(res.validationErrors).toBeUndefined();
+    expect(res.data?.length).toBe(1);
+    expect(res.data![0].best).toBe(firstAttempt);
+    expect(res.data![0].average).toBe(0);
   });
 
   describe("validation errors", async () => {
@@ -631,6 +656,8 @@ describe("createContestResultSF", () => {
 });
 
 describe("updateContestResultSF", () => {
+  beforeEach(reseedTestData);
+
   it("updates non-record result", async () => {
     const res = await updateContestResultSF({
       id: 4,
@@ -696,6 +723,8 @@ describe("updateContestResultSF", () => {
 });
 
 describe("deleteContestResultSF", () => {
+  beforeEach(reseedTestData);
+
   it("deletes non-record result", async () => {
     const nonRecordResult = await db.query.results.findFirst({
       where: {
@@ -883,6 +912,8 @@ describe("deleteContestResultSF", () => {
 });
 
 describe("createVideoBasedResultSF", () => {
+  beforeEach(reseedTestData);
+
   it("creates non-record result", async () => {
     const res = await createVideoBasedResultSF({
       newResultDto: {

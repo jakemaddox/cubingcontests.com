@@ -1,10 +1,11 @@
 import { eq } from "drizzle-orm";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { C } from "~/helpers/constants.ts";
 import { db } from "~/server/db/provider.ts";
 import { usersTable } from "~/server/db/schema/auth-schema.ts";
 import type { Role } from "~/server/permissions.ts";
 import { updateUserSF } from "~/server/serverFunctions/serverFunctions.ts";
+import { reseedTestData } from "~/vitest-setup";
 
 const { revokeUserSessionsSpy, sendEmailSpy, sendRoleChangedEmailSpy } = vi.hoisted(() => ({
   revokeUserSessionsSpy: vi.fn(),
@@ -26,6 +27,10 @@ vi.mock("~/server/auth.ts", () => ({
 }));
 
 vi.mock("~/server/email/mailer.ts", () => ({ sendEmail: sendEmailSpy, sendRoleChangedEmail: sendRoleChangedEmailSpy }));
+
+beforeEach(async () => {
+  await reseedTestData();
+});
 
 describe("updateUserSF", () => {
   it("updates user's person ID", async () => {
