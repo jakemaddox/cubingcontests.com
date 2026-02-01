@@ -46,10 +46,16 @@ const RoomValidator = z.strictObject({
       const duplicateFoundObj = { id: false, activityCode: false };
 
       const checkActivityDuplicates = (activities: Activity[], key: "id" | "activityCode") => {
-        if (activities.length !== new Set(activities.map((a) => a[key])).size) {
-          duplicateFoundObj[key] = true;
-        } else {
-          activities.forEach((a) => void checkActivityDuplicates(a.childActivities, key));
+        for (let i = 0; i < activities.length; i++) {
+          for (let j = i + 1; j < activities.length; j++) {
+            if (
+              activities[i][key] === activities[j][key] &&
+              (key === "id" || activities[i].name === activities[j].name)
+            ) {
+              duplicateFoundObj[key] = true;
+            }
+          }
+          if (!duplicateFoundObj[key]) activities.forEach((a) => void checkActivityDuplicates(a.childActivities, key));
         }
       };
 
