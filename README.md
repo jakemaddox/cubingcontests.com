@@ -9,7 +9,7 @@ events.
 **A MAJOR UPDATE WAS RELEASED RECENTLY, WHICH MADE THIS README VERY OUTDATED. PLEASE RETURN 1-2 WEEKS FROM NOW ONCE THE README HAS BEEN UPDATED!**
 
 <!--
-## Screenshots
+## Screenshots (CHANGE THESE LINKS)
 
 <img src="https://cubingcontests.com/screenshots/cubing_contests_1.jpg" width="500"/>
 

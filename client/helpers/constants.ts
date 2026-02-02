@@ -1,4 +1,5 @@
 export const C = {
+  cubingContestsHostname: "cubingcontests.com",
   sourceCodeLink: "https://github.com/mintydev789/cubingcontests.com",
   discordServerLink: "https://discord.gg/7rRMQA8jnU", // this is hardcoded in .mdx
   fetchDebounceTimeout: 600, // the timeout in ms between doing repetitive fetch requests that need to be limited
@@ -42,3 +43,7 @@ export const C = {
     danger: "#dc3545",
   },
 };
+
+export const IS_CUBING_CONTESTS_INSTANCE = new RegExp(`https://${C.cubingContestsHostname}`).test(
+  process.env.NEXT_PUBLIC_BASE_URL ?? "",
+);

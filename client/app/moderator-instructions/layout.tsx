@@ -1,5 +1,6 @@
 import Link from "next/link";
 import "./moderator-instructions.css";
+import { C } from "~/helpers/constants";
 
 type Props = {
   children: React.ReactNode;
@@ -27,6 +28,13 @@ function ModeratorInstructions({ children }: Props) {
         <p>1.1. Username</p>
         <p>1.2. WCA ID</p>
         <p>1.3. Name of the competition/meetup you are organizing</p>
+        <p>
+          1.4. Your Discord username (if you're on the Cubing Contests{" "}
+          <a href={C.discordServerLink} target="_blank" rel="noopener noreferrer">
+            Discord server
+          </a>
+          )
+        </p>
         <p>
           2. Once an admin grants you moderator privileges and ties your competitor profile to your account, log out and
           log back in. You will now be able to find the "Mod Dashboard" button in the user section in the navbar. Go to

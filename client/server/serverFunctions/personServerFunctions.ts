@@ -198,7 +198,7 @@ export const deletePersonSF = actionClient
     const result = await db.query.results.findFirst({ where: { personIds: { arrayContains: [person.id] } } });
     if (result) {
       throw new RrActionError(
-        `You may not delete a person who has a result. This person has a result in ${result.eventId}${result.competitionId ? ` at ${result.competitionId}` : ""}.`,
+        `You may not delete a person who has a result. This person has a result in ${result.eventId}${result.competitionId ? ` at ${result.competitionId}` : " (video-based result)"}.`,
       );
     }
 

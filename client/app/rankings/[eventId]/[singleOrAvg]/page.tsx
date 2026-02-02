@@ -51,7 +51,11 @@ export const metadata = {
     "rankings rubik's rubiks cube contest contests competition competitions meetup meetups speedcubing speed cubing puzzle",
   icons: { icon: "/favicon.png" },
   metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL!),
-  openGraph: { images: ["/screenshots/cubing_contests_4.jpg"] },
+  openGraph: {
+    images: [
+      "https://supabase.cubingcontests.com/storage/v1/object/public/Public%20Files/assets/screenshots/cubing_contests_4.jpg",
+    ],
+  },
 };
 
 type Props = {

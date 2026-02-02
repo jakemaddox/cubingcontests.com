@@ -41,24 +41,21 @@ function RankingsTable({ rankingsPromise, event, singleOrAvg, show }: Props) {
           </tr>
         </thead>
         <tbody>
-          {rankings.length === 0 ? (
-            <p className="fs-5 mx-2 mt-4">No rankings found matching the requested parameters</p>
-          ) : (
-            rankings.map((ranking, i) => (
-              <RankingRow
-                key={ranking.rankingId}
-                type={singleOrAvg === "single" ? "single-ranking" : "average-ranking"}
-                ranking={ranking}
-                isTiedRanking={ranking.ranking !== i + 1}
-                event={event}
-                showAllTeammates={showAllTeammates}
-                showTeamColumn={showTeamColumn}
-                showDetailsColumn={showDetailsColumn}
-              />
-            ))
-          )}
+          {rankings.map((ranking, i) => (
+            <RankingRow
+              key={ranking.rankingId}
+              type={singleOrAvg === "single" ? "single-ranking" : "average-ranking"}
+              ranking={ranking}
+              isTiedRanking={ranking.ranking !== i + 1}
+              event={event}
+              showAllTeammates={showAllTeammates}
+              showTeamColumn={showTeamColumn}
+              showDetailsColumn={showDetailsColumn}
+            />
+          ))}
         </tbody>
       </table>
+      {rankings.length === 0 && <p className="fs-5 mx-2 mt-4">No rankings found matching the requested parameters</p>}
     </div>
   );
 }

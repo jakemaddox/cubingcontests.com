@@ -3,7 +3,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { ne } from "drizzle-orm";
 import Link from "next/link";
 import CollectiveCubing from "~/app/components/CollectiveCubing.tsx";
-import { C } from "~/helpers/constants.ts";
+import { C, IS_CUBING_CONTESTS_INSTANCE } from "~/helpers/constants.ts";
 import { db } from "~/server/db/provider.ts";
 import {
   collectiveSolutionsPublicCols,
@@ -68,25 +68,29 @@ async function HomePage() {
         </Link>
       </div>
 
-      <h3 className="cc-basic-heading">Holding a contest</h3>
-      <p>
-        Cubing Contests is an open platform where anyone can hold their competitions and meetups. However, you must
-        first be granted moderator access to be able to create new contests. If you would like to hold unofficial events
-        at a WCA competition or create an unofficial competition or meetup, you must first read the moderator
-        instructions.
-      </p>
-      <div className="fw-bold mx-3 mt-4 rounded-3 border p-3">
-        <FontAwesomeIcon icon={faExclamationTriangle} className="me-2" />
-        Please note that an unofficial competition can only be hosted on Cubing Contests if it's infeasible for it to be
-        held as an official{" "}
-        <a href="https://www.worldcubeassociation.org/" target="_blank" rel="noopener">
-          WCA
-        </a>{" "}
-        competition.
-      </div>
-      <Link href="/moderator-instructions" prefetch={false} className="btn btn-secondary mt-4">
-        Moderator Instructions
-      </Link>
+      {IS_CUBING_CONTESTS_INSTANCE && (
+        <>
+          <h3 className="cc-basic-heading">Holding a contest</h3>
+          <p>
+            Cubing Contests is an open platform where anyone can hold their competitions and meetups. However, you must
+            first be granted moderator access to be able to create new contests. If you would like to hold unofficial
+            events at a WCA competition or create an unofficial competition or meetup, you must first read the moderator
+            instructions.
+          </p>
+          <div className="fw-bold mx-3 mt-4 rounded-3 border p-3">
+            <FontAwesomeIcon icon={faExclamationTriangle} className="me-2" />
+            Please note that an unofficial competition can only be hosted on Cubing Contests if it's infeasible for it
+            to be held as an official{" "}
+            <a href="https://www.worldcubeassociation.org/" target="_blank" rel="noopener">
+              WCA
+            </a>{" "}
+            competition.
+          </div>
+          <Link href="/moderator-instructions" prefetch={false} className="btn btn-secondary mt-4">
+            Moderator Instructions
+          </Link>
+        </>
+      )}
 
       <PartialHomePageDetails />
 

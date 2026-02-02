@@ -80,7 +80,7 @@ function RecordsTable({ recordsDataPromise }: Props) {
                         )}
                       </div>
                       <Competitors persons={record.persons} vertical />
-                      {record.attempts && <Solves event={event} attempts={record.attempts} />}
+                      {record.type === "average" && <Solves event={event} attempts={record.attempts} />}
                       {!record.contest && <RankingLinks ranking={record} />}
                     </li>
                   ))}

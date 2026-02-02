@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { IS_CUBING_CONTESTS_INSTANCE } from "~/helpers/constants";
 import { logAffiliateLinkClickSF } from "~/server/serverFunctions/serverFunctions.ts";
 
 const height = 192 / 2;
@@ -13,6 +14,8 @@ type Props = {
 };
 
 function AffiliateLink({ type }: Props) {
+  if (!IS_CUBING_CONTESTS_INSTANCE) return;
+
   const logAffiliateLinkClick = (utmCampaign: string) => {
     logAffiliateLinkClickSF({ message: `Affiliate link clicked (utm_campaign: ${utmCampaign})` });
   };
@@ -28,7 +31,12 @@ function AffiliateLink({ type }: Props) {
           className={className}
           style={style}
         >
-          <Image src="/banners/3x3.jpg" height={height} width={width} alt="Cuboss ad for 3x3x3 puzzles" />
+          <Image
+            src="https://supabase.cubingcontests.com/storage/v1/object/public/Public%20Files/assets/banners/3x3.jpg"
+            height={height}
+            width={width}
+            alt="Cuboss ad for 3x3x3 puzzles"
+          />
         </a>
       );
     case "2x2":
@@ -41,7 +49,12 @@ function AffiliateLink({ type }: Props) {
           className={className}
           style={style}
         >
-          <Image src="/banners/2x2.jpg" height={height} width={width} alt="Cuboss ad for 2x2x2 puzzles" />
+          <Image
+            src="https://supabase.cubingcontests.com/storage/v1/object/public/Public%20Files/assets/banners/2x2.jpg"
+            height={height}
+            width={width}
+            alt="Cuboss ad for 2x2x2 puzzles"
+          />
         </a>
       );
     case "wca":
@@ -54,7 +67,12 @@ function AffiliateLink({ type }: Props) {
           className={className}
           style={style}
         >
-          <Image src="/banners/wca.jpg" height={height} width={width} alt="Cuboss ad for WCA puzzles" />
+          <Image
+            src="https://supabase.cubingcontests.com/storage/v1/object/public/Public%20Files/assets/banners/wca.jpg"
+            height={height}
+            width={width}
+            alt="Cuboss ad for WCA puzzles"
+          />
         </a>
       );
     case "fto":
@@ -67,7 +85,12 @@ function AffiliateLink({ type }: Props) {
           className={className}
           style={style}
         >
-          <Image src="/banners/fto.jpg" height={height} width={width} alt="Cuboss ad for FTO puzzles" />
+          <Image
+            src="https://supabase.cubingcontests.com/storage/v1/object/public/Public%20Files/assets/banners/fto.jpg"
+            height={height}
+            width={width}
+            alt="Cuboss ad for FTO puzzles"
+          />
         </a>
       );
     case "mirror":
@@ -80,7 +103,12 @@ function AffiliateLink({ type }: Props) {
           className={className}
           style={style}
         >
-          <Image src="/banners/mirror.jpg" height={height} width={width} alt="Cuboss ad for Mirror Blocks puzzles" />
+          <Image
+            src="https://supabase.cubingcontests.com/storage/v1/object/public/Public%20Files/assets/banners/mirror.jpg"
+            height={height}
+            width={width}
+            alt="Cuboss ad for Mirror Blocks puzzles"
+          />
         </a>
       );
     case "kilominx":
@@ -93,7 +121,12 @@ function AffiliateLink({ type }: Props) {
           className={className}
           style={style}
         >
-          <Image src="/banners/kilominx.jpg" height={height} width={width} alt="Cuboss ad for Kilominx puzzles" />
+          <Image
+            src="https://supabase.cubingcontests.com/storage/v1/object/public/Public%20Files/assets/banners/kilominx.jpg"
+            height={height}
+            width={width}
+            alt="Cuboss ad for Kilominx puzzles"
+          />
         </a>
       );
     case "other":
@@ -106,7 +139,12 @@ function AffiliateLink({ type }: Props) {
           className={className}
           style={style}
         >
-          <Image src="/banners/other.jpg" height={height} width={width} alt="Cuboss ad" />
+          <Image
+            src="https://supabase.cubingcontests.com/storage/v1/object/public/Public%20Files/assets/banners/other.jpg"
+            height={height}
+            width={width}
+            alt="Cuboss ad"
+          />
         </a>
       );
     default:

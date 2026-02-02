@@ -3,8 +3,8 @@
 if [ -z "$1" ] || [ "$1" != "--no-checks" ]; then
   cd client
   pnpm run check &&
-  cp ../.env ./.env.local &&
   pnpm run test --bail=1 &&
+  cp ../.env ./.env.local &&
   pnpm run build &&
   cd ..
 fi

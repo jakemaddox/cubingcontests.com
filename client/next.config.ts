@@ -26,6 +26,9 @@ const nextConfig: NextConfig = withMDX({
       },
     ]);
   },
+  images: {
+    remotePatterns: [new URL(`https://supabase.${process.env.PROD_HOSTNAME}/storage/v1/**`)],
+  },
   // Enables streaming (https://nextjs.org/docs/app/guides/self-hosting#streaming-and-suspense)
   async headers() {
     return [
