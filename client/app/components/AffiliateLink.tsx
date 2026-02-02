@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { IS_CUBING_CONTESTS_INSTANCE } from "~/helpers/constants";
 import { logAffiliateLinkClickSF } from "~/server/serverFunctions/serverFunctions.ts";
 
@@ -31,7 +30,7 @@ function AffiliateLink({ type }: Props) {
           className={className}
           style={style}
         >
-          <Image
+          <img
             src="https://supabase.cubingcontests.com/storage/v1/object/public/Public%20Files/assets/banners/3x3.jpg"
             height={height}
             width={width}
@@ -49,7 +48,7 @@ function AffiliateLink({ type }: Props) {
           className={className}
           style={style}
         >
-          <Image
+          <img
             src="https://supabase.cubingcontests.com/storage/v1/object/public/Public%20Files/assets/banners/2x2.jpg"
             height={height}
             width={width}
@@ -67,7 +66,7 @@ function AffiliateLink({ type }: Props) {
           className={className}
           style={style}
         >
-          <Image
+          <img
             src="https://supabase.cubingcontests.com/storage/v1/object/public/Public%20Files/assets/banners/wca.jpg"
             height={height}
             width={width}
@@ -85,7 +84,7 @@ function AffiliateLink({ type }: Props) {
           className={className}
           style={style}
         >
-          <Image
+          <img
             src="https://supabase.cubingcontests.com/storage/v1/object/public/Public%20Files/assets/banners/fto.jpg"
             height={height}
             width={width}
@@ -103,7 +102,7 @@ function AffiliateLink({ type }: Props) {
           className={className}
           style={style}
         >
-          <Image
+          <img
             src="https://supabase.cubingcontests.com/storage/v1/object/public/Public%20Files/assets/banners/mirror.jpg"
             height={height}
             width={width}
@@ -121,7 +120,7 @@ function AffiliateLink({ type }: Props) {
           className={className}
           style={style}
         >
-          <Image
+          <img
             src="https://supabase.cubingcontests.com/storage/v1/object/public/Public%20Files/assets/banners/kilominx.jpg"
             height={height}
             width={width}
@@ -139,7 +138,7 @@ function AffiliateLink({ type }: Props) {
           className={className}
           style={style}
         >
-          <Image
+          <img
             src="https://supabase.cubingcontests.com/storage/v1/object/public/Public%20Files/assets/banners/other.jpg"
             height={height}
             width={width}
