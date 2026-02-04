@@ -196,8 +196,9 @@ export async function getRecords(
   });
 
   let recordTypes: RecordType[] = ["WR"];
+  const continent = Continents.find((c) => c.code === region);
+
   if (region) {
-    const continent = Continents.find((c) => c.code === region);
     if (continent) {
       recordTypes.push(continent.recordTypeId);
     } else {
@@ -232,6 +233,9 @@ export async function getRecords(
           inArray(resultsTable.regionalSingleRecord, recordTypes),
           inArray(resultsTable.regionalAverageRecord, recordTypes),
         ),
+        continent && recordTypes.includes(continent.recordTypeId)
+          ? eq(resultsTable.superRegionCode, continent.code)
+          : undefined,
         region && recordTypes.includes("NR") ? eq(resultsTable.regionCode, region) : undefined,
       ),
     )

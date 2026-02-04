@@ -6,7 +6,13 @@ import z from "zod";
 import { ContinentRecordType, Countries, getSuperRegion } from "~/helpers/Countries.ts";
 import { C } from "~/helpers/constants.ts";
 import { roundFormats } from "~/helpers/roundFormats.ts";
-import { type ContinentCode, type EventWrPair, RecordCategoryValues, type RecordType } from "~/helpers/types.ts";
+import {
+  ContinentalRecordTypes,
+  type ContinentCode,
+  type EventWrPair,
+  RecordCategoryValues,
+  type RecordType,
+} from "~/helpers/types.ts";
 import {
   compareAvgs,
   compareSingles,
@@ -788,7 +794,7 @@ async function cancelFutureRecords(
       const message = `CHANGED ${r.eventId} ${type} ${wrLabel} to ${resultCrLabel}: ${r[bestOrAverage]} (country code ${r.regionCode})`;
       logMessage("RR0026", message);
     }
-  } else if (["ER", "NAR", "SAR", "AsR", "AfR", "OcR"].includes(result[recordField]!)) {
+  } else if (ContinentalRecordTypes.includes(result[recordField]!)) {
     const cancelledCrNrResults = await tx
       .update(table)
       .set({ [recordField]: null })

@@ -444,7 +444,7 @@ export async function register() {
     //               .returning()),
     //           );
 
-    //           for (const crType of ["ER", "NAR", "SAR", "AsR", "AfR", "OcR"]) {
+    //           for (const crType of ContinentalRecordTypes) {
     //             const superRegionCode = Continents.find((c) => c.recordTypeId === crType)!.code;
 
     //             const newCrIds = await tx
