@@ -54,15 +54,15 @@ const timeExamples = [
   // INVALID TIMES
   {
     inputs: { time: "248344", memo: "653452" }, // 83 seconds; 65 minutes
-    outputAtt: { result: null, memo: null },
+    outputAtt: { result: NaN, memo: NaN },
   },
   {
     inputs: { time: "155452", memo: "242344" }, // memo longer than time
-    outputAtt: { result: null, memo: 146344 },
+    outputAtt: { result: NaN, memo: 146344 },
   },
   {
     inputs: { time: "25085622", memo: undefined }, // > 24 hours
-    outputAtt: { result: null, memo: undefined },
+    outputAtt: { result: NaN, memo: undefined },
   },
 ];
 
@@ -197,11 +197,11 @@ describe(getAttempt.name, () => {
       it(`parses ${example.inputs.time}${example.inputs.memo ? ` with ${inputs.memo} memo` : ""} correctly`, () => {
         const output = getAttempt(dummyAtt, mockTimeEvent, inputs.time, { ...roundOpts, memo: inputs.memo });
         const expectedResult =
-          outputAtt.result !== null && outputAtt.result >= 60000
+          !Number.isNaN(outputAtt.result) && outputAtt.result >= 60000
             ? outputAtt.result - (outputAtt.result % 100)
             : outputAtt.result;
         const expectedMemo =
-          outputAtt.memo !== null && outputAtt.memo && outputAtt.memo >= 60000
+          !Number.isNaN(outputAtt.memo) && outputAtt.memo && outputAtt.memo >= 60000
             ? outputAtt.memo - (outputAtt.memo % 100)
             : outputAtt.memo;
 
@@ -261,7 +261,7 @@ describe(getAttempt.name, () => {
             attempted: inp.attempted,
             memo: inp.memo,
           });
-          expect(output.result).toBe(null);
+          expect(output.result).toBeNaN();
           expect(output.memo).toBe(example.memo);
         });
       } else {
@@ -283,7 +283,7 @@ describe(getAttempt.name, () => {
             attempted: inp.attempted,
             memo: inp.memo,
           });
-          expect(output.result).toBe(null);
+          expect(output.result).toBeNaN();
           expect(output.memo).toBe(example.memo);
         });
       }
@@ -299,7 +299,7 @@ describe(getAttempt.name, () => {
           solved: 36,
           attempted: 36,
         }).result,
-      ).toBeNull();
+      ).toBeNaN();
     });
 
     it("parses Multi-Blind Old Style attempt with unknown time correctly", () => {
